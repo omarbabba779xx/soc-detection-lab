@@ -1,0 +1,73 @@
+# =============================================
+# SECRETS ET CREDENTIALS — JAMAIS DANS GIT
+# =============================================
+.env
+*.env
+secrets/
+credentials/
+*.key
+*.pem
+*.p12
+*.pfx
+api-keys.txt
+passwords.txt
+lab-registry.md
+*.secret
+
+# =============================================
+# DONNÉES SENSIBLES
+# =============================================
+evidence/logs/*.evtx
+ndr/pcaps/*.pcap
+ndr/pcaps/*.pcapng
+*.pcap
+*.pcapng
+*.dmp
+*.dump
+*.cap
+
+# =============================================
+# DONNÉES PERSONNELLES
+# =============================================
+evidence/cases/personal/
+
+# =============================================
+# FICHIERS TEMPORAIRES
+# =============================================
+*.tmp
+*.log
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =============================================
+# VIRTUALBOX
+# =============================================
+*.vdi
+*.vmdk
+*.vbox-prev
+*.ova
+*.ovf
+
+# =============================================
+# JUPYTER
+# =============================================
+.ipynb_checkpoints/
+*.ipynb~
+
+# =============================================
+# DOCKER
+# =============================================
+.docker-secrets/
+docker-compose.override.yml
+
+# =============================================
+# EDITEURS
+# =============================================
+.vscode/
+.idea/
+*.swp
+*.swo
