@@ -160,7 +160,17 @@ All scenarios executed from `SF-VM12-PURPLE` (Kali Linux, 10.10.10.60) targeting
 | **Tool** | nmap 7.99 |
 | **Command** | `nmap -sS -T4 10.10.10.109` |
 | **Result** | Open ports: DNS/53, Kerberos/88, MSRPC/135, NetBIOS/139, LDAP/389, SMB/445 |
-| **Detection** | Wazuh network intrusion signatures |
+| **Detection** | Wazuh rule 100100 — Network scan tool detected in process execution |
+
+#### Evidence
+
+**Wazuh Threat Hunting — `rule.id:100100` — 1 hit — T1046 Network scan detected:**
+
+![Wazuh T1046 list view](docs/screenshots/scenario1_wazuh_rule100100_list.png)
+
+**Document Details — MITRE T1046 mapping — rule.groups: socforge, sigma, network_scan, recon, socforge_purple:**
+
+![Wazuh T1046 document details](docs/screenshots/scenario1_wazuh_rule100100_details.png)
 
 ---
 
@@ -174,6 +184,16 @@ All scenarios executed from `SF-VM12-PURPLE` (Kali Linux, 10.10.10.60) targeting
 | **Windows Event** | EventID 4625 (Logon Failure) — 12 events generated |
 | **Detection** | Rule 60122 (level 5) — **18 hits** in alerts.log |
 | **Forensic** | Source IP 10.10.10.60, Workstation: PURPLE identified |
+
+#### Evidence
+
+**Wazuh Threat Hunting — `rule.id:60122` — 15 hits — Logon Failure from dc01 and win01:**
+
+![Wazuh T1110 brute force list 15 hits](docs/screenshots/scenario2_wazuh_rule60122_list_15hits.png)
+
+**Document Details — agent dc01, targetUserName: john.doe, workstationName: PURPLE, ipAddress: 10.10.10.60, EventID 4625 AUDIT_FAILURE:**
+
+![Wazuh T1110 dc01 logon failure details](docs/screenshots/scenario2_wazuh_rule60122_dc01_details.png)
 
 ---
 
@@ -218,6 +238,10 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 **Document Details — MITRE T1059.001 + T1027 mapping:**
 
 ![MITRE details rule 100131](docs/screenshots/scenario3_wazuh_rule100131_mitre_details.png)
+
+**Document Details — commandLine field showing base64 -EncodedCommand payload:**
+
+![CommandLine field rule 100131](docs/screenshots/scenario3_wazuh_rule100131_commandline.png)
 
 #### Alert Document (Wazuh OpenSearch — `wazuh-alerts-4.x-2026.08.05`)
 
@@ -274,9 +298,17 @@ auditpol /set /subcategory:"File Share" /success:enable
 
 ![Wazuh detection rule 100140](docs/screenshots/scenario4_wazuh_rule100140_3hits_overview.png)
 
+**Wazuh Threat Hunting — `rule.id:100140` — list view with 3 ADMIN$ hits:**
+
+![Rule 100140 list 3 hits](docs/screenshots/scenario4_wazuh_rule100140_list_3hits.png)
+
 **Document Details — ADMIN$ forensic evidence — source 10.10.10.60:**
 
 ![ADMIN$ document details](docs/screenshots/scenario4_wazuh_rule100140_admins_document.png)
+
+**Document Details — MITRE T1021.002 Lateral Movement mapping:**
+
+![T1021.002 MITRE document details](docs/screenshots/scenario4_wazuh_rule100140_document_details.png)
 
 #### Alert Document (Wazuh OpenSearch — `wazuh-alerts-4.x-2026.08.05`)
 
@@ -297,6 +329,108 @@ auditpol /set /subcategory:"File Share" /success:enable
 | `data.win.eventdata.subjectDomainName` | `SOCFORGE` |
 | `agent.name` | `dc01` |
 | `agent.ip` | `10.10.10.109` |
+
+---
+
+## Phase 0 — VM Installation Gallery
+
+All 12 VMs provisioned and verified. One success screenshot per VM:
+
+### VM01 — OPNsense Firewall
+
+![VM01 OPNsense install success](docs/screenshots/phase0-install/VM01-FW-opnsense-install-SUCCESS.png)
+
+### VM02 — Wazuh SIEM
+
+![VM02 Wazuh install success](docs/screenshots/phase0-install/VM02-WAZUH-install-SUCCESS.png)
+
+**Wazuh agents enrolled — dc01 ACTIVE:**
+
+![VM02 Wazuh agent dc01 active](docs/screenshots/phase0-install/VM02-WAZUH-agent-list-dc01-ACTIVE.png)
+
+**Wazuh agents enrolled — win01 ACTIVE:**
+
+![VM02 Wazuh agent win01 active](docs/screenshots/phase0-install/VM02-WAZUH-agent-list-win01-ACTIVE.png)
+
+**Wazuh agents enrolled — linux01 ACTIVE:**
+
+![VM02 Wazuh agent linux01 active](docs/screenshots/phase0-install/VM02-WAZUH-agent-list-linux01-ACTIVE.png)
+
+### VM03 — TheHive Case Management
+
+![VM03 TheHive running 200 OK](docs/screenshots/phase0-install/VM03-THEHIVE-running-200OK.png)
+
+### VM04 — Cortex Enrichment Engine
+
+![VM04 Cortex running HTTP 200](docs/screenshots/phase0-install/VM04-CORTEX-running-HTTP200.png)
+
+### VM05 — MISP Threat Intelligence
+
+![VM05 MISP running HTTPS](docs/screenshots/phase0-install/VM05-MISP-running-HTTPS.png)
+
+### VM06 — Shuffle SOAR
+
+![VM06 Shuffle HTTP 200 running](docs/screenshots/phase0-install/VM06-SHUFFLE-HTTP200-running.png)
+
+### VM07 — NDR (Network Detection & Response)
+
+![VM07 NDR install success](docs/screenshots/phase0-install/VM07-NDR-install-SUCCESS.png)
+
+### VM08 — DFIR / Velociraptor
+
+![VM08 DFIR ubuntu install complete](docs/screenshots/phase0-install/VM08-DFIR-HUNT-ubuntu-install-complete.png)
+
+![VM08 Velociraptor running port 8889](docs/screenshots/phase0-install/VM08-VELOCIRAPTOR-running-port8889.png)
+
+### VM09 — DC01 (Windows Server 2022 — Active Directory)
+
+![VM09 DC01 Windows Server 2022 lock screen](docs/screenshots/phase0-install/VM09-DC01-winserver2022-LOCKSCREEN-SUCCESS.png)
+
+**Active Directory users created (john.doe, jane.smith, svc.backup):**
+
+![VM09 DC01 AD users created](docs/screenshots/phase0-install/VM09-DC01-AD-users-created.png)
+
+**Wazuh agent deployed on DC01:**
+
+![VM09 DC01 Wazuh agent success](docs/screenshots/phase0-install/VM09-DC01-wazuh-agent-SUCCESS.png)
+
+### VM10 — WIN01 (Windows 11 Endpoint)
+
+![VM10 WIN01 Windows 11 desktop](docs/screenshots/phase0-install/VM10-WIN01-win11-desktop-SUCCESS.png)
+
+**Wazuh agent running on WIN01:**
+
+![VM10 WIN01 Wazuh agent success](docs/screenshots/phase0-install/VM10-WIN01-wazuh-agent-SUCCESS.png)
+
+### VM11 — LINUX01 (Ubuntu Endpoint)
+
+![VM11 LINUX01 ubuntu install complete](docs/screenshots/phase0-install/VM11-LINUX01-ubuntu-install-complete.png)
+
+**Wazuh agent enrolled on LINUX01:**
+
+![VM11 LINUX01 Wazuh agent enrolled](docs/screenshots/phase0-install/VM11-LINUX01-wazuh-agent-ENROLLED.png)
+
+### VM12 — PURPLE (Kali Linux Red Team)
+
+![VM12 PURPLE Kali install success](docs/screenshots/phase0-install/VM12-PURPLE-kali-install-SUCCESS.png)
+
+---
+
+## Phase 2 — Pipeline Integration
+
+### TheHive — Case Management Running
+
+![TheHive running](docs/screenshots/phase2-pipeline/thehive-running.png)
+
+### Cortex — MISP Analyzer Enabled
+
+![Cortex MISP analyzer enabled](docs/screenshots/phase2-pipeline/cortex-misp-enabled-final.png)
+
+### MISP — API Key and Feeds Configured
+
+![MISP API key](docs/screenshots/phase2-pipeline/misp-apikey.png)
+
+![MISP feeds queued](docs/screenshots/phase2-pipeline/misp-feeds-queued.png)
 
 ---
 
