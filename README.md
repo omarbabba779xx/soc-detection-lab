@@ -96,14 +96,17 @@ Every result shown in this repository is backed by a real screenshot taken from 
 
 | VM | Role | IP | OS | Status |
 |---|---|---|---|---|
+| `SF-VM01-FW` | Firewall / Gateway | 10.10.10.1 | OPNsense 24.x | ✅ Active |
 | `SF-VM02-WAZUH` | SIEM / XDR | 10.10.10.10 | Ubuntu 22.04 | ✅ Active |
 | `SF-VM03-THEHIVE` | Case Management | 10.10.10.20 | Ubuntu 22.04 | ✅ Active |
 | `SF-VM04-CORTEX` | Enrichment Engine | 10.10.10.21 | Ubuntu 22.04 | ✅ Active |
 | `SF-VM05-MISP` | Threat Intelligence | 10.10.10.22 | Ubuntu 22.04 | ✅ Active |
 | `SF-VM06-SHUFFLE` | SOAR | 10.10.10.30 | Ubuntu 22.04 | ✅ Active |
+| `SF-VM07-NDR` | Network Detection & Response | 10.10.10.40 | Ubuntu 22.04 | ✅ Active |
 | `SF-VM08-DFIR` | DFIR / Velociraptor | 10.10.60.10 | Ubuntu 22.04 | ✅ Configured |
 | `SF-VM09-DC01` | Active Directory DC | 10.10.10.109 | Windows Server 2022 | ✅ Active |
 | `SF-VM10-WIN01` | Endpoint | 10.10.10.110 | Windows 11 | ✅ Domain-joined |
+| `SF-VM11-LINUX01` | Linux Endpoint | 10.10.10.111 | Ubuntu 22.04 | ✅ Active |
 | `SF-VM12-PURPLE` | Red Team | 10.10.10.60 | Kali Linux 6.19.14 | ✅ Active |
 
 **Network segmentation:**
