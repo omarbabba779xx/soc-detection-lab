@@ -6,7 +6,7 @@
 <div align="center">
 
 ![Lab Status](https://img.shields.io/badge/status-operational-39d353?style=flat-square)
-![Phase](https://img.shields.io/badge/phase-3%20complete-00d4ff?style=flat-square)
+![Phase](https://img.shields.io/badge/phase-4%20complete-00d4ff?style=flat-square)
 ![Scenarios](https://img.shields.io/badge/purple%20team-4%2F4%20scenarios-bc8cff?style=flat-square)
 ![MITRE](https://img.shields.io/badge/MITRE%20ATT%26CK-T1046%20%7C%20T1110%20%7C%20T1059.001%20%7C%20T1021.002-f0883e?style=flat-square)
 ![Wazuh](https://img.shields.io/badge/Wazuh-4.9.2-005571?style=flat-square)
@@ -26,6 +26,9 @@
   - [Scenario 2 — T1110 Credential Brute Force](#scenario-2--t1110-credential-brute-force)
   - [Scenario 3 — T1059.001 PowerShell Encoded Command](#scenario-3--t1059001-powershell-encoded-command)
   - [Scenario 4 — T1021.002 SMB Lateral Movement](#scenario-4--t1021002-smb-lateral-movement)
+- [Bloc 1 — SOAR Pipeline](#bloc-1--soar-pipeline)
+- [Bloc 2 — MISP + Cortex Enrichment](#bloc-2--misp--cortex-enrichment)
+- [Phase 4 — DFIR / Velociraptor](#phase-4--dfir--velociraptor)
 - [KPI Dashboard](#kpi-dashboard)
 - [Tech Stack](#tech-stack)
 - [Project Phases](#project-phases)
@@ -434,6 +437,93 @@ All 12 VMs provisioned and verified. One success screenshot per VM:
 
 ---
 
+## Bloc 1 — SOAR Pipeline
+
+Wazuh alerts auto-forwarded to Shuffle via webhook, which creates TheHive cases automatically. The playbook covers 5 nodes: Wazuh trigger → parse → TheHive create alert → enrich → close.
+
+### Shuffle SOAR Playbook (5-node workflow)
+
+![Shuffle SOAR playbook 5 nodes](docs/screenshots/bloc1-soar/shuffle-soar-playbook-5nodes.png)
+
+### Shuffle Workflow Execution Finished
+
+![Shuffle execution finished](docs/screenshots/bloc1-soar/shuffle-execution-finished.png)
+
+### Shuffle — All Workflow Runs
+
+![Shuffle all workflow runs](docs/screenshots/bloc1-soar/shuffle-all-workflow-runs.png)
+
+### TheHive — Alert Created by SOAR
+
+![TheHive alert from SOAR](docs/screenshots/bloc1-soar/thehive-alert-from-soar.png)
+
+### TheHive — 250+ Alerts Ingested
+
+![TheHive alerts 250](docs/screenshots/bloc1-soar/thehive-alerts-250.png)
+
+---
+
+## Bloc 2 — MISP + Cortex Enrichment
+
+T1110 brute-force alert enriched automatically: TheHive triggers Cortex → MISP analyzer → IOC lookup against CIRCL OSINT feed → enriched alert with observable tags.
+
+### Cortex Job — MISP SocForge Analyzer Success
+
+![Cortex MISP job success](docs/screenshots/bloc2-misp-cortex/cortex-job-misp-socforge-success.jpg)
+
+### MISP Event 2108 — IOC Attributes
+
+![MISP event 2108 IOC](docs/screenshots/bloc2-misp-cortex/misp-event-2108-ioc.jpg)
+
+### MISP Event 2108 — Full Attribute List
+
+![MISP event 2108 attributes](docs/screenshots/bloc2-misp-cortex/misp-event-2108-attributes.jpg)
+
+### TheHive — Enriched Alert (MISP + Cortex)
+
+![TheHive enriched alert](docs/screenshots/bloc2-misp-cortex/thehive-alert-enriched.jpg)
+
+---
+
+## Phase 4 — DFIR / Velociraptor
+
+Velociraptor 0.77.1 deployed on VM08 (10.10.60.10). DC01 (Windows Server 2022) and WIN01 (Windows 11) enrolled as clients. Forensic artifact collection performed live on DC01 running as SYSTEM service.
+
+### Velociraptor — Dashboard
+
+![Velociraptor dashboard connected](docs/screenshots/phase4-dfir/velociraptor-dashboard-connected.jpg)
+
+### Velociraptor — Two Clients Connected (DC01 + WIN01)
+
+**Client C.c6b3dab429088216 = DC01 (WIN-FJ8RP03U8FK.socforge.lab, Windows Server 2022)**  
+**Client C.07dab9364f98e1aa = WIN01 (DESKTOP-75LAKDV, Windows 11)**
+
+![Velociraptor clients connected](docs/screenshots/phase4-dfir/velociraptor-clients-connected.jpg)
+
+### DC01 — Client Overview
+
+Agent 0.77.1 — First Seen 2026-08-04 — Last IP 10.10.10.109
+
+![Velociraptor DC01 overview](docs/screenshots/phase4-dfir/velociraptor-dc01-overview.jpg)
+
+### DC01 — Windows.System.Pslist — Collection Log
+
+![Velociraptor Pslist log DC01](docs/screenshots/phase4-dfir/velociraptor-pslist-log-dc01.jpg)
+
+### DC01 — PowerShell Shell — Live Process List
+
+MsMpEng (273 MB), dns (133 MB), wazuh-agent (PID 2240), Velociraptor (PID 3356), lsass, powershell — all captured live via VQL shell.
+
+![Velociraptor shell pslist DC01](docs/screenshots/phase4-dfir/velociraptor-shell-pslist-dc01.jpg)
+
+### DC01 — Windows.System.Pslist — 46 Rows
+
+Full artifact: CreateTime, PID, PPID, TokenIsElevated, Name, CommandLine, Exe path, MD5/SHA1/SHA256 hashes, Authenticode (Microsoft Windows), Username (NT AUTHORITY\SYSTEM).
+
+![Velociraptor Pslist 46 rows](docs/screenshots/phase4-dfir/velociraptor-pslist-results-46rows.jpg)
+
+---
+
 ## KPI Dashboard
 
 All metrics extracted from live systems on 2026-08-05:
@@ -446,7 +536,7 @@ All metrics extracted from live systems on 2026-08-05:
 | T1059.001 rule 100131 hits | **5** | `grep 'Rule: 100131' alerts.log` |
 | T1021.002 rule 100140 hits | **9** | `grep 'Rule: 100140' alerts.log` |
 | T1110 rule 60122 hits | **18** | `grep 'Rule: 60122' alerts.log` |
-| TheHive alerts created | **16+** | TheHive REST API |
+| TheHive alerts created | **350+** | TheHive REST API |
 | Cortex analyzers available | **238** | Cortex admin panel |
 | MISP threat feeds active | **2** | CIRCL OSINT + Botvrij.eu |
 | Velociraptor agents enrolled | **2** | DC01 + WIN01 |
@@ -483,7 +573,7 @@ All metrics extracted from live systems on 2026-08-05:
 | **Phase 1** | Tool installation: Wazuh, TheHive, Cortex, MISP, Shuffle, Velociraptor | ✅ Complete |
 | **Phase 2** | Agent deployment, Wazuh→TheHive pipeline, Cortex/MISP integration | ✅ Complete |
 | **Phase 3** | Purple Team scenarios 1–4, custom Sigma rules, live detections verified | ✅ Complete |
-| **Phase 4** | KPI metrics, portfolio documentation, GitHub publication | ✅ Complete |
+| **Phase 4** | DFIR — Velociraptor remote artifact collection (DC01 client, Pslist 46 rows) | ✅ Complete |
 
 ---
 
