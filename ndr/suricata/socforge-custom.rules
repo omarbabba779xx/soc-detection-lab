@@ -1,0 +1,88 @@
+# SocForge — Suricata Custom Rules
+# VM07-NDR: /etc/suricata/rules/socforge-custom.rules
+# Référencé dans suricata.yaml: rule-files: [socforge-custom.rules]
+# Format: Suricata 7.x compatible
+
+# ============================================================
+# GROUPE: T1046 — Network Service Discovery
+# ============================================================
+
+# Détection scan nmap (-sS SYN scan)
+alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"SocForge T1046 - Possible SYN Scan"; flags:S,12; threshold:type threshold, track by_src, count 20, seconds 10; classtype:network-scan; sid:9100001; rev:1;)
+
+# Détection scan nmap avec probe
+alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"SocForge T1046 - Multi-port probe from single host"; threshold:type threshold, track by_src, count 15, seconds 5; classtype:network-scan; sid:9100002; rev:1;)
+
+# ============================================================
+# GROUPE: T1110 — Brute Force
+# ============================================================
+
+# Brute force SMB (multiple auth failures)
+alert tcp $EXTERNAL_NET any -> $HOME_NET 445 (msg:"SocForge T1110 - SMB Brute Force Attempt"; content:"NTLMSSP"; threshold:type threshold, track by_src, count 5, seconds 60; classtype:attempted-user; sid:9100010; rev:1;)
+
+# Brute force RDP
+alert tcp $EXTERNAL_NET any -> $HOME_NET 3389 (msg:"SocForge T1110 - RDP Brute Force Attempt"; threshold:type threshold, track by_src, count 5, seconds 60; classtype:attempted-user; sid:9100011; rev:1;)
+
+# Brute force SSH
+alert tcp $EXTERNAL_NET any -> $HOME_NET 22 (msg:"SocForge T1110 - SSH Brute Force Attempt"; threshold:type threshold, track by_src, count 5, seconds 60; classtype:attempted-user; sid:9100012; rev:1;)
+
+# ============================================================
+# GROUPE: T1071 — Application Layer Protocol (C2)
+# ============================================================
+
+# HTTP User-Agent vide (possible beacon C2)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"SocForge T1071.001 - HTTP Empty User-Agent"; http.user_agent; content:""; depth:0; classtype:policy-violation; sid:9100020; rev:1;)
+
+# HTTP POST vers IP sans nom de domaine (C2 over HTTP)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"SocForge T1071.001 - HTTP POST to raw IP"; http.method; content:"POST"; http.host; content:!"."; classtype:trojan-activity; sid:9100021; rev:1;)
+
+# ============================================================
+# GROUPE: T1048 — DNS Exfiltration
+# ============================================================
+
+# DNS query anormalement longue
+alert dns any any -> any 53 (msg:"SocForge T1048.003 - DNS Long Query possible tunneling"; dns.query; pcre:"/[a-zA-Z0-9+\/]{40,}\.[a-z]{2,6}/"; classtype:policy-violation; sid:9100030; rev:1;)
+
+# Fréquence DNS élevée vers même domaine
+alert dns $HOME_NET any -> any 53 (msg:"SocForge T1048.003 - High frequency DNS queries"; threshold:type threshold, track by_src, count 100, seconds 60; classtype:policy-violation; sid:9100031; rev:1;)
+
+# ============================================================
+# GROUPE: T1021.002 — SMB Admin Shares
+# ============================================================
+
+# Accès à ADMIN$ via SMB
+alert smb2 $HOME_NET any -> $HOME_NET 445 (msg:"SocForge T1021.002 - SMB Admin Share Access ADMIN$"; content:"ADMIN$"; classtype:policy-violation; sid:9100040; rev:1;)
+
+# Accès à C$ via SMB
+alert smb2 $HOME_NET any -> $HOME_NET 445 (msg:"SocForge T1021.002 - SMB Admin Share Access C$"; content:"C$"; classtype:policy-violation; sid:9100041; rev:1;)
+
+# ============================================================
+# GROUPE: T1059.001 — PowerShell over Network
+# ============================================================
+
+# PowerShell remoting (WinRM port 5985)
+alert tcp $HOME_NET any -> $HOME_NET 5985 (msg:"SocForge T1059.001 - PowerShell Remoting WinRM"; content:"WSMAN"; nocase; classtype:policy-violation; sid:9100050; rev:1;)
+
+# PowerShell remoting SSL (WinRM port 5986)
+alert tcp $HOME_NET any -> $HOME_NET 5986 (msg:"SocForge T1059.001 - PowerShell Remoting WinRM SSL"; classtype:policy-violation; sid:9100051; rev:1;)
+
+# ============================================================
+# GROUPE: T1055 — Process Injection (réseau)
+# ============================================================
+
+# Meterpreter staging (MSGRPC pattern)
+alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"SocForge T1055 - Possible Meterpreter Staging"; content:"MSFR"; depth:4; classtype:trojan-activity; sid:9100060; rev:1;)
+
+# Cobalt Strike beacon (checksum8 pattern)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"SocForge T1055 - Possible Cobalt Strike Beacon"; http.uri; pcre:"/^\/[a-zA-Z0-9]{4}$/"; http.method; content:"GET"; classtype:trojan-activity; sid:9100061; rev:1;)
+
+# ============================================================
+# GROUPE: Purple Team (VM12-PURPLE surveillance)
+# Source: 10.10.10.60
+# ============================================================
+
+# Trafic sortant de VM12-PURPLE vers Internet (doit rester interne)
+alert ip 10.10.10.60 any -> !10.0.0.0/8 any (msg:"SocForge SECURITY - Purple Team traffic leaving lab network"; classtype:policy-violation; priority:1; sid:9199001; rev:1;)
+
+# Outil Hydra détecté (pattern User-Agent)
+alert http 10.10.10.60 any -> $HOME_NET any (msg:"SocForge T1110 - Hydra HTTP brute force tool"; http.user_agent; content:"Hydra"; nocase; classtype:attempted-user; sid:9199002; rev:1;)
