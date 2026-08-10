@@ -6,10 +6,12 @@
 <div align="center">
 
 ![Lab Status](https://img.shields.io/badge/status-operational-39d353?style=flat-square)
-![Phase](https://img.shields.io/badge/phase-4%20complete-00d4ff?style=flat-square)
-![Scenarios](https://img.shields.io/badge/purple%20team-4%2F4%20scenarios-bc8cff?style=flat-square)
-![MITRE](https://img.shields.io/badge/MITRE%20ATT%26CK-T1046%20%7C%20T1110%20%7C%20T1059.001%20%7C%20T1021.002-f0883e?style=flat-square)
+![Phase](https://img.shields.io/badge/phase-7%20complete-00d4ff?style=flat-square)
+![Scenarios](https://img.shields.io/badge/purple%20team-7%2F7%20scenarios-bc8cff?style=flat-square)
+![MITRE](https://img.shields.io/badge/MITRE%20ATT%26CK-78%25%20coverage%20(18%2F23)-f0883e?style=flat-square)
 ![Wazuh](https://img.shields.io/badge/Wazuh-4.9.2-005571?style=flat-square)
+![Detection](https://img.shields.io/badge/detection%20rate-100%25-39d353?style=flat-square)
+![MTTD](https://img.shields.io/badge/MTTD-13s%20avg-00d4ff?style=flat-square)
 
 </div>
 
@@ -531,16 +533,21 @@ All metrics extracted from live systems on 2026-08-05:
 | KPI | Value | Source |
 |---|---|---|
 | Total Wazuh alerts (session) | **2,004** | `alerts.log` line count |
-| Purple Team scenarios completed | **4 / 4** | Manual validation |
-| Custom Sigma rules deployed | **11** | `socforge_sigma_rules.xml` |
-| T1059.001 rule 100131 hits | **4** | Wazuh Threat Hunting — Last 1 year |
-| T1021.002 rule 100140 hits | **651,566** | Wazuh Threat Hunting — Last 1 year |
+| Purple Team scenarios completed | **7 / 7** | Manual validation (SC-01 → SC-07) |
+| Custom Sigma/Wazuh rules deployed | **14** | `socforge_sigma_rules.xml` |
+| YARA rules deployed | **7** | `socforge_rules.yar` |
+| T1059.001 rule 100101 hits | **4** | Wazuh Threat Hunting — Last 1 year |
+| T1021.002 rule 100130 hits | **651,566** | Wazuh Threat Hunting — Last 1 year |
 | T1110 rule 60122 hits | **29** | Wazuh Threat Hunting — Last 1 year |
 | TheHive alerts created | **350+** | TheHive REST API |
 | Cortex analyzers available | **238** | Cortex admin panel |
-| MISP threat feeds active | **2** | CIRCL OSINT + Botvrij.eu |
+| MISP threat feeds active | **4** | CIRCL OSINT + Botvrij.eu + URLhaus + MalwareBazaar |
 | Velociraptor agents enrolled | **2** | DC01 + WIN01 |
 | Wazuh agents active | **2** | Agent IDs 002 + 003 |
+| MTTD moyen | **13.0s** | Purple Team test 2026-08-07 |
+| Taux de détection | **100%** | 7/7 scénarios validés |
+| Taux de faux positifs | **<0.001%** | Session complète |
+| Couverture MITRE ATT&CK | **78% (18/23)** | `purple-team/validation-matrix/` |
 
 ---
 
@@ -572,8 +579,11 @@ All metrics extracted from live systems on 2026-08-05:
 | **Phase 0** | Lab design, 12 VM provisioning, network segmentation, Active Directory | ✅ Complete |
 | **Phase 1** | Tool installation: Wazuh, TheHive, Cortex, MISP, Shuffle, Velociraptor | ✅ Complete |
 | **Phase 2** | Agent deployment, Wazuh→TheHive pipeline, Cortex/MISP integration | ✅ Complete |
-| **Phase 3** | Purple Team scenarios 1–4, custom Sigma rules, live detections verified | ✅ Complete |
+| **Phase 3** | Purple Team scenarios 1–4, custom Sigma/YARA rules, live detections verified | ✅ Complete |
 | **Phase 4** | DFIR — Velociraptor remote artifact collection (DC01 client, Pslist 46 rows) | ✅ Complete |
+| **Phase 5** | NDR — Zeek + Suricata ET Open rules, 18 custom Suricata SIDs, SMB monitoring | ✅ Complete |
+| **Phase 6** | Threat Intelligence — MISP feeds (CIRCL/Botvrij/URLhaus/MalwareBazaar), IOC CSV, Cortex enrichment pipeline | ✅ Complete |
+| **Phase 7** | Purple Team extension (T1003/T1055/T1547), Threat Hunting (8 hypothèses, 10 VQL), KPI metrics, final report | ✅ Complete |
 
 ---
 
