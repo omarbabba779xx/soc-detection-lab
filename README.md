@@ -395,8 +395,6 @@ All 12 VMs provisioned and verified. One success screenshot per VM:
 
 ### VM10 — WIN01 (Windows 11 Endpoint)
 
-![VM10 WIN01 Windows 11 desktop](docs/screenshots/phase0-install/VM10-WIN01-win11-desktop-SUCCESS.png)
-
 **Wazuh agent running on WIN01:**
 
 ![VM10 WIN01 Wazuh agent success](docs/screenshots/phase0-install/VM10-WIN01-wazuh-agent-SUCCESS.png)
