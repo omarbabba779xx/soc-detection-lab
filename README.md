@@ -79,7 +79,7 @@ Every result shown in this repository is backed by a real screenshot taken from 
               ▼                            ▼
 ┌─────────────────────┐      ┌─────────────────────────────────┐
 │ VM06-SHUFFLE SOAR   │      │  VM03-THEHIVE (10.10.10.20)     │
-│ 10.10.10.30         │─────▶│  Case Management · 16+ alerts   │
+│ 10.10.10.30         │─────▶│  Case Management · 350+ alerts  │
 │ Webhook integration │      └────────────┬────────────────────┘
 └─────────────────────┘                   │
                                           ▼
@@ -125,7 +125,7 @@ Every result shown in this repository is backed by a real screenshot taken from 
 
 ### Custom Sigma Rules
 
-11 rules deployed to Wazuh, mapped to MITRE ATT&CK:
+14 rules deployed to Wazuh, mapped to MITRE ATT&CK:
 
 | Rule ID | Level | Technique | Description |
 |---|---|---|---|
@@ -186,9 +186,9 @@ All scenarios executed from `SF-VM12-PURPLE` (Kali Linux, 10.10.10.60) targeting
 | **MITRE** | T1110 — Brute Force / T1078 — Valid Accounts |
 | **Tool** | smbclient |
 | **Command** | `smbclient //10.10.10.109/IPC$ -U 'SOCFORGE/john.doe%wrongpass'` × 6 |
-| **Windows Event** | EventID 4625 (Logon Failure) — 12 events generated |
-| **Detection** | Rule 60122 (level 5) — **18 hits** in alerts.log |
-| **Forensic** | Source IP 10.10.10.60, Workstation: PURPLE identified |
+| **Windows Event** | EventID 4625 (Logon Failure) — 29 events generated |
+| **Detection** | Rule 60122 (level 5) — **29 hits** |
+| **Forensic** | Source IP 10.10.10.60, Workstation: WIN-FJ8RP03U8FK, targetUserName: Administrator |
 
 #### Evidence
 
@@ -209,7 +209,7 @@ All scenarios executed from `SF-VM12-PURPLE` (Kali Linux, 10.10.10.60) targeting
 | **MITRE** | T1059.001 (PowerShell) + T1027 (Obfuscation) |
 | **Wazuh Rule** | **100131 — Level 12** |
 | **Windows Event** | **EventID 4688 — Process Creation** |
-| **Detections** | **5 hits confirmed in Wazuh** |
+| **Detections** | **4 hits confirmed in Wazuh** |
 
 #### Attack
 
@@ -276,7 +276,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 | **MITRE** | T1021.002 — SMB/Windows Admin Shares |
 | **Wazuh Rule** | **100140 — Level 10** |
 | **Windows Event** | **EventID 5140 — Network Share Object Accessed** |
-| **Detections** | **9 hits confirmed in Wazuh** |
+| **Detections** | **651,564 hits in Wazuh** (EventID 5140 — every share access) |
 
 #### Attack
 
@@ -302,10 +302,6 @@ auditpol /set /subcategory:"File Share" /success:enable
 **Wazuh Threat Hunting — `rule.id:100140` — 651,564 hits — timeline spike:**
 
 ![Wazuh detection rule 100140](docs/screenshots/scenario4_wazuh_rule100140_3hits_overview.png)
-
-**Wazuh Threat Hunting — `rule.id:100140` — list view with 3 ADMIN$ hits:**
-
-![Rule 100140 list 3 hits](docs/screenshots/scenario4_wazuh_rule100140_list_3hits.png)
 
 **Document Details — ADMIN$ forensic evidence — source 10.10.10.60:**
 
@@ -389,9 +385,7 @@ All 12 VMs provisioned and verified. One success screenshot per VM:
 
 ### VM09 — DC01 (Windows Server 2022 — Active Directory)
 
-![VM09 DC01 Windows Server 2022 lock screen](docs/screenshots/phase0-install/VM09-DC01-winserver2022-LOCKSCREEN-SUCCESS.png)
-
-**Active Directory users created (john.doe, jane.smith, svc.backup):**
+**Active Directory users created (john.doe, svc.backup, alice.admin):**
 
 ![VM09 DC01 AD users created](docs/screenshots/phase0-install/VM09-DC01-AD-users-created.png)
 
@@ -495,10 +489,9 @@ Velociraptor 0.77.1 deployed on VM08 (10.10.60.10). DC01 (Windows Server 2022) a
 
 ![Velociraptor dashboard connected](docs/screenshots/phase4-dfir/velociraptor-dashboard-connected.jpg)
 
-### Velociraptor — Two Clients Connected (DC01 + WIN01)
+### Velociraptor — DC01 Client Connected
 
-**Client C.c6b3dab429088216 = DC01 (WIN-FJ8RP03U8FK.socforge.lab, Windows Server 2022)**  
-**Client C.07dab9364f98e1aa = WIN01 (DESKTOP-75LAKDV, Windows 11)**
+**Client C.c6b3dab429088216 = DC01 (WIN-FJ8RP03U8FK.socforge.lab, Windows Server 2022)**
 
 ![Velociraptor clients connected](docs/screenshots/phase4-dfir/velociraptor-clients-connected.jpg)
 
@@ -512,9 +505,9 @@ Agent 0.77.1 — First Seen 2026-08-04 — Last IP 10.10.10.109
 
 ![Velociraptor Pslist log DC01](docs/screenshots/phase4-dfir/velociraptor-pslist-log-dc01.jpg)
 
-### DC01 — PowerShell Shell — Live Process List
+### DC01 — PowerShell Shell — Active Session
 
-MsMpEng (273 MB), dns (133 MB), wazuh-agent (PID 2240), Velociraptor (PID 3356), lsass, powershell — all captured live via VQL shell.
+Live PowerShell shell opened on DC01 via Velociraptor VQL (Windows.System.PowerShell artifact).
 
 ![Velociraptor shell pslist DC01](docs/screenshots/phase4-dfir/velociraptor-shell-pslist-dc01.jpg)
 
@@ -536,8 +529,8 @@ All metrics extracted from live systems on 2026-08-05:
 | Purple Team scenarios completed | **7 / 7** | Manual validation (SC-01 → SC-07) |
 | Custom Sigma/Wazuh rules deployed | **14** | `socforge_sigma_rules.xml` |
 | YARA rules deployed | **7** | `socforge_rules.yar` |
-| T1059.001 rule 100101 hits | **4** | Wazuh Threat Hunting — Last 1 year |
-| T1021.002 rule 100130 hits | **651,566** | Wazuh Threat Hunting — Last 1 year |
+| T1059.001 rule 100131 hits | **4** | Wazuh Threat Hunting — Last 1 year |
+| T1021.002 rule 100140 hits | **651,564** | Wazuh Threat Hunting — Last 1 year |
 | T1110 rule 60122 hits | **29** | Wazuh Threat Hunting — Last 1 year |
 | TheHive alerts created | **350+** | TheHive REST API |
 | Cortex analyzers available | **238** | Cortex admin panel |
