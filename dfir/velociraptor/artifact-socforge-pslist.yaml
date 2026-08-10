@@ -1,0 +1,51 @@
+name: SocForge.Windows.ProcessList
+description: |
+  Collecte la liste des processus en cours d'exécution sur un endpoint Windows.
+  Inclut PID, PPID, chemin, ligne de commande, hash MD5/SHA256, et utilisateur.
+  Utilisé pour la chasse aux processus suspects dans SocForge.
+
+author: SocForge Lab
+type: CLIENT
+
+parameters:
+  - name: ProcessNameFilter
+    description: Filtrer sur un nom de processus (regex, vide = tout)
+    default: ""
+
+sources:
+  - name: Processes
+    query: |
+      LET processes = SELECT
+        Pid, Ppid, Name, Exe, CommandLine, Username,
+        CreateTime, hash(path=Exe, hashselect="MD5,SHA256") AS Hashes,
+        Authenticode(filename=Exe) AS Signature
+      FROM pslist()
+      WHERE if(condition=ProcessNameFilter,
+               then=Name =~ ProcessNameFilter,
+               else=TRUE)
+      ORDER BY CreateTime DESC
+
+      SELECT Pid, Ppid, Name, Exe,
+             CommandLine, Username,
+             format(format="%v", args=CreateTime) AS Started,
+             Hashes.MD5 AS MD5,
+             Hashes.SHA256 AS SHA256,
+             Signature.Trusted AS TrustedSignature
+      FROM processes
+
+reports:
+  - type: CLIENT
+    template: |
+      # Process List — {{ Hostname }}
+
+      ## Résumé
+      Total processus: {{ len(rows=.Processes) }}
+
+      ## Processus suspects (non signés)
+      {{ range .Processes }}
+      {{ if not .TrustedSignature }}
+      | PID | Nom | Chemin | Commandline |
+      |-----|-----|--------|-------------|
+      | {{ .Pid }} | {{ .Name }} | {{ .Exe }} | {{ .CommandLine }} |
+      {{ end }}
+      {{ end }}

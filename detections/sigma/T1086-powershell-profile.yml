@@ -1,0 +1,31 @@
+title: PowerShell Profile Modification (T1546.013)
+id: 3d1e0f2a-4b5c-6d7e-8f9a-0b1c2d3e4f5a
+status: experimental
+description: Detects modification of PowerShell profile scripts used for persistent code execution
+author: SocForge Lab
+date: 2026-08-01
+references:
+  - https://attack.mitre.org/techniques/T1546/013/
+tags:
+  - attack.persistence
+  - attack.t1546.013
+logsource:
+  category: file_event
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID: 11
+    TargetFilename|contains:
+      - 'Microsoft.PowerShell_profile.ps1'
+      - '\WindowsPowerShell\profile.ps1'
+      - '\PowerShell\profile.ps1'
+  condition: selection
+falsepositives:
+  - Intentional profile customization by administrators
+  - PowerShell framework installation (Oh-My-Posh)
+level: high
+fields:
+  - Image
+  - TargetFilename
+  - User

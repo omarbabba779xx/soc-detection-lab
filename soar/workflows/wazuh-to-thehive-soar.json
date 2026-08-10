@@ -1,0 +1,144 @@
+{
+  "id": "socforge-wazuh-thehive-v1",
+  "name": "SocForge — Wazuh Alert to TheHive Case",
+  "description": "Workflow SOAR: reçoit les alertes Wazuh via webhook, enrichit via MISP+Cortex, crée un cas TheHive",
+  "start": "webhook_trigger",
+  "triggers": [
+    {
+      "id": "webhook_trigger",
+      "name": "Wazuh Webhook Receiver",
+      "type": "webhook",
+      "status": "running",
+      "config": {
+        "port": 3001,
+        "path": "/wazuh-alert",
+        "method": "POST",
+        "auth": "none"
+      },
+      "description": "Reçoit les alertes JSON de Wazuh Manager (intégration custom)"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "filter_severity",
+      "name": "Filter — Severity >= 10",
+      "type": "filter",
+      "position": {"x": 200, "y": 100},
+      "config": {
+        "condition": "{{ $json.rule.level }} >= 10",
+        "on_match": "misp_lookup",
+        "on_no_match": "end"
+      },
+      "description": "Ne traite que les alertes de niveau 10+ (medium-high)"
+    },
+    {
+      "id": "misp_lookup",
+      "name": "MISP — IOC Lookup",
+      "type": "http_request",
+      "position": {"x": 400, "y": 100},
+      "config": {
+        "url": "http://10.10.10.22/attributes/restSearch",
+        "method": "POST",
+        "headers": {
+          "Authorization": "{{ $credentials.misp_api_key }}",
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "value": "{{ $json.data.win.eventdata.ipAddress || $json.data.src_ip }}",
+          "type": ["ip-dst", "ip-src"],
+          "returnFormat": "json"
+        }
+      },
+      "description": "Cherche l'IP source dans MISP pour détecter les IOCs connus"
+    },
+    {
+      "id": "cortex_analyze",
+      "name": "Cortex — IP Analyzer",
+      "type": "http_request",
+      "position": {"x": 600, "y": 100},
+      "config": {
+        "url": "http://10.10.10.21:9001/api/analyzer/MaxMind_GeoIP_3_0/run",
+        "method": "POST",
+        "headers": {
+          "Authorization": "Bearer {{ $credentials.cortex_api_key }}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "data": "{{ $json.data.win.eventdata.ipAddress || $json.data.src_ip }}",
+          "dataType": "ip",
+          "tlp": 2
+        }
+      },
+      "description": "Enrichit l'IP via Cortex MaxMind GeoIP"
+    },
+    {
+      "id": "thehive_create_alert",
+      "name": "TheHive — Create Alert",
+      "type": "http_request",
+      "position": {"x": 800, "y": 100},
+      "config": {
+        "url": "http://10.10.10.20:9000/api/v1/alert",
+        "method": "POST",
+        "headers": {
+          "Authorization": "Bearer {{ $credentials.thehive_api_key }}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "type": "wazuh",
+          "source": "wazuh-socforge",
+          "sourceRef": "{{ $json.id }}",
+          "title": "[Wazuh] {{ $json.rule.description }} — Level {{ $json.rule.level }}",
+          "description": "## Alerte Wazuh\n\n**Agent**: {{ $json.agent.name }}\n**Règle**: {{ $json.rule.id }} — {{ $json.rule.description }}\n**Niveau**: {{ $json.rule.level }}\n**Timestamp**: {{ $json.timestamp }}\n\n## Technique MITRE\n{{ $json.rule.mitre.id }}\n\n## Enrichissement MISP\n{{ $node.misp_lookup.json.response }}\n\n## Géolocalisation (Cortex)\n{{ $node.cortex_analyze.json.report.full.country }}",
+          "severity": "{{ $json.rule.level >= 14 ? 3 : ($json.rule.level >= 10 ? 2 : 1) }}",
+          "tlp": 2,
+          "tags": [
+            "wazuh",
+            "{{ $json.rule.groups }}",
+            "lab-socforge"
+          ],
+          "observables": [
+            {
+              "dataType": "ip",
+              "data": "{{ $json.data.win.eventdata.ipAddress || $json.data.src_ip }}",
+              "tlp": 2,
+              "tags": ["source-ip", "wazuh"]
+            },
+            {
+              "dataType": "hostname",
+              "data": "{{ $json.agent.name }}",
+              "tlp": 2,
+              "tags": ["agent", "endpoint"]
+            }
+          ]
+        }
+      },
+      "description": "Crée une alerte TheHive avec observables et contexte enrichi"
+    },
+    {
+      "id": "end",
+      "name": "End",
+      "type": "end",
+      "position": {"x": 1000, "y": 100}
+    }
+  ],
+  "connections": [
+    {"from": "webhook_trigger", "to": "filter_severity"},
+    {"from": "filter_severity", "to": "misp_lookup", "condition": "match"},
+    {"from": "filter_severity", "to": "end", "condition": "no_match"},
+    {"from": "misp_lookup", "to": "cortex_analyze"},
+    {"from": "cortex_analyze", "to": "thehive_create_alert"},
+    {"from": "thehive_create_alert", "to": "end"}
+  ],
+  "credentials": {
+    "misp_api_key": "MISP_API_KEY_PLACEHOLDER",
+    "cortex_api_key": "CORTEX_API_KEY_PLACEHOLDER",
+    "thehive_api_key": "THEHIVE_API_KEY_PLACEHOLDER"
+  },
+  "metadata": {
+    "version": "1.0",
+    "created": "2026-08-01",
+    "lab": "SocForge",
+    "vms": ["VM02-WAZUH", "VM05-MISP", "VM04-CORTEX", "VM03-THEHIVE", "VM06-SHUFFLE"]
+  }
+}

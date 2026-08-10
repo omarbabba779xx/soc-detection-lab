@@ -1,0 +1,41 @@
+title: Boot/Logon Autostart Registry Persistence
+id: 0a8b7c9d-1e2f-3a4b-5c6d-7e8f9a0b1c2d
+status: stable
+description: Detects modification of registry Run keys used for persistence (Sysmon EventID 13/14)
+author: SocForge Lab
+date: 2026-08-01
+references:
+  - https://attack.mitre.org/techniques/T1547/001/
+tags:
+  - attack.persistence
+  - attack.t1547.001
+logsource:
+  category: registry_set
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID:
+      - 13
+      - 14
+    TargetObject|contains:
+      - 'CurrentVersion\Run'
+      - 'CurrentVersion\RunOnce'
+      - 'Winlogon\Userinit'
+      - 'Winlogon\Shell'
+      - 'AppInit_DLLs'
+      - 'BootExecute'
+  filter_legit:
+    Image|contains:
+      - '\Windows\System32\msiexec.exe'
+      - '\Windows\System32\reg.exe'
+  condition: selection and not filter_legit
+falsepositives:
+  - Software installers adding autostart entries
+  - System configuration tools
+level: high
+fields:
+  - Image
+  - TargetObject
+  - Details
+  - User

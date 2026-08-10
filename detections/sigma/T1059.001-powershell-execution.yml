@@ -1,0 +1,44 @@
+title: PowerShell Script Execution
+id: 5b3c2d4e-6f7a-8b9c-0d1e-2f3a4b5c6d7e
+status: stable
+description: Detects PowerShell execution with suspicious parameters including encoded commands and download cradles
+author: SocForge Lab
+date: 2026-08-01
+references:
+  - https://attack.mitre.org/techniques/T1059/001/
+tags:
+  - attack.execution
+  - attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_process:
+    EventID:
+      - 4688
+      - 1
+    NewProcessName|endswith:
+      - '\powershell.exe'
+      - '\pwsh.exe'
+  selection_encoded:
+    CommandLine|contains:
+      - ' -enc '
+      - ' -EncodedCommand '
+      - ' -e '
+      - 'IEX '
+      - 'Invoke-Expression'
+      - 'DownloadString'
+      - 'FromBase64String'
+      - 'bypass'
+      - '-nop'
+      - '-windowstyle hidden'
+  condition: selection_process and selection_encoded
+falsepositives:
+  - Administrative scripts using encoded commands for complex operations
+  - Legitimate PowerShell DSC configurations
+level: high
+fields:
+  - CommandLine
+  - ParentImage
+  - User
+  - ComputerName

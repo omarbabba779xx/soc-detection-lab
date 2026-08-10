@@ -1,0 +1,46 @@
+title: Network Service Discovery
+id: 3f9b0e8c-2a1d-4f5e-8b3c-1a2b3c4d5e6f
+status: experimental
+description: Detects network scanning activity using Sysmon network connections to common service ports
+author: SocForge Lab
+date: 2026-08-01
+references:
+  - https://attack.mitre.org/techniques/T1046/
+tags:
+  - attack.discovery
+  - attack.t1046
+logsource:
+  category: network_connection
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID: 3
+    DestinationPort:
+      - 21
+      - 22
+      - 23
+      - 25
+      - 53
+      - 80
+      - 110
+      - 139
+      - 143
+      - 443
+      - 445
+      - 3306
+      - 3389
+      - 5985
+      - 8080
+      - 8443
+  condition: selection | count() by Image > 10
+timeframe: 5m
+falsepositives:
+  - Legitimate monitoring tools (Nagios, PRTG, Zabbix)
+  - IT asset discovery scanners
+level: medium
+fields:
+  - Image
+  - DestinationIp
+  - DestinationPort
+  - User

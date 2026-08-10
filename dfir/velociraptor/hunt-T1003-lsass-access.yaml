@@ -1,0 +1,52 @@
+name: SocForge.Hunt.LsassAccess
+description: |
+  Hunt pour détecter les accès mémoire LSASS suspects (T1003 - Credential Dumping).
+  Cherche les processus avec GrantedAccess suspect vers lsass.exe dans Sysmon EventID 10.
+
+author: SocForge Lab
+type: CLIENT
+
+sources:
+  - name: LsassAccess
+    query: |
+      LET suspicious_access = (
+        "0x1010", "0x1410", "0x1fffff", "0x143a", "0x40",
+        "0x1438", "0x14c0", "0x1418"
+      )
+
+      LET legit_sources = (
+        "\\Windows\\System32\\lsass.exe",
+        "\\Windows\\System32\\csrss.exe",
+        "\\Windows\\System32\\wininit.exe",
+        "\\Program Files\\Windows Defender\\MsMpEng.exe"
+      )
+
+      SELECT timestamp(epoch=System.TimeCreated.SystemTime) AS EventTime,
+             EventData.SourceImage AS SourceProcess,
+             EventData.TargetImage AS TargetProcess,
+             EventData.GrantedAccess AS Access,
+             EventData.SourceUser AS User,
+             EventData.CallTrace AS CallTrace
+      FROM watch_evtx(filename="C:\\Windows\\System32\\winevt\\Logs\\Microsoft-Windows-Sysmon%4Operational.evtx")
+      WHERE System.EventID.Value = "10"
+      AND EventData.TargetImage =~ "lsass.exe"
+      AND EventData.GrantedAccess IN suspicious_access
+      AND NOT EventData.SourceImage IN legit_sources
+      ORDER BY EventTime DESC
+
+reports:
+  - type: CLIENT
+    template: |
+      # Hunt: LSASS Access — {{ Hostname }}
+
+      {{ if .LsassAccess }}
+      ## ALERTE: Accès LSASS suspects détectés!
+
+      | Heure | Processus Source | Accès | Utilisateur |
+      |-------|-----------------|-------|-------------|
+      {{ range .LsassAccess }}
+      | {{ .EventTime }} | {{ .SourceProcess }} | {{ .Access }} | {{ .User }} |
+      {{ end }}
+      {{ else }}
+      ## Aucun accès LSASS suspect détecté.
+      {{ end }}

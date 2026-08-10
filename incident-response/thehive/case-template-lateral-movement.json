@@ -1,0 +1,40 @@
+{
+  "name": "SocForge — Lateral Movement via SMB",
+  "titlePrefix": "[LATMOV]",
+  "severity": 3,
+  "tlp": 2,
+  "tags": ["lateral-movement", "T1021.002", "smb", "socforge"],
+  "description": "Cas d'investigation pour un mouvement latéral via partages admin SMB détecté par Wazuh (règle 100140). Couvre l'analyse du chemin de compromission et la recherche d'artefacts.",
+  "tasks": [
+    {
+      "title": "1. Identifier la machine source",
+      "group": "Triage",
+      "description": "Identifier l'IP source de l'accès SMB. Vérifier si l'accès est légitime (admin, backup) ou suspect.",
+      "order": 0
+    },
+    {
+      "title": "2. Analyser les fichiers accédés",
+      "group": "Investigation",
+      "description": "Chercher les EventID 5145 (accès fichiers dans le share). Identifier les fichiers lus/écrits. Vérifier s'il y a eu dépôt d'exécutables.",
+      "order": 1
+    },
+    {
+      "title": "3. Rechercher PsExec ou outils similaires",
+      "group": "Investigation",
+      "description": "Vérifier création de service PSEXESVC (7045). Chercher Sysmon-1 avec parent=services.exe. Inspecter les logs Sysmon de la machine cible.",
+      "order": 2
+    },
+    {
+      "title": "4. Tracer la chaîne de compromission",
+      "group": "Investigation",
+      "description": "Reconstruire la timeline: première compromission → pivot → machine cible. Identifier le patient zéro.",
+      "order": 3
+    },
+    {
+      "title": "5. Isoler les machines compromises",
+      "group": "Réponse",
+      "description": "Isoler au niveau firewall OPNsense. Prendre snapshot des VMs impactées pour analyse DFIR avec Velociraptor.",
+      "order": 4
+    }
+  ]
+}

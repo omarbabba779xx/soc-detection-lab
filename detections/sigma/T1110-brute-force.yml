@@ -1,0 +1,32 @@
+title: Brute Force Authentication
+id: 4a2b1c3d-5e6f-7a8b-9c0d-1e2f3a4b5c6d
+status: stable
+description: Detects repeated authentication failures indicating brute force attack (EventID 4625)
+author: SocForge Lab
+date: 2026-08-01
+references:
+  - https://attack.mitre.org/techniques/T1110/
+tags:
+  - attack.credential_access
+  - attack.t1110
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4625
+  filter_machine_accounts:
+    TargetUserName|endswith: '$'
+  condition: selection and not filter_machine_accounts | count() by TargetUserName > 5
+timeframe: 60s
+falsepositives:
+  - Mistyped credentials
+  - Expired password synchronization
+  - Service accounts after password rotation
+level: high
+fields:
+  - TargetUserName
+  - IpAddress
+  - WorkstationName
+  - LogonType
+  - AuthenticationPackageName

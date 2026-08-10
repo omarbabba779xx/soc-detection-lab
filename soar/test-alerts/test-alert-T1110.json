@@ -1,0 +1,38 @@
+{
+  "id": "test-alert-002",
+  "timestamp": "2026-08-07T15:01:44.223Z",
+  "rule": {
+    "id": "100111",
+    "level": 10,
+    "description": "Sigma T1110: Brute force — 5+ failures in 60s on Administrator",
+    "groups": ["brute_force", "mitre_credential_access"],
+    "mitre": {
+      "id": ["T1110"],
+      "tactic": ["Credential Access"]
+    }
+  },
+  "agent": {
+    "id": "002",
+    "name": "dc01",
+    "ip": "10.10.10.109"
+  },
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4625",
+        "computer": "DC01",
+        "channel": "Security"
+      },
+      "eventdata": {
+        "targetUserName": "Administrator",
+        "logonType": "3",
+        "authenticationPackageName": "NTLM",
+        "workstationName": "PURPLE-KALI",
+        "status": "0xC000006D",
+        "subStatus": "0xC000006A",
+        "failureReason": "%%2313"
+      }
+    }
+  },
+  "full_log": "Aug  7 15:01:44 WinEvtLog: Security: AUDIT_FAILURE(4625): ...Administrator...NTLM..."
+}

@@ -1,0 +1,37 @@
+title: Process Injection via CreateRemoteThread
+id: 2c0d9e1f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
+status: stable
+description: Detects process injection using CreateRemoteThread API (Sysmon EventID 8)
+author: SocForge Lab
+date: 2026-08-01
+references:
+  - https://attack.mitre.org/techniques/T1055/
+tags:
+  - attack.defense_evasion
+  - attack.privilege_escalation
+  - attack.t1055
+logsource:
+  category: create_remote_thread
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID: 8
+  filter_known_legit:
+    SourceImage|contains:
+      - '\Windows\System32\csrss.exe'
+      - '\Windows\System32\wininit.exe'
+      - '\Windows\System32\svchost.exe'
+    TargetImage|contains:
+      - '\Windows\System32\csrss.exe'
+      - '\Windows\System32\wininit.exe'
+  condition: selection and not filter_known_legit
+falsepositives:
+  - AV/EDR tools injecting monitoring threads
+  - Some legitimate development tools
+level: critical
+fields:
+  - SourceImage
+  - TargetImage
+  - StartAddress
+  - StartFunction

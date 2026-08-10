@@ -1,0 +1,46 @@
+name: SocForge.Windows.EventLogHunt
+description: |
+  Chasse dans les journaux d'événements Windows pour des EventIDs suspects.
+  Couvre: 4625 (brute force), 4688 (process create), 4698 (task), 5140 (share access).
+
+author: SocForge Lab
+type: CLIENT
+
+parameters:
+  - name: StartTime
+    description: Début de la fenêtre temporelle
+    default: "2026-08-01T00:00:00Z"
+    type: timestamp
+  - name: EndTime
+    description: Fin de la fenêtre temporelle
+    default: "2026-08-31T23:59:59Z"
+    type: timestamp
+  - name: TargetEventIDs
+    description: EventIDs à chercher (séparés par virgule)
+    default: "4625,4688,4698,5140"
+
+sources:
+  - name: SecurityEvents
+    query: |
+      LET event_ids = split(string=TargetEventIDs, sep=",")
+
+      SELECT timestamp(epoch=System.TimeCreated.SystemTime) AS EventTime,
+             System.EventID.Value AS EventID,
+             System.Computer AS Computer,
+             EventData
+      FROM watch_evtx(filename="C:\\Windows\\System32\\winevt\\Logs\\Security.evtx")
+      WHERE System.EventID.Value IN event_ids
+      AND EventTime >= StartTime
+      AND EventTime <= EndTime
+      ORDER BY EventTime DESC
+
+  - name: SysmonEvents
+    query: |
+      SELECT timestamp(epoch=System.TimeCreated.SystemTime) AS EventTime,
+             System.EventID.Value AS EventID,
+             EventData
+      FROM watch_evtx(filename="C:\\Windows\\System32\\winevt\\Logs\\Microsoft-Windows-Sysmon%4Operational.evtx")
+      WHERE System.EventID.Value IN ("1", "3", "8", "10", "11", "13")
+      AND EventTime >= StartTime
+      AND EventTime <= EndTime
+      ORDER BY EventTime DESC

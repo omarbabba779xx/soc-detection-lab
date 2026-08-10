@@ -1,0 +1,37 @@
+{
+  "id": "test-alert-003",
+  "timestamp": "2026-08-07T16:45:02.891Z",
+  "rule": {
+    "id": "100140",
+    "level": 10,
+    "description": "Sigma T1021.002: Admin share access — possible lateral movement via \\\\DC01\\ADMIN$",
+    "groups": ["lateral_movement", "mitre_lateral_movement"],
+    "mitre": {
+      "id": ["T1021.002"],
+      "tactic": ["Lateral Movement"]
+    }
+  },
+  "agent": {
+    "id": "002",
+    "name": "dc01",
+    "ip": "10.10.10.109"
+  },
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "5140",
+        "computer": "DC01",
+        "channel": "Security"
+      },
+      "eventdata": {
+        "subjectUserName": "Administrator",
+        "shareName": "\\\\*\\ADMIN$",
+        "shareLocalPath": "C:\\Windows",
+        "ipAddress": "10.10.10.60",
+        "ipPort": "49274",
+        "objectType": "File"
+      }
+    }
+  },
+  "full_log": "Aug  7 16:45:02 WinEvtLog: Security: AUDIT_SUCCESS(5140): ...ADMIN$...10.10.10.60..."
+}
