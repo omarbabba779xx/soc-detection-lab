@@ -169,7 +169,7 @@ All scenarios executed from `SF-VM12-PURPLE` (Kali Linux, 10.10.10.60) targeting
 
 #### Evidence
 
-**Wazuh Threat Hunting — `rule.id:100100` — 1 hit — T1046 Network scan detected:**
+**Wazuh Threat Hunting — `rule.id:100100` — 2 hits — T1046 Network scan detected:**
 
 ![Wazuh T1046 list view](docs/screenshots/scenario1_wazuh_rule100100_list.png)
 
@@ -194,7 +194,7 @@ All scenarios executed from `SF-VM12-PURPLE` (Kali Linux, 10.10.10.60) targeting
 
 **Wazuh Threat Hunting — `rule.id:60122` — 29 hits — Logon Failure from dc01 and win01:**
 
-![Wazuh T1110 brute force list 15 hits](docs/screenshots/scenario2_wazuh_rule60122_list_15hits.png)
+![Wazuh T1110 brute force list 29 hits](docs/screenshots/scenario2_wazuh_rule60122_list_15hits.png)
 
 **Document Details — agent dc01, targetUserName: john.doe, workstationName: PURPLE, ipAddress: 10.10.10.60, EventID 4625 AUDIT_FAILURE:**
 
@@ -236,7 +236,7 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 
 ![Process Creation audit enabled](docs/screenshots/scenario3_dc01_audit_policy_enabled.png)
 
-**Wazuh Threat Hunting — `rule.id:100131` — 3 hits — agent dc01:**
+**Wazuh Threat Hunting — `rule.id:100131` — 4 hits — agent dc01:**
 
 ![Wazuh detection rule 100131](docs/screenshots/scenario3_wazuh_rule100131_detection.png)
 
@@ -299,7 +299,7 @@ auditpol /set /subcategory:"File Share" /success:enable
 
 ![File Share audit enabled](docs/screenshots/scenario4_dc01_fileshare_audit_enabled.png)
 
-**Wazuh Threat Hunting — `rule.id:100140` — 3 hits — timeline spike:**
+**Wazuh Threat Hunting — `rule.id:100140` — 651,564 hits — timeline spike:**
 
 ![Wazuh detection rule 100140](docs/screenshots/scenario4_wazuh_rule100140_3hits_overview.png)
 
