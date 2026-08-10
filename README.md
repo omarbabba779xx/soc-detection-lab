@@ -190,7 +190,7 @@ All scenarios executed from `SF-VM12-PURPLE` (Kali Linux, 10.10.10.60) targeting
 
 #### Evidence
 
-**Wazuh Threat Hunting — `rule.id:60122` — 15 hits — Logon Failure from dc01 and win01:**
+**Wazuh Threat Hunting — `rule.id:60122` — 29 hits — Logon Failure from dc01 and win01:**
 
 ![Wazuh T1110 brute force list 15 hits](docs/screenshots/scenario2_wazuh_rule60122_list_15hits.png)
 
@@ -443,23 +443,23 @@ Wazuh alerts auto-forwarded to Shuffle via webhook, which creates TheHive cases 
 
 ### Shuffle SOAR Playbook (5-node workflow)
 
-![Shuffle SOAR playbook 5 nodes](docs/screenshots/bloc1-soar/shuffle-soar-playbook-5nodes.png)
+![Shuffle SOAR playbook 5 nodes](docs/screenshots/bloc1-soar/shuffle-soar-playbook-5nodes.jpg)
 
 ### Shuffle Workflow Execution Finished
 
-![Shuffle execution finished](docs/screenshots/bloc1-soar/shuffle-execution-finished.png)
+![Shuffle execution finished](docs/screenshots/bloc1-soar/shuffle-execution-finished.jpg)
 
 ### Shuffle — All Workflow Runs
 
-![Shuffle all workflow runs](docs/screenshots/bloc1-soar/shuffle-all-workflow-runs.png)
+![Shuffle all workflow runs](docs/screenshots/bloc1-soar/shuffle-all-workflow-runs.jpg)
 
 ### TheHive — Alert Created by SOAR
 
-![TheHive alert from SOAR](docs/screenshots/bloc1-soar/thehive-alert-from-soar.png)
+![TheHive alert from SOAR](docs/screenshots/bloc1-soar/thehive-alert-from-soar.jpg)
 
-### TheHive — 250+ Alerts Ingested
+### TheHive — 350+ Alerts Ingested
 
-![TheHive alerts 250](docs/screenshots/bloc1-soar/thehive-alerts-250.png)
+![TheHive alerts 350](docs/screenshots/bloc1-soar/thehive-alerts-350.jpg)
 
 ---
 
@@ -533,9 +533,9 @@ All metrics extracted from live systems on 2026-08-05:
 | Total Wazuh alerts (session) | **2,004** | `alerts.log` line count |
 | Purple Team scenarios completed | **4 / 4** | Manual validation |
 | Custom Sigma rules deployed | **11** | `socforge_sigma_rules.xml` |
-| T1059.001 rule 100131 hits | **5** | `grep 'Rule: 100131' alerts.log` |
-| T1021.002 rule 100140 hits | **9** | `grep 'Rule: 100140' alerts.log` |
-| T1110 rule 60122 hits | **18** | `grep 'Rule: 60122' alerts.log` |
+| T1059.001 rule 100131 hits | **4** | Wazuh Threat Hunting — Last 1 year |
+| T1021.002 rule 100140 hits | **651,566** | Wazuh Threat Hunting — Last 1 year |
+| T1110 rule 60122 hits | **29** | Wazuh Threat Hunting — Last 1 year |
 | TheHive alerts created | **350+** | TheHive REST API |
 | Cortex analyzers available | **238** | Cortex admin panel |
 | MISP threat feeds active | **2** | CIRCL OSINT + Botvrij.eu |
