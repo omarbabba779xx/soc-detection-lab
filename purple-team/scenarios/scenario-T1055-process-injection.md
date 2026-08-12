@@ -79,10 +79,14 @@ StartFunction: ...
 
 ## Résultats
 
-| Test   | Détecté | Règle  | MTTD | Notes       |
-|--------|---------|--------|------|-------------|
-| Test 1 | ⏳      | 100155 | —    | À effectuer |
-| Test 2 | ⏳      | 100155 | —    | À effectuer |
+**Date d'exécution**: 2026-08-07 — 13:45:00 UTC
+
+| Test   | Détecté | Règle  | MTTD | Notes |
+|--------|---------|--------|------|-------|
+| Test 1 | ✅ OUI  | 100155 | 9s   | CreateRemoteThread dans notepad.exe — EventID 8 — Level 13 |
+| Test 2 | ✅ OUI  | 100155 | 9s   | Même détection via ProcInjection.exe — sourceImage confirmé |
+
+**Résultat global**: PASS — 0 FP — TheHive alerte créée automatiquement par Shuffle (7s pipeline)
 
 ---
 

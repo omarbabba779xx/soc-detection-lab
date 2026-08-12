@@ -75,10 +75,14 @@ SourceImage:   C:\Windows\System32\rundll32.exe ou powershell.exe
 
 ## Résultats
 
-| Test   | Détecté | Règle  | MTTD | Notes        |
-|--------|---------|--------|------|--------------|
-| Test 1 | ⏳      | 100103 | —    | À effectuer  |
-| Test 3 | ⏳      | 100103 | —    | À effectuer  |
+**Date d'exécution**: 2026-08-07 — 13:10:00 UTC
+
+| Test   | Détecté | Règle  | MTTD | Notes |
+|--------|---------|--------|------|-------|
+| Test 1 | ✅ OUI  | 100150 | 6s   | comsvcs.dll MiniDump — EventID 10 GrantedAccess 0x1fffff — Level 15 |
+| Test 3 | ✅ OUI  | 100150 | 6s   | rundll32.exe → lsass.exe — même règle déclenchée |
+
+**Résultat global**: PASS — 0 FP — TheHive alerte créée automatiquement par Shuffle (7s pipeline)
 
 ---
 

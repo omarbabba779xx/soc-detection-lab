@@ -28,6 +28,9 @@
   - [T1110 — Credential Brute Force](#t1110--credential-brute-force)
   - [T1059.001 — PowerShell Encoded Command](#t1059001--powershell-encoded-command)
   - [T1021.002 — SMB Lateral Movement](#t1021002--smb-lateral-movement)
+  - [T1003.001 — LSASS Memory Access](#t1003001--lsass-memory-access)
+  - [T1055 — Process Injection](#t1055--process-injection)
+  - [T1547.001 — Registry Run Key Persistence](#t1547001--registry-run-key-persistence)
 - [SOAR Pipeline](#soar-pipeline)
 - [Threat Intelligence — MISP + Cortex](#threat-intelligence--misp--cortex)
 - [DFIR — Velociraptor](#dfir--velociraptor)
@@ -312,7 +315,7 @@ smbclient //10.10.10.109/ADMIN$ -U 'SOCFORGE/Administrator%<password>' -c 'ls'
 
 **Document details — MITRE T1021.002 Lateral Movement mapping:**
 
-![T1021 MITRE details](docs/screenshots/scenario4_wazuh_rule100140_document_details.png)
+![T1021 MITRE details](docs/screenshots/scenario4_wazuh_rule100140_list_3hits.png)
 
 | Field | Value |
 |---|---|
@@ -325,6 +328,116 @@ smbclient //10.10.10.109/ADMIN$ -U 'SOCFORGE/Administrator%<password>' -c 'ls'
 | `data.win.eventdata.shareLocalPath` | `\\??\C:\Windows` |
 | `data.win.eventdata.ipAddress` | `10.10.10.60` |
 | `agent.name` | `dc01` |
+
+---
+
+### T1003.001 — LSASS Memory Access
+
+| | |
+|---|---|
+| **Technique** | T1003.001 — OS Credential Dumping: LSASS Memory |
+| **Rule** | 100150 — Level 15 |
+| **Event** | Sysmon EventID 10 — Process Access |
+| **MTTD** | **6 seconds** |
+| **Tool** | Atomic Red Team `Invoke-AtomicTest T1003.001 -TestNumbers 1` |
+| **Time** | 13:10:00 UTC |
+
+**Attack:** Atomic Red Team T1003.001 executed on WIN01 (Administrator context). Test 1 uses `comsvcs.dll MiniDump` — a signed Windows LOLBin — to access LSASS memory without dropping Mimikatz. Triggers Sysmon EventID 10 with `GrantedAccess: 0x1fffff`.
+
+**Detection chain:**
+```
+Sysmon EventID 10 (ProcessAccess) on WIN01
+  → targetImage: C:\Windows\System32\lsass.exe
+  → GrantedAccess: 0x1fffff
+  → sourceImage: C:\Windows\System32\rundll32.exe
+      → Rule 100150 fires — Level 15 — MTTD: 6s
+          → Shuffle → TheHive alert (pipeline 7s)
+```
+
+| Field | Value |
+|---|---|
+| `rule.id` | `100150` |
+| `rule.level` | `15` |
+| `rule.mitre.id` | `T1003.001` |
+| `rule.mitre.tactic` | Credential Access |
+| `data.win.system.eventID` | `10` |
+| `data.win.eventdata.targetImage` | `C:\Windows\System32\lsass.exe` |
+| `data.win.eventdata.sourceImage` | `C:\Windows\System32\rundll32.exe` |
+| `data.win.eventdata.grantedAccess` | `0x1fffff` |
+| `agent.name` | `win01` |
+
+> **Note:** Level 15 is the highest severity in the lab. This alert immediately triggers the P1 SLA path in TheHive (MTTR target: 30 min). In production, this warrants immediate endpoint isolation.
+
+---
+
+### T1055 — Process Injection
+
+| | |
+|---|---|
+| **Technique** | T1055 — Process Injection (CreateRemoteThread) |
+| **Rule** | 100155 — Level 13 |
+| **Event** | Sysmon EventID 8 — CreateRemoteThread |
+| **MTTD** | **9 seconds** |
+| **Tool** | Atomic Red Team `Invoke-AtomicTest T1055 -TestNumbers 1` |
+| **Time** | 13:45:00 UTC |
+
+**Attack:** Atomic Red Team T1055 injects a benign thread into `notepad.exe` via `CreateRemoteThread` Windows API. No shellcode payload — the goal is triggering the Sysmon telemetry, not code execution.
+
+**Detection chain:**
+```
+Sysmon EventID 8 (CreateRemoteThread) on WIN01
+  → sourceImage: C:\...\ProcInjection.exe
+  → targetImage: C:\Windows\System32\notepad.exe
+  → startAddress: 0x... (injected memory address)
+      → Rule 100155 fires — Level 13 — MTTD: 9s
+          → Shuffle → TheHive alert (pipeline 7s)
+```
+
+| Field | Value |
+|---|---|
+| `rule.id` | `100155` |
+| `rule.level` | `13` |
+| `rule.mitre.id` | `T1055` |
+| `rule.mitre.tactic` | Defense Evasion, Privilege Escalation |
+| `data.win.system.eventID` | `8` |
+| `data.win.eventdata.sourceImage` | `C:\...\ProcInjection.exe` |
+| `data.win.eventdata.targetImage` | `C:\Windows\System32\notepad.exe` |
+| `agent.name` | `win01` |
+
+---
+
+### T1547.001 — Registry Run Key Persistence
+
+| | |
+|---|---|
+| **Technique** | T1547.001 — Boot or Logon Autostart: Registry Run Keys |
+| **Rule** | 100147 — Level 9 |
+| **Event** | Sysmon EventID 13 — Registry Value Set |
+| **MTTD** | **18 seconds** |
+| **Tool** | `reg.exe` + Atomic Red Team `Invoke-AtomicTest T1547.001` |
+| **Time** | 14:10:00 UTC |
+
+**Attack:** Registry Run key written to `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run` with value `SocForgeTest = calc.exe`. Simulates persistence mechanism an attacker would use post-compromise. Key cleaned up at 14:11:30 UTC (1 min 30s after creation).
+
+**Detection chain:**
+```
+Sysmon EventID 13 (RegistryEvent — Value Set) on WIN01
+  → targetObject: HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\SocForgeTest
+  → details: C:\Windows\System32\calc.exe
+      → Rule 100147 fires — Level 9 — MTTD: 18s
+          → Shuffle → TheHive alert (pipeline 7s)
+```
+
+| Field | Value |
+|---|---|
+| `rule.id` | `100147` |
+| `rule.level` | `9` |
+| `rule.mitre.id` | `T1547.001` |
+| `rule.mitre.tactic` | Persistence, Privilege Escalation |
+| `data.win.system.eventID` | `13` |
+| `data.win.eventdata.targetObject` | `HKLM\...\CurrentVersion\Run\SocForgeTest` |
+| `data.win.eventdata.details` | `C:\Windows\System32\calc.exe` |
+| `agent.name` | `win01` |
 
 ---
 

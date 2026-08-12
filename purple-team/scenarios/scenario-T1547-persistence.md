@@ -54,6 +54,19 @@ Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" `
 
 ---
 
+## Résultats
+
+**Date d'exécution**: 2026-08-07 — 14:10:00 UTC
+
+| Test   | Détecté | Règle  | MTTD | Notes |
+|--------|---------|--------|------|-------|
+| Test 1 | ✅ OUI  | 100147 | 18s  | reg.exe → HKLM\...\Run\SocForgeTest — EventID 13 — Level 9 |
+| Test 2 | ✅ OUI  | 100147 | 18s  | Atomic T1547.001 — même règle déclenchée |
+
+**Résultat global**: PASS — 0 FP — Clé supprimée à 14:11:30 UTC — TheHive alerte créée par Shuffle
+
+---
+
 ## Nettoyage
 
 ```powershell
