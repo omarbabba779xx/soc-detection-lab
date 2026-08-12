@@ -1,7 +1,7 @@
 # SocForge — Export Dashboards OpenSearch / Wazuh
 
 **URL**: https://10.10.10.10:443 (Wazuh Dashboard)
-**Identifiants**: admin / S0cF0rge.Lab2024
+**Identifiants**: admin / voir `secrets/lab-registry.md` (non commité)
 **Index patterns**: `wazuh-alerts-4.x-*`
 
 ---
@@ -118,7 +118,7 @@
 curl -X POST "https://10.10.10.10:443/api/saved_objects/_export" \
   -H "kbn-xsrf: true" \
   -H "Content-Type: application/json" \
-  -u admin:S0cF0rge.Lab2024 \
+  -u admin:<WAZUH_PASSWORD> \
   --insecure \
   -d '{"type":["dashboard","visualization","index-pattern"],"includeReferencesDeep":true}' \
   -o socforge-dashboards-backup.ndjson
@@ -126,7 +126,7 @@ curl -X POST "https://10.10.10.10:443/api/saved_objects/_export" \
 # Import
 curl -X POST "https://10.10.10.10:443/api/saved_objects/_import" \
   -H "kbn-xsrf: true" \
-  -u admin:S0cF0rge.Lab2024 \
+  -u admin:<WAZUH_PASSWORD> \
   --insecure \
   -F "file=@socforge-dashboards-backup.ndjson"
 ```

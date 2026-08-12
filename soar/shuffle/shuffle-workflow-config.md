@@ -2,7 +2,7 @@
 
 **VM06-SHUFFLE**: 10.10.10.30
 **Interface**: http://10.10.10.30:3001
-**Identifiants**: admin / S0cF0rge.Lab2024
+**Identifiants**: admin / voir `secrets/lab-registry.md` (non commité)
 
 ---
 

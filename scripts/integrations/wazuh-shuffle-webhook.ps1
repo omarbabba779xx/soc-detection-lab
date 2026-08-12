@@ -6,7 +6,7 @@
 param(
     [string]$WazuhHost    = "https://10.10.10.10:55000",
     [string]$WazuhUser    = "admin",
-    [string]$WazuhPass    = "S0cF0rge.Lab2024",
+    [string]$WazuhPass    = $env:WAZUH_PASSWORD,
     [string]$ShuffleHook  = "http://10.10.10.30:3001/api/v1/hooks/webhook_socforge_wazuh",
     [int]   $MinLevel     = 10,
     [int]   $PollSeconds  = 30

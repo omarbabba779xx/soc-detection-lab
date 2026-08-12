@@ -147,7 +147,7 @@ rule.id: "100150"
 
 ```bash
 # Exporter toutes les visualisations + dashboards
-curl -u admin:S0cF0rge.Lab2024 --insecure \
+curl -u admin:<WAZUH_PASSWORD> --insecure \
   -X POST "https://10.10.10.10:443/api/saved_objects/_export" \
   -H "kbn-xsrf: true" -H "Content-Type: application/json" \
   -d '{"type":["dashboard","visualization","search"],"includeReferencesDeep":true}' \

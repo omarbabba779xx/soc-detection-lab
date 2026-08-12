@@ -7,7 +7,7 @@ param(
     [string]$OutputPath = ".\metrics\kpi-report.md",
     [string]$WazuhUrl = "https://localhost:12443",
     [string]$WazuhUser = "admin",
-    [string]$WazuhPass = "S0cF0rge.Lab2024"
+    [string]$WazuhPass = $env:WAZUH_PASSWORD
 )
 
 $ErrorActionPreference = "Stop"

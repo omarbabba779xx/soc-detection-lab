@@ -10,7 +10,7 @@
 
 ```bash
 # Via API OpenSearch (sur VM02-WAZUH)
-curl -k -u admin:S0cF0rge.Lab2024 \
+curl -k -u admin:<WAZUH_PASSWORD> \
   -X POST "https://localhost:9200/wazuh-alerts-*/_search" \
   -H "Content-Type: application/json" \
   -d '{

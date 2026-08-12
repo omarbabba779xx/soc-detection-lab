@@ -57,11 +57,11 @@ services:
     environment:
       - MISP_BASEURL=https://10.10.10.22
       - MISP_EMAIL=admin@socforge.lab
-      - MISP_ADMIN_PASSPHRASE=S0cF0rge.Lab2024
+      - MISP_ADMIN_PASSPHRASE=${MISP_ADMIN_PASSPHRASE}
       - MYSQL_HOST=misp-db
       - MYSQL_DATABASE=misp
       - MYSQL_USER=misp
-      - MYSQL_PASSWORD=misp_db_pass
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
       - misp_data:/var/www/MISP/app/files
       - misp_logs:/var/www/MISP/app/tmp/logs
@@ -77,8 +77,8 @@ services:
     environment:
       - MYSQL_DATABASE=misp
       - MYSQL_USER=misp
-      - MYSQL_PASSWORD=misp_db_pass
-      - MYSQL_ROOT_PASSWORD=root_misp_pass
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
     volumes:
       - misp_db_data:/var/lib/mysql
     networks:
@@ -111,7 +111,7 @@ services:
       - HTTP_PROXY=
       - HTTPS_PROXY=
       - SHUFFLE_DEFAULT_USERNAME=admin
-      - SHUFFLE_DEFAULT_PASSWORD=S0cF0rge.Lab2024
+      - SHUFFLE_DEFAULT_PASSWORD=${SHUFFLE_DEFAULT_PASSWORD}
       - SHUFFLE_DEFAULT_APIKEY=socforge-shuffle-api-key
     volumes:
       - shuffle_apps:/shuffle-apps

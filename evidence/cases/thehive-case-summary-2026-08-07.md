@@ -41,7 +41,7 @@
 
 ```bash
 # Export via API TheHive v5
-curl -u admin:S0cF0rge.Lab2024 \
+curl -u admin:<THEHIVE_PASSWORD> \
   http://10.10.10.20:9000/api/v1/alert?range=all \
   -H "Accept: application/json" > thehive-alerts-2026-08-07.json
 ```
