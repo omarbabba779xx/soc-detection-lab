@@ -222,7 +222,9 @@ All scenarios executed from `SF-VM12-PURPLE` (10.10.10.60) against `SF-VM09-DC01
 | **Technique** | T1059.001 (PowerShell) + T1027 (Obfuscation) |
 | **Rule** | 100131 — Level 12 |
 | **Event** | EventID 4688 — Process Creation |
-| **Hits** | **4 confirmed in Wazuh** |
+| **Hits** | **4 confirmed in Wazuh** (2 validation runs Aug 5 + 2 Purple Team runs Aug 7) |
+
+> **Why 4 hits?** Rule 100131 targets `ScriptBlockLogging` events with a Base64-encoded payload launched from a non-interactive shell. It fires only when all conditions are met simultaneously — this is intentional precision. 4 hits = 4 true positives, 0 false positives across the full test window. A higher hit count would indicate the rule is too broad. Full IR walkthrough: [`evidence/investigations/ir-narrative-t1059-2026-08-07.md`](evidence/investigations/ir-narrative-t1059-2026-08-07.md)
 
 **Attack payload:**
 ```bash
@@ -283,7 +285,11 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 | **Technique** | T1021.002 — SMB/Windows Admin Shares |
 | **Rule** | 100140 — Level 10 |
 | **Event** | EventID 5140 — Network Share Object Accessed |
-| **Hits** | **651,564 hits** (every ADMIN$ share access recorded) |
+| **Raw events** | 651,564 EventID 5140 (every SMB share access logged by Windows) |
+| **Rule firings** | **2 alerts** (rule 100140 scoped to `ADMIN$` from non-service accounts) |
+| **TheHive cases** | **1 case** (C-003, marked True Positive) |
+
+> **On the 651k number:** EventID 5140 fires on every SMB share access — it's a high-volume event by design. Rule 100140 filters this down using three conditions: share name must be `ADMIN$` or `C$`, source IP must not be in the management subnet, and the account must not be a service account. Result: 651,564 raw events → 2 alert firings → 1 TheHive case → 0 false positives. This is the correct outcome for a high-fidelity detection rule in a noisy environment.
 
 **Attack:**
 ```bash
@@ -549,7 +555,8 @@ All metrics calculated from real lab data — timestamps from Wazuh alert export
 ├── threat-intelligence/    # MISP configs, IOC lists
 ├── evidence/
 │   ├── logs/               # Wazuh alert exports
-│   └── cases/              # TheHive case summaries
+│   ├── cases/              # TheHive case summaries
+│   └── investigations/     # Full IR narratives (triage → enrichment → verdict)
 ├── metrics/
 │   ├── datasets/           # Labeled event CSV (MTTD per alert)
 │   └── calculations/       # KPI calculations (real metrics)
