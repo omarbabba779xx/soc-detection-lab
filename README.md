@@ -8,7 +8,7 @@
 ![Status](https://img.shields.io/badge/status-operational-39d353?style=flat-square)
 ![Phase](https://img.shields.io/badge/phase-7%20complete-00d4ff?style=flat-square)
 ![Detection Rate](https://img.shields.io/badge/detection%20rate-100%25-39d353?style=flat-square)
-![MTTD](https://img.shields.io/badge/MTTD-13s%20avg-00d4ff?style=flat-square)
+![MTTD](https://img.shields.io/badge/MTTD-30s%20avg-00d4ff?style=flat-square)
 ![MITRE](https://img.shields.io/badge/MITRE%20ATT%26CK-78%25%20(18%2F23)-f0883e?style=flat-square)
 ![Scenarios](https://img.shields.io/badge/purple%20team-7%2F7%20validated-bc8cff?style=flat-square)
 ![Wazuh](https://img.shields.io/badge/Wazuh-4.9.2-005571?style=flat-square)
@@ -132,8 +132,8 @@ VM01-FW   (10.10.10.1)   — OPNsense 24.x — gateway + firewall
 | `SF-VM11-LINUX01` | Linux Endpoint | 10.10.10.111 | Ubuntu 22.04 | ✅ Active |
 | `SF-VM12-PURPLE` | Red Team | 10.10.10.60 | Kali Linux 6.19 | ✅ Active |
 
-**Network segmentation:**  
-`socforge-mgmt` (10.10.10.0/24) — management plane · `socforge-srv` — DC01 domain services · NAT adapters for host access only, no internet exposure during attack simulations.
+**Network:**  
+All VMs share `socforge-mgmt` (10.10.10.0/24) — flat internal network via VirtualBox host-only adapter. VM08-DFIR is on a separate `socforge-dfir` (10.10.60.0/24). No internet exposure during attack simulations.
 
 ---
 
@@ -182,6 +182,8 @@ All scenarios executed from `SF-VM12-PURPLE` (10.10.10.60) against `SF-VM09-DC01
 | SC-05 | T1003.001 LSASS | PowerShell P/Invoke | 6s | 100121 | 110 | ✅ PASS |
 | SC-06 | T1055 Injection | PowerShell P/Invoke | 9s | 100060 | 2 | ✅ PASS |
 | SC-07 | T1547.001 Registry | reg.exe + Atomic | 18s | 92302 | 3 | ✅ PASS |
+
+MTTD average across all 7 scenarios: **13s** (purple team session). Combined with earlier Dataset 1 (4 scenarios, 47s avg): **30s overall lab average**.
 
 ---
 

@@ -10,12 +10,12 @@
 | VM04 | CORTEX | Ubuntu 22.04 LTS | Analyzers IOC | 2 | 2 Go | 30 Go | ZONE 10 | 10.10.10.21 |
 | VM05 | MISP | Ubuntu 22.04 LTS | Threat Intelligence | 2 | 3 Go | 50 Go | ZONE 10 | 10.10.10.22 |
 | VM06 | SHUFFLE | Ubuntu 22.04 LTS | SOAR | 2 | 2 Go | 30 Go | ZONE 10 | 10.10.10.30 |
-| VM07 | NDR | Ubuntu 22.04 LTS | Zeek + Suricata | 2 | 3 Go | 80 Go | ZONE 40 | 10.10.40.10 |
-| VM08 | DFIR-HUNT | Ubuntu 22.04 LTS | Velociraptor + Jupyter | 2 | 3 Go | 60 Go | ZONE 60 | 10.10.60.10 |
-| VM09 | DC01 | Windows Server 2022 Eval | Active Directory, DNS | 2 | 3 Go | 50 Go | ZONE 20 | 10.10.20.10 |
-| VM10 | WIN01 | Windows 11 Eval | Endpoint Windows | 2 | 3 Go | 60 Go | ZONE 30 | 10.10.30.10 |
-| VM11 | LINUX01 | Ubuntu 22.04 LTS | Endpoint Linux | 1 | 2 Go | 30 Go | ZONE 30 | 10.10.30.20 |
-| VM12 | PURPLE | Kali Linux 2024.x | Adversary emulation | 2 | 2 Go | 40 Go | ZONE 50 | 10.10.50.10 |
+| VM07 | NDR | Ubuntu 22.04 LTS | Zeek + Suricata | 2 | 3 Go | 80 Go | socforge-mgmt | 10.10.10.40 |
+| VM08 | DFIR-HUNT | Ubuntu 22.04 LTS | Velociraptor + Jupyter | 2 | 3 Go | 60 Go | socforge-dfir | 10.10.60.10 |
+| VM09 | DC01 | Windows Server 2022 Eval | Active Directory, DNS | 2 | 3 Go | 50 Go | socforge-mgmt | 10.10.10.109 |
+| VM10 | WIN01 | Windows 11 Eval | Endpoint Windows | 2 | 3 Go | 60 Go | socforge-mgmt | 10.10.10.110 |
+| VM11 | LINUX01 | Ubuntu 22.04 LTS | Endpoint Linux | 1 | 2 Go | 30 Go | socforge-mgmt | 10.10.10.111 |
+| VM12 | PURPLE | Kali Linux 6.19 | Adversary emulation | 2 | 2 Go | 40 Go | socforge-mgmt | 10.10.10.60 |
 
 **RAM totale théorique :** ~32 Go — utilisation par blocs uniquement.
 

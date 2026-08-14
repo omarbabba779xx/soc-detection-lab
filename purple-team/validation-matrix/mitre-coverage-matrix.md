@@ -22,16 +22,16 @@
 ### TA0003 — Persistence
 | Technique      | Nom                         | Couverture  | Règle    | Source         |
 |----------------|-----------------------------|-------------|----------|----------------|
-| T1547.001      | Registry Run Keys           | ✅ Complète  | 100147   | Sysmon-13/14   |
+| T1547.001      | Registry Run Keys           | ✅ Complète  | 92302    | Sysmon-13      |
 | T1053.005      | Scheduled Task              | ✅ Complète  | 100153   | Win-4698/4702  |
-| T1053.003      | Cron Job                    | ✅ Linux     | auditd   | VM11-LINUX01   |
+| T1053.003      | Cron Job                    | ❌ Non testé | —        | VM11-LINUX01 (agent installé, scénario non exécuté) |
 | T1546.013      | PowerShell Profile          | ✅ Complète  | 100186   | Sysmon-11      |
 
 ### TA0004 — Privilege Escalation
 | Technique      | Nom                         | Couverture  | Règle    | Source         |
 |----------------|-----------------------------|-------------|----------|----------------|
-| T1055          | Process Injection           | ✅ Complète  | 100155   | Sysmon-8       |
-| T1548.003      | Sudo Abuse (Linux)          | ✅ Linux     | auditd   | VM11-LINUX01   |
+| T1055          | Process Injection           | ✅ Complète  | 100060   | Sysmon-8       |
+| T1548.003      | Sudo Abuse (Linux)          | ❌ Non testé | —        | VM11-LINUX01 (agent installé, scénario non exécuté) |
 | T1078          | Valid Accounts              | ✅ Partielle | 100178   | Win-4624       |
 
 ### TA0005 — Defense Evasion
@@ -43,7 +43,7 @@
 ### TA0006 — Credential Access
 | Technique      | Nom                         | Couverture  | Règle           | Source         |
 |----------------|-----------------------------|-------------|-----------------|----------------|
-| T1003          | Credential Dumping          | ✅ Complète  | 100103          | Sysmon-10      |
+| T1003          | Credential Dumping          | ✅ Complète  | 100121          | Sysmon-10      |
 | T1110          | Brute Force                 | ✅ Complète  | 100110, 100111, 60122 | Win-4625 |
 | T1110.001      | Password Guessing           | ✅ Complète  | 100111          | Win-4625       |
 

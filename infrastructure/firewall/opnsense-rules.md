@@ -11,9 +11,12 @@
 | Interface | Nom       | IP             | Description                          |
 |-----------|-----------|----------------|--------------------------------------|
 | em0       | WAN       | DHCP (hôte)    | NAT vers internet (lab uniquement)   |
-| em1       | LAN       | 10.10.10.1/24  | Zone Management — tous les services  |
-| em2       | OPT1      | 10.10.50.1/24  | Zone Purple Team — VM12 isolée       |
-| em3       | OPT2      | 10.10.60.1/24  | Zone DFIR — Velociraptor             |
+| em1       | LAN       | 10.10.10.1/24  | socforge-mgmt — tous les services + endpoints + red team |
+| em2       | OPT1      | 10.10.60.1/24  | socforge-dfir — VM08 Velociraptor    |
+
+> **Note**: L'interface OPT2 (10.10.50.0/24 — Purple Team isolée) était planifiée
+> mais non déployée. VM12-PURPLE (10.10.10.60) est sur le LAN ; l'isolation
+> est assurée par les règles LAN ci-dessous.
 
 ---
 
@@ -24,7 +27,7 @@
 | 1 | 10.10.10.0/24  | any          | any      | PASS   | Management → Internet (mises à jour)     |
 | 2 | 10.10.60.0/24  | any          | any      | PASS   | DFIR → Internet (téléchargements)        |
 
-## Règles Purple Team (OPT1) — STRICTEMENT ISOLÉ
+## Règles Purple Team (LAN) — STRICTEMENT ISOLÉ
 
 | # | Source        | Destination        | Port      | Action | Description                            |
 |---|---------------|--------------------|-----------|--------|----------------------------------------|
@@ -35,7 +38,7 @@
 | 5 | 10.10.10.60   | !10.10.10.0/24     | any       | BLOCK  | **Interdit: Purple → Internet/externe** |
 | 6 | any           | 10.10.10.60        | any       | BLOCK  | Interdit: accès entrant vers Purple    |
 
-## Règles DFIR (OPT2)
+## Règles DFIR (OPT1 — socforge-dfir)
 
 | # | Source         | Destination    | Port  | Action | Description                          |
 |---|----------------|----------------|-------|--------|--------------------------------------|

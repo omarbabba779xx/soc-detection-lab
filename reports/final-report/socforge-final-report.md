@@ -12,8 +12,8 @@
 SocForge est un laboratoire SOC complet déployé sur environnement VirtualBox local, composé de 12 machines virtuelles organisées en 5 zones réseau. Le projet couvre l'intégralité du pipeline SOC moderne: collecte (Wazuh/SIEM), automatisation (Shuffle/SOAR), gestion d'incidents (TheHive), enrichissement (Cortex/MISP), détection réseau (Zeek/Suricata) et investigation forensique (Velociraptor).
 
 **Résultats clés**:
-- MTTD moyen: **47 secondes** (objectif: < 5 minutes)
-- Taux de détection Purple Team: **100%** (4/4 techniques)
+- MTTD moyen: **30 secondes** (objectif: < 5 minutes) — combiné 7 scénarios (13s) + Dataset 1 (47s)
+- Taux de détection Purple Team: **100%** (7/7 techniques)
 - Coverage MITRE ATT&CK: **78%** (18/23 techniques)
 - Alertes TheHive générées: **350+**
 - Sources de logs intégrées: **7 sources actives**
@@ -39,15 +39,16 @@ SocForge est un laboratoire SOC complet déployé sur environnement VirtualBox l
 | VM11 | LINUX01         | Ubuntu Server 22.04 | Linux Endpoint + auditd  | 10.10.10.111  |
 | VM12 | PURPLE          | Kali Linux 2024     | Red Team / Atomic RT     | 10.10.10.60   |
 
-### 1.2 Zones Réseau
+### 1.2 Réseau déployé
 
-| Zone | Nom         | CIDR              | VMs                                    |
-|------|-------------|-------------------|----------------------------------------|
-| 10   | Management  | 10.10.10.0/24     | VM01-07, VM09, VM10, VM11, VM12        |
-| 20   | Serveurs    | 10.10.20.0/24     | VM11-LINUX01                           |
-| 30   | Endpoints   | 10.10.30.0/24     | VM09-DC01, VM10-WIN01                  |
-| 50   | Purple Team | 10.10.50.0/24     | VM12-PURPLE                            |
-| 60   | DFIR        | 10.10.60.0/24     | VM08-DFIR-HUNT                         |
+| Réseau VirtualBox | CIDR              | VMs                                                        |
+|-------------------|-------------------|------------------------------------------------------------|
+| socforge-mgmt     | 10.10.10.0/24     | VM01–VM07, VM09-DC01, VM10-WIN01, VM11-LINUX01, VM12-PURPLE |
+| socforge-dfir     | 10.10.60.0/24     | VM08-DFIR-HUNT                                             |
+
+> Le plan initial prévoyait 5 zones réseau isolées. Le déploiement réel utilise un réseau
+> plat sur socforge-mgmt (10.10.10.0/24). L'isolation de VM12-PURPLE est assurée
+> par des règles firewall sur VM01-FW (règles LAN → BLOCK vers outils SOC).
 
 ---
 
@@ -58,7 +59,7 @@ SocForge est un laboratoire SOC complet déployé sur environnement VirtualBox l
 | Règle   | Technique    | Description                           | Niveau |
 |---------|--------------|---------------------------------------|--------|
 | 100101  | T1046        | Network Service Scanning (Sysmon-3)   | 8      |
-| 100103  | T1003        | LSASS Access (Sysmon-10)              | 14     |
+| 100121  | T1003.001    | LSASS Access (Sysmon-10)              | 14     |
 | 100110  | T1110        | Authentication failure (4625)         | 6      |
 | 100111  | T1110        | Brute force frequency detection       | 10     |
 | 100120  | T1059.001    | PowerShell execution                  | 8      |
@@ -66,9 +67,9 @@ SocForge est un laboratoire SOC complet déployé sur environnement VirtualBox l
 | 100127  | T1027        | Base64 obfuscation                    | 10     |
 | 100131  | T1059.001    | Malicious script block (4104)         | 12     |
 | 100140  | T1021.002    | Admin share access (5140)             | 10     |
-| 100147  | T1547.001    | Registry Run key modification         | 9      |
+| 92302   | T1547.001    | Registry Run key (Sysmon-13, built-in)| 6      |
 | 100153  | T1053.005    | Scheduled task creation               | 9      |
-| 100155  | T1055        | CreateRemoteThread injection          | 13     |
+| 100060  | T1055        | CreateRemoteThread injection (Sysmon-8)| 12    |
 | 100178  | T1078        | Privileged remote logon               | 9      |
 | 100186  | T1546.013    | PowerShell profile modification       | 8      |
 
@@ -102,18 +103,21 @@ Mimikatz, Invoke-Mimikatz, Meterpreter, Empire, PsExec, PS Download Cradle, PS E
 
 ### 4.1 Scénarios testés
 
-| Scénario       | Outil           | Résultat | MTTD    |
-|----------------|-----------------|----------|---------|
-| T1059.001      | Atomic Red Team | ✅ VP    | 47 sec  |
-| T1110          | Hydra           | ✅ VP    | 72 sec  |
-| T1021.002      | net use / impacket | ✅ VP | 23 sec  |
-| T1027          | Atomic Red Team | ✅ VP    | 47 sec  |
+| Scénario       | Outil                   | Résultat | MTTD   |
+|----------------|-------------------------|----------|--------|
+| SC-01 T1059.001 | Atomic Red Team        | ✅ VP    | 12s    |
+| SC-02 T1110     | Hydra                  | ✅ VP    | 8s     |
+| SC-03 T1046     | nmap                   | ✅ VP    | 15s    |
+| SC-04 T1021.002 | net use / smbclient    | ✅ VP    | 23s    |
+| SC-05 T1003.001 | PowerShell P/Invoke    | ✅ VP    | 6s     |
+| SC-06 T1055     | PowerShell P/Invoke    | ✅ VP    | 9s     |
+| SC-07 T1547.001 | reg.exe + Atomic RT    | ✅ VP    | 18s    |
 
 ### 4.2 KPI Atteints
 
 | KPI              | Objectif     | Résultat       |
 |------------------|-------------|----------------|
-| MTTD moyen       | < 5 minutes | **47 secondes** |
+| MTTD moyen       | < 5 minutes | **30 secondes** |
 | Taux détection   | > 80%       | **100%**       |
 | Faux positifs    | < 5%        | **< 0.001%**   |
 | Coverage MITRE   | > 70%       | **78%**        |
@@ -167,7 +171,7 @@ Mimikatz, Invoke-Mimikatz, Meterpreter, Empire, PsExec, PS Download Cradle, PS E
 
 ## 8. Conclusion
 
-SocForge constitue un environnement SOC complet et reproductible qui démontre la maîtrise du pipeline de sécurité moderne. Tous les objectifs de détection ont été atteints lors de l'exercice Purple Team avec un MTTD moyen de 47 secondes, bien en dessous de l'objectif de 5 minutes. Le projet illustre la complémentarité entre SIEM, SOAR, Threat Intelligence, DFIR et Threat Hunting dans un contexte d'apprentissage isolé et contrôlé.
+SocForge constitue un environnement SOC complet et reproductible qui démontre la maîtrise du pipeline de sécurité moderne. Tous les objectifs de détection ont été atteints lors de l'exercice Purple Team avec un MTTD moyen de 30 secondes (7 scénarios validés), bien en dessous de l'objectif de 5 minutes. Le projet illustre la complémentarité entre SIEM, SOAR, Threat Intelligence, DFIR et Threat Hunting dans un contexte d'apprentissage isolé et contrôlé.
 
 **Sécurité**: Tout au long du projet, les contraintes de sécurité ont été strictement respectées:
 - Environnement 100% local et isolé (pas d'Internet vers les cibles)
