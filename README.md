@@ -65,47 +65,46 @@ Every result in this repository comes from a real lab session. No simulated outp
 <summary>ASCII diagram</summary>
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        ATTACK SIMULATION                             │
-│              VM12-PURPLE (Kali Linux 6.19) — 10.10.10.60            │
-└────────────────────────────┬─────────────────────────────────────────┘
-                             │  socforge-mgmt host-only (10.10.10.0/24)
-                             ▼
+┌─────────────────┐      ┌──────────────────────────────────────────────┐
+│   VM01-FW       │      │              ATTACK SIMULATION               │
+│  OPNsense 24.x  │      │   VM12-PURPLE (Kali Linux 6.19) 10.10.10.60 │
+│  10.10.10.1     │      └───────────────────┬──────────────────────────┘
+└─────────────────┘                          │  socforge-mgmt (10.10.10.0/24)
+                                             ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                         TARGET ENVIRONMENT                           │
-│  DC01 (Windows Server 2022 — AD) ──── WIN01 (Windows 11 Endpoint)  │
-│  10.10.10.109 — Agent 002                10.10.10.110 — Agent 003   │
-└───────────────┬──────────────────────────────┬───────────────────────┘
-                │                              │
-                ▼                              ▼
+│  DC01 (Windows Server 2022 — AD)    WIN01 (Windows 11 — Sysmon)    │
+│  10.10.10.109 — Agent 002           10.10.10.110 — Agent 003        │
+│                  LINUX01 (Ubuntu 22.04) — 10.10.10.111 — Agent 004  │
+└──────────┬──────────────────────────────┬────────────────────────────┘
+           │  Wazuh agent telemetry       │
+           ▼                              ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                    VM02-WAZUH  (10.10.10.10)                         │
 │   wazuh-manager · wazuh-indexer (OpenSearch) · Dashboard            │
-│   14 custom rules · 7 YARA rules · 2,004+ alerts                    │
-└──────────────────────────┬───────────────────────────────────────────┘
-                           │ webhook
-              ┌────────────┴───────────────┐
-              ▼                            ▼
-┌──────────────────────┐      ┌────────────────────────────────────────┐
-│  VM06-SHUFFLE SOAR   │─────▶│  VM03-THEHIVE  (10.10.10.20:9000)     │
-│  10.10.10.30         │      │  Case Management · 350+ alerts         │
-│  5-node playbook     │      └─────────────┬──────────────────────────┘
-└──────────────────────┘                    │
-                                            ▼
-                               ┌────────────────────────────────────────┐
-                               │  VM04-CORTEX  (10.10.10.21)            │
-                               │  238 analyzers · MISP connector        │
-                               └─────────────┬──────────────────────────┘
-                                             │
+│   14 custom rules · 7 YARA rules · 2,004+ events indexed            │
+└──────────┬──────────────────────────────────┬────────────────────────┘
+           │ webhook                          │ artifact collection (dashed)
+           ▼                                  ▼
+┌──────────────────────┐      ┌──────────────────────────────────────┐
+│  VM06-SHUFFLE SOAR   │─────▶│  VM03-THEHIVE  (10.10.10.20:9000)   │
+│  10.10.10.30         │      │  Case Management · 350+ alerts       │
+│  5-node playbook     │      └──────────────┬───────────────────────┘
+└──────────────────────┘                     │
                                              ▼
-                               ┌────────────────────────────────────────┐
-                               │  VM05-MISP  (10.10.10.22)              │
-                               │  CIRCL OSINT · Botvrij.eu · URLhaus    │
-                               └────────────────────────────────────────┘
+                               ┌─────────────────────────────────────┐
+                               │  VM04-CORTEX  (10.10.10.21)         │
+                               │  238 analyzers · MISP connector     │
+                               └──────────────┬──────────────────────┘
+                                              │
+                                              ▼
+                               ┌─────────────────────────────────────┐
+                               │  VM05-MISP  (10.10.10.22)           │
+                               │  CIRCL · Botvrij.eu · URLhaus       │
+                               └─────────────────────────────────────┘
 
-VM07-NDR (10.10.10.40) — Zeek + Suricata — network tap on socforge-mgmt
-VM08-DFIR (10.10.60.10) — Velociraptor 0.77.1 — DC01 + WIN01 enrolled
-VM01-FW  (10.10.10.1)  — OPNsense — gateway + firewall
+VM07-NDR  (10.10.10.40)  — Zeek + Suricata — network tap on socforge-mgmt
+VM08-DFIR (10.10.60.10)  — Velociraptor 0.77.1 — DC01 + WIN01 enrolled
 ```
 
 </details>
@@ -113,6 +112,8 @@ VM01-FW  (10.10.10.1)  — OPNsense — gateway + firewall
 ---
 
 ## Infrastructure
+
+> See [architecture diagram](docs/screenshots/architecture.png) for the full topology and data-flow overview.
 
 | VM | Role | IP | OS | Status |
 |---|---|---|---|---|
