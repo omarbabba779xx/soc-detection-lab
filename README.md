@@ -140,9 +140,9 @@ VM01-FW  (10.10.10.1)  — OPNsense — gateway + firewall
 | **100131** | **12** | **T1059.001 + T1027** | **PowerShell -EncodedCommand via EventID 4688** |
 | 100135 | 8 | T1086 | PowerShell download cradle |
 | **100140** | **10** | **T1021.002** | **Admin share ADMIN$/C$ access — EventID 5140** |
-| 100147 | 9 | T1547.001 | Registry Run key persistence |
-| 100150 | 15 | T1003.001 | LSASS memory access (Sysmon EventID 10) |
-| 100155 | 13 | T1055 | Process injection (Sysmon EventID 8) |
+| 92302 | 6 | T1547.001 | Registry Run key persistence (Sysmon EventID 13) |
+| 100121 | 14 | T1003.001 | LSASS memory access (Sysmon EventID 10) |
+| 100060 | 12 | T1055 | Process injection — CreateRemoteThread (Sysmon EventID 8) |
 | 100160 | 8 | T1547 | Registry persistence patterns |
 | 100165 | 10 | T1053 | Scheduled task creation |
 | 100170 | 12 | T1055 | Remote thread injection |
@@ -169,9 +169,9 @@ All scenarios executed from `SF-VM12-PURPLE` (10.10.10.60) against `SF-VM09-DC01
 | SC-02 | T1110 Brute Force | Hydra | 8s | 60122 / 100110 | 29 | ✅ PASS |
 | SC-03 | T1046 Network Scan | nmap | 15s | 100100 | 2 | ✅ PASS |
 | SC-04 | T1021.002 SMB | net use / smbclient | 23s | 100140 | 651,564 | ✅ PASS |
-| SC-05 | T1003.001 LSASS | Atomic Red Team | 6s | 100150 | — | ✅ PASS |
-| SC-06 | T1055 Injection | Atomic Red Team | 9s | 100155 | — | ✅ PASS |
-| SC-07 | T1547.001 Registry | reg.exe + Atomic | 18s | 100147 | — | ✅ PASS |
+| SC-05 | T1003.001 LSASS | PowerShell P/Invoke | 6s | 100121 | 110 | ✅ PASS |
+| SC-06 | T1055 Injection | PowerShell P/Invoke | 9s | 100060 | 2 | ✅ PASS |
+| SC-07 | T1547.001 Registry | reg.exe + Atomic | 18s | 92302 | 3 | ✅ PASS |
 
 ---
 
@@ -336,7 +336,7 @@ smbclient //10.10.10.109/ADMIN$ -U 'SOCFORGE/Administrator%<password>' -c 'ls'
 | | |
 |---|---|
 | **Technique** | T1003.001 — OS Credential Dumping: LSASS Memory |
-| **Rule** | 100150 — Level 15 |
+| **Rule** | 100121 — Level 14 |
 | **Event** | Sysmon EventID 10 — Process Access |
 | **MTTD** | **6 seconds** |
 | **Tool** | Atomic Red Team `Invoke-AtomicTest T1003.001 -TestNumbers 1` |
@@ -350,14 +350,19 @@ Sysmon EventID 10 (ProcessAccess) on WIN01
   → targetImage: C:\Windows\System32\lsass.exe
   → GrantedAccess: 0x1fffff
   → sourceImage: C:\Windows\System32\rundll32.exe
-      → Rule 100150 fires — Level 15 — MTTD: 6s
+      → Rule 100121 fires — Level 14 — MTTD: 6s
           → Shuffle → TheHive alert (pipeline 7s)
 ```
 
+**Wazuh Threat Hunting — `rule.id:"100121"` — 110 hits — agent win01:**
+
+![T1003 LSASS Wazuh rule 100121](docs/screenshots/sc05-wazuh-T1003-lsass-credential-dump.png)
+
 | Field | Value |
 |---|---|
-| `rule.id` | `100150` |
-| `rule.level` | `15` |
+| `rule.id` | `100121` |
+| `rule.level` | `14` |
+| `rule.description` | Sigma T1003.001: Process accessing LSASS - credential dumping |
 | `rule.mitre.id` | `T1003.001` |
 | `rule.mitre.tactic` | Credential Access |
 | `data.win.system.eventID` | `10` |
@@ -366,41 +371,44 @@ Sysmon EventID 10 (ProcessAccess) on WIN01
 | `data.win.eventdata.grantedAccess` | `0x1fffff` |
 | `agent.name` | `win01` |
 
-> **Note:** Level 15 is the highest severity in the lab. This alert immediately triggers the P1 SLA path in TheHive (MTTR target: 30 min). In production, this warrants immediate endpoint isolation.
-
 ---
 
 ### T1055 — Process Injection
 
 | | |
 |---|---|
-| **Technique** | T1055 — Process Injection (CreateRemoteThread) |
-| **Rule** | 100155 — Level 13 |
+| **Technique** | T1055 / T1055.001 — Process Injection (CreateRemoteThread) |
+| **Rule** | 100060 — Level 12 |
 | **Event** | Sysmon EventID 8 — CreateRemoteThread |
 | **MTTD** | **9 seconds** |
-| **Tool** | Atomic Red Team `Invoke-AtomicTest T1055 -TestNumbers 1` |
-| **Time** | 13:45:00 UTC |
+| **Tool** | PowerShell P/Invoke — VirtualAllocEx + WriteProcessMemory + CreateRemoteThread |
+| **Time** | 08:08:57 UTC |
 
-**Attack:** Atomic Red Team T1055 injects a benign thread into `notepad.exe` via `CreateRemoteThread` Windows API. No shellcode payload — the goal is triggering the Sysmon telemetry, not code execution.
+**Attack:** Custom PowerShell P/Invoke injects a benign stub into `notepad.exe` via `CreateRemoteThread` Windows API. No shellcode payload — the goal is triggering the Sysmon EID 8 telemetry, not code execution.
 
 **Detection chain:**
 ```
 Sysmon EventID 8 (CreateRemoteThread) on WIN01
-  → sourceImage: C:\...\ProcInjection.exe
+  → sourceImage: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
   → targetImage: C:\Windows\System32\notepad.exe
-  → startAddress: 0x... (injected memory address)
-      → Rule 100155 fires — Level 13 — MTTD: 9s
+  → startAddress: 0x... (VirtualAllocEx allocated stub)
+      → Rule 100060 fires — Level 12 — MTTD: 9s
           → Shuffle → TheHive alert (pipeline 7s)
 ```
 
+**Wazuh Threat Hunting — `rule.id:"100060"` — 2 hits — agent win01:**
+
+![T1055 Process Injection Wazuh rule 100060](docs/screenshots/sc06-wazuh-T1055-process-injection.png)
+
 | Field | Value |
 |---|---|
-| `rule.id` | `100155` |
-| `rule.level` | `13` |
-| `rule.mitre.id` | `T1055` |
+| `rule.id` | `100060` |
+| `rule.level` | `12` |
+| `rule.description` | Sysmon - T1055 Process Injection - CreateRemoteThread detected |
+| `rule.mitre.id` | `T1055`, `T1055.001` |
 | `rule.mitre.tactic` | Defense Evasion, Privilege Escalation |
 | `data.win.system.eventID` | `8` |
-| `data.win.eventdata.sourceImage` | `C:\...\ProcInjection.exe` |
+| `data.win.eventdata.sourceImage` | `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe` |
 | `data.win.eventdata.targetImage` | `C:\Windows\System32\notepad.exe` |
 | `agent.name` | `win01` |
 
@@ -411,7 +419,7 @@ Sysmon EventID 8 (CreateRemoteThread) on WIN01
 | | |
 |---|---|
 | **Technique** | T1547.001 — Boot or Logon Autostart: Registry Run Keys |
-| **Rule** | 100147 — Level 9 |
+| **Rule** | 92302 — Level 6 |
 | **Event** | Sysmon EventID 13 — Registry Value Set |
 | **MTTD** | **18 seconds** |
 | **Tool** | `reg.exe` + Atomic Red Team `Invoke-AtomicTest T1547.001` |
@@ -424,14 +432,19 @@ Sysmon EventID 8 (CreateRemoteThread) on WIN01
 Sysmon EventID 13 (RegistryEvent — Value Set) on WIN01
   → targetObject: HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\SocForgeTest
   → details: C:\Windows\System32\calc.exe
-      → Rule 100147 fires — Level 9 — MTTD: 18s
+      → Rule 92302 fires — Level 6 — MTTD: 18s
           → Shuffle → TheHive alert (pipeline 7s)
 ```
 
+**Wazuh Threat Hunting — Sysmon EID 13 — `rule.id:"92302"` — 3 hits — agent win01:**
+
+![T1547 Registry Persistence Wazuh rule 100147](docs/screenshots/sc07-wazuh-T1547-registry-persistence.png)
+
 | Field | Value |
 |---|---|
-| `rule.id` | `100147` |
-| `rule.level` | `9` |
+| `rule.id` | `92302` |
+| `rule.level` | `6` |
+| `rule.description` | Registry entry to be executed on next logon was modified |
 | `rule.mitre.id` | `T1547.001` |
 | `rule.mitre.tactic` | Persistence, Privilege Escalation |
 | `data.win.system.eventID` | `13` |
