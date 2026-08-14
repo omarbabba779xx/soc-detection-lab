@@ -59,6 +59,11 @@ Every result in this repository comes from a real lab session. No simulated outp
 
 ## Architecture
 
+![SocForge Architecture](docs/screenshots/architecture.png)
+
+<details>
+<summary>ASCII diagram</summary>
+
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                        ATTACK SIMULATION                             │
@@ -102,6 +107,8 @@ VM07-NDR (10.10.10.40) — Zeek + Suricata — network tap on socforge-mgmt
 VM08-DFIR (10.10.60.10) — Velociraptor 0.77.1 — DC01 + WIN01 enrolled
 VM01-FW  (10.10.10.1)  — OPNsense — gateway + firewall
 ```
+
+</details>
 
 ---
 
