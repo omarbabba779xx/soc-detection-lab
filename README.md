@@ -71,21 +71,23 @@ Every result in this repository comes from a real lab session. No simulated outp
 │  10.10.10.1     │      └───────────────────┬──────────────────────────┘
 └─────────────────┘                          │  socforge-mgmt (10.10.10.0/24)
                                              ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                         TARGET ENVIRONMENT                           │
-│  DC01 (Windows Server 2022 — AD)    WIN01 (Windows 11 — Sysmon)    │
-│  10.10.10.109 — Agent 002           10.10.10.110 — Agent 003        │
-│                  LINUX01 (Ubuntu 22.04) — 10.10.10.111 — Agent 004  │
-└──────────┬──────────────────────────────┬────────────────────────────┘
-           │  Wazuh agent telemetry       │
-           ▼                              ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                    VM02-WAZUH  (10.10.10.10)                         │
-│   wazuh-manager · wazuh-indexer (OpenSearch) · Dashboard            │
-│   14 custom rules · 7 YARA rules · 2,004+ events indexed            │
-└──────────┬──────────────────────────────────┬────────────────────────┘
-           │ webhook                          │ artifact collection (dashed)
-           ▼                                  ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            TARGET ENVIRONMENT                               │
+│  DC01 (Windows Server 2022 — AD)      WIN01 (Windows 11 — Sysmon 15.21)   │
+│  10.10.10.109 — Agent 002             10.10.10.110 — Agent 003             │
+│  ← 7 purple team scenarios →         ← 7 purple team scenarios →           │
+│                                                                             │
+│  LINUX01 (Ubuntu 22.04) — 10.10.10.111 — Agent 004 — no scenarios yet     │
+└──────────┬─────────────────────────────┬───────────────────┬───────────────┘
+           │  Wazuh agent telemetry      │                   │ manual artifact
+           ▼                             ▼                   ▼ collection
+┌──────────────────────────────────────────────┐   ┌──────────────────────┐
+│              VM02-WAZUH  (10.10.10.10)        │   │  VM08-DFIR           │
+│  wazuh-manager · wazuh-indexer (OpenSearch)  │   │  Velociraptor 0.77.1 │
+│  Dashboard · 14 custom rules · 7 YARA rules  │   │  10.10.60.10         │
+└──────────┬───────────────────────────────────┘   └──────────────────────┘
+           │ webhook (7s pipeline)
+           ▼
 ┌──────────────────────┐      ┌──────────────────────────────────────┐
 │  VM06-SHUFFLE SOAR   │─────▶│  VM03-THEHIVE  (10.10.10.20:9000)   │
 │  10.10.10.30         │      │  Case Management · 350+ alerts       │
@@ -103,8 +105,8 @@ Every result in this repository comes from a real lab session. No simulated outp
                                │  CIRCL · Botvrij.eu · URLhaus       │
                                └─────────────────────────────────────┘
 
-VM07-NDR  (10.10.10.40)  — Zeek + Suricata — network tap on socforge-mgmt
-VM08-DFIR (10.10.60.10)  — Velociraptor 0.77.1 — DC01 + WIN01 enrolled
+VM07-NDR  (10.10.10.40)  — Zeek + Suricata — passive network tap on socforge-mgmt
+VM01-FW   (10.10.10.1)   — OPNsense 24.x — gateway + firewall
 ```
 
 </details>
