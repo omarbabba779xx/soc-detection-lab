@@ -8,9 +8,9 @@
 ![Status](https://img.shields.io/badge/status-operational-39d353?style=flat-square)
 ![Phase](https://img.shields.io/badge/phase-7%20complete-00d4ff?style=flat-square)
 ![Detection Rate](https://img.shields.io/badge/detection%20rate-100%25-39d353?style=flat-square)
-![MTTD](https://img.shields.io/badge/MTTD-30s%20avg-00d4ff?style=flat-square)
+![MTTD](https://img.shields.io/badge/MTTD-27s%20avg-00d4ff?style=flat-square)
 ![MITRE](https://img.shields.io/badge/MITRE%20ATT%26CK-78%25%20(18%2F23)-f0883e?style=flat-square)
-![Scenarios](https://img.shields.io/badge/purple%20team-7%2F7%20validated-bc8cff?style=flat-square)
+![Scenarios](https://img.shields.io/badge/purple%20team-9%2F9%20validated-bc8cff?style=flat-square)
 ![Wazuh](https://img.shields.io/badge/Wazuh-4.9.2-005571?style=flat-square)
 
 </div>
@@ -31,6 +31,8 @@
   - [T1003.001 — LSASS Memory Access](#t1003001--lsass-memory-access)
   - [T1055 — Process Injection](#t1055--process-injection)
   - [T1547.001 — Registry Run Key Persistence](#t1547001--registry-run-key-persistence)
+  - [T1548.003 — Sudo Privilege Escalation](#t1548003--sudo-privilege-escalation)
+  - [T1053.003 — Cron Persistence](#t1053003--cron-persistence)
 - [SOAR Pipeline](#soar-pipeline)
 - [Threat Intelligence — MISP + Cortex](#threat-intelligence--misp--cortex)
 - [DFIR — Velociraptor](#dfir--velociraptor)
@@ -48,7 +50,7 @@
 **What this lab demonstrates:**
 
 - Detection Engineering — 14 custom Sigma rules mapped to MITRE ATT&CK, deployed to Wazuh
-- Purple Team Operations — 7 attack scenarios executed and validated (100% detection rate)
+- Purple Team Operations — 9 attack scenarios executed and validated (100% detection rate)
 - SOAR Automation — Wazuh → Shuffle → TheHive pipeline, 7-second end-to-end latency
 - Threat Intelligence — MISP feeds (CIRCL, Botvrij.eu, URLhaus, MalwareBazaar) + Cortex enrichment
 - DFIR — Velociraptor remote artifact collection on live Windows targets
@@ -182,8 +184,10 @@ All scenarios executed from `SF-VM12-PURPLE` (10.10.10.60) against `SF-VM09-DC01
 | SC-05 | T1003.001 LSASS | PowerShell P/Invoke | 6s | 100121 | 110 | ✅ PASS |
 | SC-06 | T1055 Injection | PowerShell P/Invoke | 9s | 100060 | 2 | ✅ PASS |
 | SC-07 | T1547.001 Registry | reg.exe + Atomic | 18s | 92302 | 3 | ✅ PASS |
+| SC-08 | T1548.003 Sudo Abuse | SSH + sudo | 8s | 100200 | 4 | ✅ PASS |
+| SC-09 | T1053.003 Cron Persist | crontab | 8s | 100210 | 1 | ✅ PASS |
 
-MTTD average across all 7 scenarios: **13s** (purple team session). Combined with earlier Dataset 1 (4 scenarios, 47s avg): **30s overall lab average**.
+MTTD average across all 9 scenarios: **12s** (purple team session). Combined with earlier Dataset 1 (4 scenarios, 47s avg): **27s overall lab average**.
 
 ---
 
@@ -466,6 +470,78 @@ Sysmon EventID 13 (RegistryEvent — Value Set) on WIN01
 
 ---
 
+### T1548.003 — Sudo Privilege Escalation
+
+| | |
+|---|---|
+| **Technique** | T1548.003 — Abuse Elevation Control Mechanism: Sudo and Sudo Caching |
+| **Target** | VM11-LINUX01 (10.10.10.111) — Ubuntu 22.04 |
+| **Tool** | SSH + sudo command execution as root |
+| **MTTD** | **8 seconds** |
+| **Rule** | 100200 (parent: 5402) |
+
+**Attack:** `socadmin` executes `sudo whoami`, `sudo id`, `sudo cat /etc/shadow` — escalating to root via sudo. Simulates post-compromise privilege escalation on a Linux endpoint.
+
+**Detection chain:**
+```
+sudo session opens on LINUX01 — /var/log/syslog entry: "sudo: socadmin : TTY=pts/0 ; COMMAND=/usr/bin/whoami"
+  → Wazuh agent forwards syslog line
+      → Rule 5402 (sudo successful) fires
+          → Custom rule 100200 fires — Level 10 — MTTD: 8s
+              → MITRE T1548.003 tagged
+```
+
+**Wazuh Threat Hunting — `rule.id:"100200"` — 4 hits — agent linux01:**
+
+![SC-08 T1548.003 Sudo Privilege Escalation](docs/screenshots/sc08-wazuh-T1548-sudo-privilege-escalation.png)
+
+| Field | Value |
+|---|---|
+| `rule.id` | `100200` |
+| `rule.level` | `10` |
+| `rule.description` | Sigma T1548.003: Sudo privilege escalation - user executed sudo as ROOT |
+| `rule.mitre.id` | `T1548.003` |
+| `rule.groups` | `socforge, sigma, privilege_escalation, sudo` |
+| `agent.name` | `linux01` |
+
+---
+
+### T1053.003 — Cron Persistence
+
+| | |
+|---|---|
+| **Technique** | T1053.003 — Scheduled Task/Job: Cron |
+| **Target** | VM11-LINUX01 (10.10.10.111) — Ubuntu 22.04 |
+| **Tool** | crontab modification via SSH |
+| **MTTD** | **8 seconds** |
+| **Rule** | 100210 (parent: 2832) |
+
+**Attack:** Malicious cron entry `* * * * * /tmp/socforge_persist.sh` written to user crontab. Simulates attacker establishing persistence via scheduled job on a compromised Linux host.
+
+**Detection chain:**
+```
+crontab modified — /var/log/syslog: "CRON[...]: socadmin edited crontab"
+  → Wazuh agent forwards syslog entry
+      → Rule 2832 (crontab alteration) fires
+          → Custom rule 100210 fires — Level 10 — MTTD: 8s
+              → MITRE T1053.003 tagged
+```
+
+**Wazuh Threat Hunting — `rule.id:"100210"` — 1 hit — agent linux01:**
+
+![SC-09 T1053.003 Cron Persistence](docs/screenshots/sc09-wazuh-T1053-cron-persistence.png)
+
+| Field | Value |
+|---|---|
+| `rule.id` | `100210` |
+| `rule.level` | `10` |
+| `rule.description` | Sigma T1053.003: Cron persistence - crontab entry modified by user |
+| `rule.mitre.id` | `T1053.003` |
+| `rule.groups` | `socforge, sigma, persistence, cron` |
+| `agent.name` | `linux01` |
+
+---
+
 ## SOAR Pipeline
 
 Wazuh alerts forwarded to Shuffle via webhook → Shuffle playbook enriches via MISP + Cortex → alert created in TheHive automatically. End-to-end latency: **7 seconds**.
@@ -552,13 +628,13 @@ All metrics calculated from real lab data — timestamps from Wazuh alert export
 
 | KPI | Value | Target | Source |
 |---|---|---|---|
-| **MTTD avg** (7 scenarios) | **13.0s** | < 5 min | Purple team timestamps |
+| **MTTD avg** (9 scenarios) | **12.0s** | < 5 min | Purple team timestamps |
 | **MTTD avg** (investigation session) | **47.25s** | < 5 min | Alert export logs |
 | **MTTA** | ~5 min | < 15 min | Purple Team exercise (analyst active) |
 | **MTTR** | ~2h 06m | < 4h (P1) | Alert → case closure same session |
 | **Pipeline latency** (Wazuh → TheHive) | **7 seconds** | < 60s | 14:23:58 → 14:24:05 (measured) |
 | **SOAR success rate** | **100%** | ≥ 80% | 0 errors / 7 executions |
-| **Detection rate** | **100%** (7/7) | ≥ 95% | Purple team test report |
+| **Detection rate** | **100%** (9/9) | ≥ 95% | Purple team test report |
 | **Precision** | **100%** | ≥ 95% | TP=7, FP=0 |
 | **Recall** | **100%** | ≥ 95% | TP=7, FN=0 |
 | **F1-Score** | **1.00** | ≥ 0.95 | Calculated |

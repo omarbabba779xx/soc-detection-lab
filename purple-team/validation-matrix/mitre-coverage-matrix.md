@@ -24,14 +24,14 @@
 |----------------|-----------------------------|-------------|----------|----------------|
 | T1547.001      | Registry Run Keys           | ✅ Complète  | 92302    | Sysmon-13      |
 | T1053.005      | Scheduled Task              | ✅ Complète  | 100153   | Win-4698/4702  |
-| T1053.003      | Cron Job                    | ❌ Non testé | —        | VM11-LINUX01 (agent installé, scénario non exécuté) |
+| T1053.003      | Cron Job                    | ✅ Complète  | 100210   | VM11-LINUX01/syslog (SC-09) |
 | T1546.013      | PowerShell Profile          | ✅ Complète  | 100186   | Sysmon-11      |
 
 ### TA0004 — Privilege Escalation
 | Technique      | Nom                         | Couverture  | Règle    | Source         |
 |----------------|-----------------------------|-------------|----------|----------------|
 | T1055          | Process Injection           | ✅ Complète  | 100060   | Sysmon-8       |
-| T1548.003      | Sudo Abuse (Linux)          | ❌ Non testé | —        | VM11-LINUX01 (agent installé, scénario non exécuté) |
+| T1548.003      | Sudo Abuse (Linux)          | ✅ Complète  | 100200   | VM11-LINUX01/syslog (SC-08) |
 | T1078          | Valid Accounts              | ✅ Partielle | 100178   | Win-4624       |
 
 ### TA0005 — Defense Evasion

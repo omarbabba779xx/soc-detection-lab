@@ -12,7 +12,7 @@
 SocForge est un laboratoire SOC complet déployé sur environnement VirtualBox local, composé de 12 machines virtuelles organisées en 5 zones réseau. Le projet couvre l'intégralité du pipeline SOC moderne: collecte (Wazuh/SIEM), automatisation (Shuffle/SOAR), gestion d'incidents (TheHive), enrichissement (Cortex/MISP), détection réseau (Zeek/Suricata) et investigation forensique (Velociraptor).
 
 **Résultats clés**:
-- MTTD moyen: **30 secondes** (objectif: < 5 minutes) — combiné 7 scénarios (13s) + Dataset 1 (47s)
+- MTTD moyen: **27 secondes** (objectif: < 5 minutes) — combiné 9 scénarios (12s) + Dataset 1 (47s)
 - Taux de détection Purple Team: **100%** (7/7 techniques)
 - Coverage MITRE ATT&CK: **78%** (18/23 techniques)
 - Alertes TheHive générées: **350+**
@@ -112,12 +112,14 @@ Mimikatz, Invoke-Mimikatz, Meterpreter, Empire, PsExec, PS Download Cradle, PS E
 | SC-05 T1003.001 | PowerShell P/Invoke    | ✅ VP    | 6s     |
 | SC-06 T1055     | PowerShell P/Invoke    | ✅ VP    | 9s     |
 | SC-07 T1547.001 | reg.exe + Atomic RT    | ✅ VP    | 18s    |
+| SC-08 T1548.003 | SSH + sudo (Linux)     | ✅ VP    | 8s     |
+| SC-09 T1053.003 | crontab (Linux)        | ✅ VP    | 8s     |
 
 ### 4.2 KPI Atteints
 
 | KPI              | Objectif     | Résultat       |
 |------------------|-------------|----------------|
-| MTTD moyen       | < 5 minutes | **30 secondes** |
+| MTTD moyen       | < 5 minutes | **27 secondes** |
 | Taux détection   | > 80%       | **100%**       |
 | Faux positifs    | < 5%        | **< 0.001%**   |
 | Coverage MITRE   | > 70%       | **78%**        |
@@ -171,7 +173,7 @@ Mimikatz, Invoke-Mimikatz, Meterpreter, Empire, PsExec, PS Download Cradle, PS E
 
 ## 8. Conclusion
 
-SocForge constitue un environnement SOC complet et reproductible qui démontre la maîtrise du pipeline de sécurité moderne. Tous les objectifs de détection ont été atteints lors de l'exercice Purple Team avec un MTTD moyen de 30 secondes (7 scénarios validés), bien en dessous de l'objectif de 5 minutes. Le projet illustre la complémentarité entre SIEM, SOAR, Threat Intelligence, DFIR et Threat Hunting dans un contexte d'apprentissage isolé et contrôlé.
+SocForge constitue un environnement SOC complet et reproductible qui démontre la maîtrise du pipeline de sécurité moderne. Tous les objectifs de détection ont été atteints lors de l'exercice Purple Team avec un MTTD moyen de 27 secondes (9 scénarios validés), bien en dessous de l'objectif de 5 minutes. Le projet illustre la complémentarité entre SIEM, SOAR, Threat Intelligence, DFIR et Threat Hunting dans un contexte d'apprentissage isolé et contrôlé.
 
 **Sécurité**: Tout au long du projet, les contraintes de sécurité ont été strictement respectées:
 - Environnement 100% local et isolé (pas d'Internet vers les cibles)
