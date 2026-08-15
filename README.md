@@ -69,30 +69,33 @@ Every result in this repository comes from a real lab session. No simulated outp
 ```
 ┌─────────────────┐      ┌──────────────────────────────────────────────┐
 │   VM01-FW       │      │              ATTACK SIMULATION               │
-│  OPNsense 24.x  │      │   VM12-PURPLE (Kali Linux 6.19) 10.10.10.60 │
+│  OPNsense 24.x  │      │  VM12-PURPLE (Kali Linux 2024.2) 10.10.10.60│
 │  10.10.10.1     │      └───────────────────┬──────────────────────────┘
-└─────────────────┘                          │  socforge-mgmt (10.10.10.0/24)
-                                             ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            TARGET ENVIRONMENT                               │
-│  DC01 (Windows Server 2022 — AD)      WIN01 (Windows 11 — Sysmon 15.21)   │
-│  10.10.10.109 — Agent 002             10.10.10.110 — Agent 003             │
-│  ← 7 purple team scenarios →         ← 7 purple team scenarios →           │
-│                                                                             │
-│  LINUX01 (Ubuntu 22.04) — 10.10.10.111 — Agent 004 — no scenarios yet     │
-└──────────┬─────────────────────────────┬───────────────────┬───────────────┘
-           │  Wazuh agent telemetry      │                   │ manual artifact
-           ▼                             ▼                   ▼ collection
-┌──────────────────────────────────────────────┐   ┌──────────────────────┐
-│              VM02-WAZUH  (10.10.10.10)        │   │  VM08-DFIR           │
-│  wazuh-manager · wazuh-indexer (OpenSearch)  │   │  Velociraptor 0.77.1 │
-│  Dashboard · 14 custom rules · 7 YARA rules  │   │  10.10.60.10         │
-└──────────┬───────────────────────────────────┘   └──────────────────────┘
+└────────┬────────┘                          │  socforge-mgmt (10.10.10.0/24)
+         │ syslog                            ▼
+         │          ┌──────────────────────────────────────────────────────────────┐
+         │          │                   TARGET ENVIRONMENT                         │
+         │          │  DC01 (Windows Server 2022 — AD/DNS)  WIN01 (Win 11 Sysmon) │
+         │          │  10.10.10.109 — Agent 002             10.10.10.110 — Agent 003│
+         │          │  SC-01 T1059 · SC-02 T1110 · SC-03    SC-10 T1053.005       │
+         │          │  T1046 · SC-04 T1021.002              SC-11 T1078            │
+         │          │                                       SC-12 T1546.013        │
+         │          │  LINUX01 (Ubuntu 22.04) — 10.10.10.111 — Agent 004          │
+         │          │  SC-05 T1003.001 · SC-06 T1055 · SC-07 T1547.001            │
+         │          │  SC-08 T1548.003 · SC-09 T1053.003                          │
+         │          └──────────┬──────────────────────────┬────────────────────────┘
+         │                     │  Wazuh agent telemetry   │ manual artifact
+         ▼                     ▼                          ▼ collection
+┌──────────────────────────────────────────────┐   ┌──────────────────────────┐
+│              VM02-WAZUH  (10.10.10.10)        │   │  VM08-DFIR-HUNT          │
+│  wazuh-manager · wazuh-indexer (OpenSearch)  │◀──│  Velociraptor 0.77.1     │
+│  Dashboard · 15 custom rules · 7 YARA rules  │   │  10.10.60.10 (dfir zone) │
+└──────────┬───────────────────────────────────┘   └──────────────────────────┘
            │ webhook (7s pipeline)
            ▼
 ┌──────────────────────┐      ┌──────────────────────────────────────┐
 │  VM06-SHUFFLE SOAR   │─────▶│  VM03-THEHIVE  (10.10.10.20:9000)   │
-│  10.10.10.30         │      │  Case Management · 350+ alerts       │
+│  10.10.10.30         │      │  Case Management · 353+ alerts       │
 │  5-node playbook     │      └──────────────┬───────────────────────┘
 └──────────────────────┘                     │
                                              ▼
@@ -107,8 +110,10 @@ Every result in this repository comes from a real lab session. No simulated outp
                                │  CIRCL · Botvrij.eu · URLhaus       │
                                └─────────────────────────────────────┘
 
-VM07-NDR  (10.10.10.40)  — Zeek + Suricata — passive network tap on socforge-mgmt
-VM01-FW   (10.10.10.1)   — OPNsense 24.x — gateway + firewall
+VM07-NDR (10.10.10.40) — Zeek + Suricata — passive tap → Wazuh (socforge-mgmt)
+
+Note: Plan prévoyait 5 zones réseau isolées. Déploiement réel = réseau plat socforge-mgmt
+(10.10.10.0/24) + zone dfir (10.10.60.0/24). Isolation VM12-PURPLE via règles firewall VM01-FW.
 ```
 
 </details>
@@ -132,7 +137,7 @@ VM01-FW   (10.10.10.1)   — OPNsense 24.x — gateway + firewall
 | `SF-VM09-DC01` | Active Directory DC | 10.10.10.109 | Windows Server 2022 | ✅ Active |
 | `SF-VM10-WIN01` | Windows Endpoint | 10.10.10.110 | Windows 11 | ✅ Domain-joined |
 | `SF-VM11-LINUX01` | Linux Endpoint | 10.10.10.111 | Ubuntu 22.04 | ✅ Active |
-| `SF-VM12-PURPLE` | Red Team | 10.10.10.60 | Kali Linux 6.19 | ✅ Active |
+| `SF-VM12-PURPLE` | Red Team | 10.10.10.60 | Kali Linux 2024.2 | ✅ Active |
 
 **Network:**  
 All VMs share `socforge-mgmt` (10.10.10.0/24) — flat internal network via VirtualBox host-only adapter. VM08-DFIR is on a separate `socforge-dfir` (10.10.60.0/24). No internet exposure during attack simulations.
@@ -757,12 +762,12 @@ All metrics calculated from real lab data — timestamps from Wazuh alert export
 ```
 .
 ├── wazuh/
-│   ├── rules/              # Custom Sigma rules (14 deployed)
+│   ├── rules/              # Custom Sigma rules (15 deployed)
 │   ├── agents/             # Agent configuration (agent.conf)
 │   ├── decoders/           # Custom decoders
 │   └── dashboards/         # Dashboard exports
 ├── purple-team/
-│   ├── scenarios/          # Attack playbooks (SC-01 → SC-07)
+│   ├── scenarios/          # Attack playbooks (SC-01 → SC-12, Sessions 1-3)
 │   ├── atomic-tests/       # Atomic Red Team mappings
 │   └── validation-matrix/  # Detection results per technique
 ├── detections/

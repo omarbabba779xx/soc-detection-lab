@@ -15,7 +15,7 @@
 | VM09 | DC01 | Windows Server 2022 Eval | Active Directory, DNS | 2 | 3 Go | 50 Go | socforge-mgmt | 10.10.10.109 |
 | VM10 | WIN01 | Windows 11 Eval | Endpoint Windows | 2 | 3 Go | 60 Go | socforge-mgmt | 10.10.10.110 |
 | VM11 | LINUX01 | Ubuntu 22.04 LTS | Endpoint Linux | 1 | 2 Go | 30 Go | socforge-mgmt | 10.10.10.111 |
-| VM12 | PURPLE | Kali Linux 6.19 | Adversary emulation | 2 | 2 Go | 40 Go | socforge-mgmt | 10.10.10.60 |
+| VM12 | PURPLE | Kali Linux 2024.2 | Adversary emulation | 2 | 2 Go | 40 Go | socforge-mgmt | 10.10.10.60 |
 
 **RAM totale théorique :** ~32 Go — utilisation par blocs uniquement.
 
