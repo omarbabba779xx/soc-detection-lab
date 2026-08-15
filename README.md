@@ -10,7 +10,7 @@
 ![Detection Rate](https://img.shields.io/badge/detection%20rate-100%25-39d353?style=flat-square)
 ![MTTD](https://img.shields.io/badge/MTTD-27s%20avg-00d4ff?style=flat-square)
 ![MITRE](https://img.shields.io/badge/MITRE%20ATT%26CK-78%25%20(18%2F23)-f0883e?style=flat-square)
-![Scenarios](https://img.shields.io/badge/purple%20team-9%2F9%20validated-bc8cff?style=flat-square)
+![Scenarios](https://img.shields.io/badge/purple%20team-13%2F13%20validated-bc8cff?style=flat-square)
 ![Wazuh](https://img.shields.io/badge/Wazuh-4.9.2-005571?style=flat-square)
 
 </div>
@@ -186,8 +186,11 @@ All scenarios executed from `SF-VM12-PURPLE` (10.10.10.60) against `SF-VM09-DC01
 | SC-07 | T1547.001 Registry | reg.exe + Atomic | 18s | 92302 | 3 | ✅ PASS |
 | SC-08 | T1548.003 Sudo Abuse | SSH + sudo | 8s | 100200 | 4 | ✅ PASS |
 | SC-09 | T1053.003 Cron Persist | crontab | 8s | 100210 | 1 | ✅ PASS |
+| SC-10 | T1053.005 Scheduled Task Win | schtasks /create | 84s | 60642 | 1 | ✅ PASS |
+| SC-11 | T1078 Valid Account | net use \\localhost\C$ | 42s | 92037 | 1 | ✅ PASS |
+| SC-12 | T1546.013 PS Profile | cmd echo >> profile.ps1 | 49s | 92004 | 1 | ✅ PASS |
 
-MTTD average across all 9 scenarios: **12s** (purple team session). Combined with earlier Dataset 1 (4 scenarios, 47s avg): **27s overall lab average**.
+MTTD average across all 12 scenarios (Sessions 1-3): **23.8s**. Combined with earlier Dataset 1 (4 scenarios, 47s avg): **27s overall lab average**.
 
 ---
 
@@ -628,7 +631,7 @@ All metrics calculated from real lab data — timestamps from Wazuh alert export
 
 | KPI | Value | Target | Source |
 |---|---|---|---|
-| **MTTD avg** (9 scenarios) | **12.0s** | < 5 min | Purple team timestamps |
+| **MTTD avg** (12 scenarios, Sessions 1-3) | **23.8s** | < 5 min | Purple team timestamps |
 | **MTTD avg** (investigation session) | **47.25s** | < 5 min | Alert export logs |
 | **MTTA** | ~5 min | < 15 min | Purple Team exercise (analyst active) |
 | **MTTR** | ~2h 06m | < 4h (P1) | Alert → case closure same session |

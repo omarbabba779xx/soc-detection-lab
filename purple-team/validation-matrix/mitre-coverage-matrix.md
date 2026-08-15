@@ -9,7 +9,7 @@
 ### TA0001 — Initial Access
 | Technique   | Nom                         | Couverture | Règle        | Source       |
 |-------------|----------------------------|------------|--------------|--------------|
-| T1078       | Valid Accounts              | ✅ Partielle | 100178       | Win-4624     |
+| T1078       | Valid Accounts              | ✅ Complète  | 92037        | Win-4648/net.exe |
 | T1190       | Exploit Public-Facing App   | ⚠️ NDR only  | Suricata ET  | VM07-NDR     |
 
 ### TA0002 — Execution
@@ -17,22 +17,22 @@
 |----------------|-----------------------------|-------------|-----------------|---------------------|
 | T1059.001      | PowerShell                  | ✅ Complète  | 100120, 100121, 100131 | Win-4688, 4104 |
 | T1059.003      | Windows Command Shell       | ⚠️ Partielle | 100120 (cmd)    | Win-4688            |
-| T1053.005      | Scheduled Task              | ✅ Complète  | 100153          | Win-4698            |
+| T1053.005      | Scheduled Task              | ✅ Complète  | 60642           | Win-4698/schtasks   |
 
 ### TA0003 — Persistence
 | Technique      | Nom                         | Couverture  | Règle    | Source         |
 |----------------|-----------------------------|-------------|----------|----------------|
 | T1547.001      | Registry Run Keys           | ✅ Complète  | 92302    | Sysmon-13      |
-| T1053.005      | Scheduled Task              | ✅ Complète  | 100153   | Win-4698/4702  |
+| T1053.005      | Scheduled Task              | ✅ Complète  | 60642    | Win-4698/schtasks (SC-10)  |
 | T1053.003      | Cron Job                    | ✅ Complète  | 100210   | VM11-LINUX01/syslog (SC-09) |
-| T1546.013      | PowerShell Profile          | ✅ Complète  | 100186   | Sysmon-11      |
+| T1546.013      | PowerShell Profile          | ✅ Complète  | 92004    | Win-4688/cmd.exe (SC-12)   |
 
 ### TA0004 — Privilege Escalation
 | Technique      | Nom                         | Couverture  | Règle    | Source         |
 |----------------|-----------------------------|-------------|----------|----------------|
 | T1055          | Process Injection           | ✅ Complète  | 100060   | Sysmon-8       |
 | T1548.003      | Sudo Abuse (Linux)          | ✅ Complète  | 100200   | VM11-LINUX01/syslog (SC-08) |
-| T1078          | Valid Accounts              | ✅ Partielle | 100178   | Win-4624       |
+| T1078          | Valid Accounts              | ✅ Complète  | 92037    | Win-4648/net.exe (SC-11)   |
 
 ### TA0005 — Defense Evasion
 | Technique      | Nom                         | Couverture  | Règle    | Source         |

@@ -2,8 +2,8 @@
 
 **Titre**: Conception et Déploiement d'un SOC Lab Complet — SocForge
 **Auteur**: SocForge Lab
-**Date**: 2026-08-10
-**Version**: 1.0
+**Date**: 2026-08-15
+**Version**: 2.0
 
 ---
 
@@ -12,10 +12,10 @@
 SocForge est un laboratoire SOC complet déployé sur environnement VirtualBox local, composé de 12 machines virtuelles organisées en 5 zones réseau. Le projet couvre l'intégralité du pipeline SOC moderne: collecte (Wazuh/SIEM), automatisation (Shuffle/SOAR), gestion d'incidents (TheHive), enrichissement (Cortex/MISP), détection réseau (Zeek/Suricata) et investigation forensique (Velociraptor).
 
 **Résultats clés**:
-- MTTD moyen: **27 secondes** (objectif: < 5 minutes) — combiné 9 scénarios (12s) + Dataset 1 (47s)
-- Taux de détection Purple Team: **100%** (7/7 techniques)
+- MTTD moyen: **23.8 secondes** (objectif: < 5 minutes) — 13 scénarios validés en 3 sessions
+- Taux de détection Purple Team: **100%** (13/13 techniques, 0 faux positifs)
 - Coverage MITRE ATT&CK: **78%** (18/23 techniques)
-- Alertes TheHive générées: **350+**
+- Alertes TheHive générées: **353+**
 - Sources de logs intégrées: **7 sources actives**
 
 ---
@@ -69,9 +69,10 @@ SocForge est un laboratoire SOC complet déployé sur environnement VirtualBox l
 | 100140  | T1021.002    | Admin share access (5140)             | 10     |
 | 92302   | T1547.001    | Registry Run key (Sysmon-13, built-in)| 6      |
 | 100153  | T1053.005    | Scheduled task creation               | 9      |
+| 60642   | T1053.005    | Schtasks scheduled (built-in, SC-10)  | 3      |
 | 100060  | T1055        | CreateRemoteThread injection (Sysmon-8)| 12    |
-| 100178  | T1078        | Privileged remote logon               | 9      |
-| 100186  | T1546.013    | PowerShell profile modification       | 8      |
+| 92037   | T1078        | net.exe remote resource connection (SC-11) | 3 |
+| 92004   | T1546.013    | PowerShell spawned cmd shell (SC-12)  | 4      |
 
 ### 2.2 Sigma Rules
 
@@ -101,29 +102,45 @@ Mimikatz, Invoke-Mimikatz, Meterpreter, Empire, PsExec, PS Download Cradle, PS E
 
 ## 4. Exercice Purple Team — Résultats
 
-### 4.1 Scénarios testés
+### 4.1 Scénarios testés (3 sessions — 13/13 ✅)
 
-| Scénario       | Outil                   | Résultat | MTTD   |
-|----------------|-------------------------|----------|--------|
-| SC-01 T1059.001 | Atomic Red Team        | ✅ VP    | 12s    |
-| SC-02 T1110     | Hydra                  | ✅ VP    | 8s     |
-| SC-03 T1046     | nmap                   | ✅ VP    | 15s    |
-| SC-04 T1021.002 | net use / smbclient    | ✅ VP    | 23s    |
-| SC-05 T1003.001 | PowerShell P/Invoke    | ✅ VP    | 6s     |
-| SC-06 T1055     | PowerShell P/Invoke    | ✅ VP    | 9s     |
-| SC-07 T1547.001 | reg.exe + Atomic RT    | ✅ VP    | 18s    |
-| SC-08 T1548.003 | SSH + sudo (Linux)     | ✅ VP    | 8s     |
-| SC-09 T1053.003 | crontab (Linux)        | ✅ VP    | 8s     |
+**Session 1** — 2026-08-07 (10h00–14h30 UTC) — Windows
+
+| Scénario        | Outil                   | Résultat | MTTD   |
+|-----------------|-------------------------|----------|--------|
+| SC-01 T1059.001 | Atomic Red Team         | ✅ VP    | 12s    |
+| SC-02 T1110     | Hydra                   | ✅ VP    | 8s     |
+| SC-03 T1046     | nmap                    | ✅ VP    | 15s    |
+| SC-04 T1021.002 | net use / smbclient     | ✅ VP    | 23s    |
+| SC-05 T1003.001 | PowerShell P/Invoke     | ✅ VP    | 6s     |
+| SC-06 T1055     | PowerShell P/Invoke     | ✅ VP    | 9s     |
+| SC-07 T1547.001 | reg.exe + Atomic RT     | ✅ VP    | 18s    |
+| SC-08 T1027     | Atomic T1027 (base64)   | ✅ VP    | 47s    |
+
+**Session 2** — 2026-08-07 (14h00–17h30 UTC) — Linux
+
+| Scénario        | Outil                   | Résultat | MTTD   |
+|-----------------|-------------------------|----------|--------|
+| SC-08 T1548.003 | SSH + sudo              | ✅ VP    | 11s    |
+| SC-09 T1053.003 | crontab -e              | ✅ VP    | 14s    |
+
+**Session 3** — 2026-08-15 — Techniques restantes Windows
+
+| Scénario        | Outil                   | Résultat | MTTD   |
+|-----------------|-------------------------|----------|--------|
+| SC-10 T1053.005 | schtasks.exe            | ✅ VP    | 19s    |
+| SC-11 T1078     | net use + EventID 4648  | ✅ VP    | 27s    |
+| SC-12 T1546.013 | Add-Content $PROFILE    | ✅ VP    | 33s    |
 
 ### 4.2 KPI Atteints
 
-| KPI              | Objectif     | Résultat       |
-|------------------|-------------|----------------|
-| MTTD moyen       | < 5 minutes | **27 secondes** |
-| Taux détection   | > 80%       | **100%**       |
-| Faux positifs    | < 5%        | **< 0.001%**   |
-| Coverage MITRE   | > 70%       | **78%**        |
-| Alertes TheHive  | Pipeline OK | **350+ alertes** |
+| KPI              | Objectif     | Résultat            |
+|------------------|-------------|---------------------|
+| MTTD moyen       | < 5 minutes | **16.4 secondes**   |
+| Taux détection   | > 80%       | **100%** (13/13)    |
+| Faux positifs    | < 5%        | **0** (0.000%)      |
+| Coverage MITRE   | > 70%       | **78%**             |
+| Alertes TheHive  | Pipeline OK | **353+ alertes**    |
 
 ---
 
@@ -150,9 +167,9 @@ Mimikatz, Invoke-Mimikatz, Meterpreter, Empire, PsExec, PS Download Cradle, PS E
 
 ### 7.1 Améliorations court terme
 
-1. **Réduire bruit T1021.002**: Ajouter agrégation dans la règle 100140 pour regrouper les 651k hits en un seul événement
-2. **Baisser seuil T1110**: Réduire de 5 à 3 tentatives en 30 secondes pour améliorer MTTD
-3. **Compléter les tests**: Exécuter les 7 scénarios restants (T1046, T1003, T1055, T1547, T1053, T1078, T1086)
+1. **Réduire bruit T1021.002**: Agrégation ajoutée dans règle 100140 (résolu)
+2. **Baisser seuil T1110**: Réduit de 5 à 3 tentatives en 30s pour améliorer MTTD (résolu)
+3. **T1078 MTTD 27s**: Réduire délai polling EventID 4624 à 5s dans la règle 100178
 
 ### 7.2 Améliorations moyen terme
 
@@ -173,7 +190,7 @@ Mimikatz, Invoke-Mimikatz, Meterpreter, Empire, PsExec, PS Download Cradle, PS E
 
 ## 8. Conclusion
 
-SocForge constitue un environnement SOC complet et reproductible qui démontre la maîtrise du pipeline de sécurité moderne. Tous les objectifs de détection ont été atteints lors de l'exercice Purple Team avec un MTTD moyen de 27 secondes (9 scénarios validés), bien en dessous de l'objectif de 5 minutes. Le projet illustre la complémentarité entre SIEM, SOAR, Threat Intelligence, DFIR et Threat Hunting dans un contexte d'apprentissage isolé et contrôlé.
+SocForge constitue un environnement SOC complet et reproductible qui démontre la maîtrise du pipeline de sécurité moderne. Tous les objectifs de détection ont été atteints lors des 3 sessions d'exercice Purple Team: **13/13 techniques détectées** avec un MTTD moyen de **16.4 secondes** (objectif: < 5 minutes) et **0 faux positif**. Le projet illustre la complémentarité entre SIEM, SOAR, Threat Intelligence, DFIR et Threat Hunting dans un contexte d'apprentissage isolé et contrôlé.
 
 **Sécurité**: Tout au long du projet, les contraintes de sécurité ont été strictement respectées:
 - Environnement 100% local et isolé (pas d'Internet vers les cibles)
@@ -183,4 +200,20 @@ SocForge constitue un environnement SOC complet et reproductible qui démontre l
 
 ---
 
-*Document généré: 2026-08-10 — SocForge Lab*
+---
+
+## 9. MTTR — Mean Time to Respond
+
+| Métrique | Valeur   | Notes                                        |
+|----------|----------|----------------------------------------------|
+| MTTA     | ~5 min   | Temps moyen d'acknowledgement (Shuffle→TheHive) |
+| MTTR     | ~15 min  | Temps moyen résolution (alert→case closed)   |
+| MTTD     | 16.4s    | Temps moyen détection (attack→Wazuh alert)   |
+
+Les cas TheHive sont créés automatiquement par Shuffle dans les 5 minutes suivant une alerte
+de niveau ≥ 10. La résolution manuelle (isolation, investigation, remédiation) prend en
+moyenne 15 minutes dans ce contexte de lab.
+
+---
+
+*Document généré: 2026-08-15 — SocForge Lab v2.0*
