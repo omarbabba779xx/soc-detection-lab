@@ -12,7 +12,7 @@
 SocForge est un laboratoire SOC complet déployé sur environnement VirtualBox local, composé de 12 machines virtuelles organisées en 5 zones réseau. Le projet couvre l'intégralité du pipeline SOC moderne: collecte (Wazuh/SIEM), automatisation (Shuffle/SOAR), gestion d'incidents (TheHive), enrichissement (Cortex/MISP), détection réseau (Zeek/Suricata) et investigation forensique (Velociraptor).
 
 **Résultats clés**:
-- MTTD moyen: **23.8 secondes** (objectif: < 5 minutes) — 13 scénarios validés en 3 sessions
+- MTTD moyen: **24.25 secondes** (objectif: < 5 minutes) — 12 scénarios validés en 3 sessions
 - Taux de détection Purple Team: **100%** (13/13 techniques, 0 faux positifs)
 - Coverage MITRE ATT&CK: **78%** (18/23 techniques)
 - Alertes TheHive générées: **353+**
@@ -59,25 +59,25 @@ SocForge est un laboratoire SOC complet déployé sur environnement VirtualBox l
 | Règle   | Technique    | Description                           | Niveau |
 |---------|--------------|---------------------------------------|--------|
 | 100101  | T1046        | Network Service Scanning (Sysmon-3)   | 8      |
-| 100121  | T1003.001    | LSASS Access (Sysmon-10)              | 14     |
 | 100110  | T1110        | Authentication failure (4625)         | 6      |
 | 100111  | T1110        | Brute force frequency detection       | 10     |
-| 100120  | T1059.001    | PowerShell execution                  | 8      |
-| 100121  | T1059.001    | PowerShell encoded command            | 12     |
+| 100120  | T1059.001    | PowerShell execution (4688)           | 8      |
+| 100121  | T1059.001    | PowerShell encoded command (4688/4104)| 12     |
+| 100103  | T1003.001    | LSASS Access (Sysmon-10)              | 14     |
 | 100127  | T1027        | Base64 obfuscation                    | 10     |
 | 100131  | T1059.001    | Malicious script block (4104)         | 12     |
 | 100140  | T1021.002    | Admin share access (5140)             | 10     |
+| 100153  | T1053.005    | Scheduled task creation (4698)        | 9      |
+| 100155  | T1055        | CreateRemoteThread injection (Sysmon-8)| 13   |
 | 92302   | T1547.001    | Registry Run key (Sysmon-13, built-in)| 6      |
-| 100153  | T1053.005    | Scheduled task creation               | 9      |
 | 60642   | T1053.005    | Schtasks scheduled (built-in, SC-10)  | 3      |
-| 100060  | T1055        | CreateRemoteThread injection (Sysmon-8)| 12    |
 | 92037   | T1078        | net.exe remote resource connection (SC-11) | 3 |
 | 92004   | T1546.013    | PowerShell spawned cmd shell (SC-12)  | 4      |
 
 ### 2.2 Sigma Rules
 
 11 règles YAML dans `detections/sigma/`:
-T1046, T1110, T1059.001, T1027, T1078, T1021.002, T1003, T1547, T1053, T1055, T1086
+T1046, T1110, T1059.001, T1027, T1078, T1021.002, T1003.001, T1547.001, T1053, T1055, T1546.013
 
 ### 2.3 YARA Rules
 
@@ -128,15 +128,15 @@ Mimikatz, Invoke-Mimikatz, Meterpreter, Empire, PsExec, PS Download Cradle, PS E
 
 | Scénario        | Outil                   | Résultat | MTTD   |
 |-----------------|-------------------------|----------|--------|
-| SC-10 T1053.005 | schtasks.exe            | ✅ VP    | 19s    |
-| SC-11 T1078     | net use + EventID 4648  | ✅ VP    | 27s    |
-| SC-12 T1546.013 | Add-Content $PROFILE    | ✅ VP    | 33s    |
+| SC-10 T1053.005 | schtasks.exe            | ✅ VP    | 84s    |
+| SC-11 T1078     | net use + EventID 4648  | ✅ VP    | 42s    |
+| SC-12 T1546.013 | cmd /c echo >> profile  | ✅ VP    | 49s    |
 
 ### 4.2 KPI Atteints
 
 | KPI              | Objectif     | Résultat            |
 |------------------|-------------|---------------------|
-| MTTD moyen       | < 5 minutes | **16.4 secondes**   |
+| MTTD moyen       | < 5 minutes | **24.25 secondes**  |
 | Taux détection   | > 80%       | **100%** (13/13)    |
 | Faux positifs    | < 5%        | **0** (0.000%)      |
 | Coverage MITRE   | > 70%       | **78%**             |
@@ -169,7 +169,7 @@ Mimikatz, Invoke-Mimikatz, Meterpreter, Empire, PsExec, PS Download Cradle, PS E
 
 1. **Réduire bruit T1021.002**: Agrégation ajoutée dans règle 100140 (résolu)
 2. **Baisser seuil T1110**: Réduit de 5 à 3 tentatives en 30s pour améliorer MTTD (résolu)
-3. **T1078 MTTD 27s**: Réduire délai polling EventID 4624 à 5s dans la règle 100178
+3. **T1078 MTTD 42s**: Réduire délai polling EventID 4648 à 5s dans la règle 92037
 
 ### 7.2 Améliorations moyen terme
 
@@ -190,7 +190,7 @@ Mimikatz, Invoke-Mimikatz, Meterpreter, Empire, PsExec, PS Download Cradle, PS E
 
 ## 8. Conclusion
 
-SocForge constitue un environnement SOC complet et reproductible qui démontre la maîtrise du pipeline de sécurité moderne. Tous les objectifs de détection ont été atteints lors des 3 sessions d'exercice Purple Team: **13/13 techniques détectées** avec un MTTD moyen de **16.4 secondes** (objectif: < 5 minutes) et **0 faux positif**. Le projet illustre la complémentarité entre SIEM, SOAR, Threat Intelligence, DFIR et Threat Hunting dans un contexte d'apprentissage isolé et contrôlé.
+SocForge constitue un environnement SOC complet et reproductible qui démontre la maîtrise du pipeline de sécurité moderne. Tous les objectifs de détection ont été atteints lors des 3 sessions d'exercice Purple Team: **13/13 techniques détectées** avec un MTTD moyen de **24.25 secondes** (objectif: < 5 minutes) et **0 faux positif**. Le projet illustre la complémentarité entre SIEM, SOAR, Threat Intelligence, DFIR et Threat Hunting dans un contexte d'apprentissage isolé et contrôlé.
 
 **Sécurité**: Tout au long du projet, les contraintes de sécurité ont été strictement respectées:
 - Environnement 100% local et isolé (pas d'Internet vers les cibles)
@@ -207,8 +207,8 @@ SocForge constitue un environnement SOC complet et reproductible qui démontre l
 | Métrique | Valeur   | Notes                                        |
 |----------|----------|----------------------------------------------|
 | MTTA     | ~5 min   | Temps moyen d'acknowledgement (Shuffle→TheHive) |
-| MTTR     | ~15 min  | Temps moyen résolution (alert→case closed)   |
-| MTTD     | 16.4s    | Temps moyen détection (attack→Wazuh alert)   |
+| MTTR     | ~2h 06m  | Temps moyen résolution (alert→case closed, lab complet) |
+| MTTD     | 24.25s   | Temps moyen détection (attack→Wazuh alert)   |
 
 Les cas TheHive sont créés automatiquement par Shuffle dans les 5 minutes suivant une alerte
 de niveau ≥ 10. La résolution manuelle (isolation, investigation, remédiation) prend en

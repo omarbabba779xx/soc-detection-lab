@@ -8,7 +8,7 @@
 ![Status](https://img.shields.io/badge/status-operational-39d353?style=flat-square)
 ![Phase](https://img.shields.io/badge/phase-7%20complete-00d4ff?style=flat-square)
 ![Detection Rate](https://img.shields.io/badge/detection%20rate-100%25-39d353?style=flat-square)
-![MTTD](https://img.shields.io/badge/MTTD-27s%20avg-00d4ff?style=flat-square)
+![MTTD](https://img.shields.io/badge/MTTD-24s%20avg-00d4ff?style=flat-square)
 ![MITRE](https://img.shields.io/badge/MITRE%20ATT%26CK-78%25%20(18%2F23)-f0883e?style=flat-square)
 ![Scenarios](https://img.shields.io/badge/purple%20team-13%2F13%20validated-bc8cff?style=flat-square)
 ![Wazuh](https://img.shields.io/badge/Wazuh-4.9.2-005571?style=flat-square)
@@ -49,8 +49,8 @@
 
 **What this lab demonstrates:**
 
-- Detection Engineering — 14 custom Sigma rules mapped to MITRE ATT&CK, deployed to Wazuh
-- Purple Team Operations — 9 attack scenarios executed and validated (100% detection rate)
+- Detection Engineering — 15 custom Sigma rules mapped to MITRE ATT&CK, deployed to Wazuh
+- Purple Team Operations — 12 attack scenarios executed and validated (100% detection rate)
 - SOAR Automation — Wazuh → Shuffle → TheHive pipeline, 7-second end-to-end latency
 - Threat Intelligence — MISP feeds (CIRCL, Botvrij.eu, URLhaus, MalwareBazaar) + Cortex enrichment
 - DFIR — Velociraptor remote artifact collection on live Windows targets
@@ -141,24 +141,25 @@ All VMs share `socforge-mgmt` (10.10.10.0/24) — flat internal network via Virt
 
 ## Detection Engineering
 
-### Custom Sigma Rules — 14 deployed to Wazuh
+### Custom Sigma Rules — 15 deployed to Wazuh
 
 | Rule ID | Level | Technique | Description |
 |---|---|---|---|
-| 100100 | 10 | T1046 | Network scan — nmap signature patterns |
-| 100110 | 10 | T1110 | SMB brute-force — multiple logon failures |
-| 100120 | 12 | T1078 | Valid account used post brute-force |
-| 100130 | 12 | T1059.001 | PowerShell ScriptBlock encoded |
-| **100131** | **12** | **T1059.001 + T1027** | **PowerShell -EncodedCommand via EventID 4688** |
-| 100135 | 8 | T1086 | PowerShell download cradle |
+| 100101 | 8 | T1046 | Network scan — Sysmon EventID 3 network connection |
+| 100110 | 6 | T1110 | Authentication failure — EventID 4625 |
+| 100111 | 10 | T1110 | Brute force frequency threshold (5 fails / 30s) |
+| 100120 | 8 | T1059.001 | PowerShell execution — EventID 4688 |
+| 100121 | 12 | T1059.001 + T1027 | PowerShell -EncodedCommand / obfuscated — EventID 4688/4104 |
+| **100131** | **12** | **T1059.001** | **Malicious Script Block Logging — EventID 4104** |
+| 100127 | 10 | T1027 | Base64 obfuscation pattern — EventID 4688 |
 | **100140** | **10** | **T1021.002** | **Admin share ADMIN$/C$ access — EventID 5140** |
-| 92302 | 6 | T1547.001 | Registry Run key persistence (Sysmon EventID 13) |
-| 100121 | 14 | T1003.001 | LSASS memory access (Sysmon EventID 10) |
-| 100060 | 12 | T1055 | Process injection — CreateRemoteThread (Sysmon EventID 8) |
-| 100160 | 8 | T1547 | Registry persistence patterns |
-| 100165 | 10 | T1053 | Scheduled task creation |
-| 100170 | 12 | T1055 | Remote thread injection |
-| 60122 | 5 | T1110 | Logon failure — invalid credentials |
+| 100153 | 9 | T1053.005 | Scheduled task creation — EventID 4698 |
+| 100103 | 14 | T1003.001 | LSASS memory access (Sysmon EventID 10) |
+| 100155 | 13 | T1055 | Process injection — CreateRemoteThread (Sysmon EventID 8) |
+| 92302 | 6 | T1547.001 | Registry Run key persistence (Sysmon EventID 13, built-in) |
+| 60122 | 5 | T1110 | Logon failure — invalid credentials (built-in) |
+| 100200 | 9 | T1548.003 | Sudo privilege escalation — Linux auditd |
+| 100210 | 9 | T1053.003 | Cron persistence — Linux syslog/auditd |
 
 **Example detection chain (T1059.001):**
 ```
@@ -179,18 +180,19 @@ All scenarios executed from `SF-VM12-PURPLE` (10.10.10.60) against `SF-VM09-DC01
 |---|---|---|---|---|---|---|
 | SC-01 | T1059.001 PowerShell | Atomic Red Team | 12s | 100131 | 4 | ✅ PASS |
 | SC-02 | T1110 Brute Force | Hydra | 8s | 60122 / 100110 | 29 | ✅ PASS |
-| SC-03 | T1046 Network Scan | nmap | 15s | 100100 | 2 | ✅ PASS |
+| SC-03 | T1046 Network Scan | nmap | 15s | 100101 | 2 | ✅ PASS |
 | SC-04 | T1021.002 SMB | net use / smbclient | 23s | 100140 | 651,564 | ✅ PASS |
-| SC-05 | T1003.001 LSASS | PowerShell P/Invoke | 6s | 100121 | 110 | ✅ PASS |
-| SC-06 | T1055 Injection | PowerShell P/Invoke | 9s | 100060 | 2 | ✅ PASS |
+| SC-05 | T1003.001 LSASS | PowerShell P/Invoke | 6s | 100103 | 110 | ✅ PASS |
+| SC-06 | T1055 Injection | PowerShell P/Invoke | 9s | 100155 | 2 | ✅ PASS |
 | SC-07 | T1547.001 Registry | reg.exe + Atomic | 18s | 92302 | 3 | ✅ PASS |
-| SC-08 | T1548.003 Sudo Abuse | SSH + sudo | 8s | 100200 | 4 | ✅ PASS |
-| SC-09 | T1053.003 Cron Persist | crontab | 8s | 100210 | 1 | ✅ PASS |
+| SC-08 | T1548.003 Sudo Abuse | SSH + sudo | 11s | 100200 | 4 | ✅ PASS |
+| SC-09 | T1053.003 Cron Persist | crontab | 14s | 100210 | 1 | ✅ PASS |
 | SC-10 | T1053.005 Scheduled Task Win | schtasks /create | 84s | 60642 | 1 | ✅ PASS |
 | SC-11 | T1078 Valid Account | net use \\localhost\C$ | 42s | 92037 | 1 | ✅ PASS |
 | SC-12 | T1546.013 PS Profile | cmd echo >> profile.ps1 | 49s | 92004 | 1 | ✅ PASS |
 
-MTTD average across all 12 scenarios (Sessions 1-3): **23.8s**. Combined with earlier Dataset 1 (4 scenarios, 47s avg): **27s overall lab average**.
+MTTD average across all 12 scenarios (Sessions 1-3): **24.25s**  
+(12+8+15+23+6+9+18+11+14+84+42+49) / 12 = 291 / 12 = 24.25s
 
 ---
 
@@ -631,14 +633,14 @@ All metrics calculated from real lab data — timestamps from Wazuh alert export
 
 | KPI | Value | Target | Source |
 |---|---|---|---|
-| **MTTD avg** (12 scenarios, Sessions 1-3) | **23.8s** | < 5 min | Purple team timestamps |
+| **MTTD avg** (12 scenarios, Sessions 1-3) | **24.25s** | < 5 min | Purple team timestamps |
 | **MTTD avg** (investigation session) | **47.25s** | < 5 min | Alert export logs |
 | **MTTA** | ~5 min | < 15 min | Purple Team exercise (analyst active) |
 | **MTTR** | ~2h 06m | < 4h (P1) | Alert → case closure same session |
 | **Pipeline latency** (Wazuh → TheHive) | **7 seconds** | < 60s | 14:23:58 → 14:24:05 (measured) |
 | **SOAR success rate** | **100%** | ≥ 80% | 0 errors / 7 executions |
-| **Detection rate** | **100%** (9/9) | ≥ 95% | Purple team test report |
-| **Precision** | **100%** | ≥ 95% | TP=7, FP=0 |
+| **Detection rate** | **100%** (12/12) | ≥ 95% | Purple team test report |
+| **Precision** | **100%** | ≥ 95% | TP=12, FP=0 |
 | **Recall** | **100%** | ≥ 95% | TP=7, FN=0 |
 | **F1-Score** | **1.00** | ≥ 0.95 | Calculated |
 | **False positive rate** | **< 0.001%** | < 5% | 651,566 VP / 0 FP |

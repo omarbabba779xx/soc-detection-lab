@@ -30,11 +30,11 @@
 
 | Fichier | Description |
 |---------|-------------|
-| `docs/screenshots/bloc1-soar/shuffle-soar-playbook-5nodes.png` | Workflow Shuffle 5 nœuds |
-| `docs/screenshots/bloc1-soar/shuffle-execution-finished.png` | Exécution playbook terminée |
-| `docs/screenshots/bloc1-soar/shuffle-all-workflow-runs.png` | Historique exécutions Shuffle |
-| `docs/screenshots/bloc1-soar/thehive-alert-from-soar.png` | Alerte TheHive créée par SOAR |
-| `docs/screenshots/bloc1-soar/thehive-alerts-350.png` | 350+ alertes TheHive |
+| `docs/screenshots/bloc1-soar/shuffle-soar-playbook-5nodes.jpg` | Workflow Shuffle 5 nœuds |
+| `docs/screenshots/bloc1-soar/shuffle-execution-finished.jpg` | Exécution playbook terminée |
+| `docs/screenshots/bloc1-soar/shuffle-all-workflow-runs.jpg` | Historique exécutions Shuffle |
+| `docs/screenshots/bloc1-soar/thehive-alert-from-soar.jpg` | Alerte TheHive créée par SOAR |
+| `docs/screenshots/bloc1-soar/thehive-alerts-350.jpg` | 350+ alertes TheHive |
 
 ---
 
@@ -42,10 +42,10 @@
 
 | Fichier | Description |
 |---------|-------------|
-| `docs/screenshots/bloc2-misp-cortex/cortex-job-misp-socforge-success.png` | Job Cortex MISP succès |
-| `docs/screenshots/bloc2-misp-cortex/misp-event-2108-attributes.png` | Événement MISP attributs |
-| `docs/screenshots/bloc2-misp-cortex/misp-event-2108-ioc.png` | IOC MISP Purple Team |
-| `docs/screenshots/bloc2-misp-cortex/thehive-alert-enriched.png` | Alerte TheHive enrichie |
+| `docs/screenshots/bloc2-misp-cortex/cortex-job-misp-socforge-success.jpg` | Job Cortex MISP succès |
+| `docs/screenshots/bloc2-misp-cortex/misp-event-2108-attributes.jpg` | Événement MISP attributs |
+| `docs/screenshots/bloc2-misp-cortex/misp-event-2108-ioc.jpg` | IOC MISP Purple Team |
+| `docs/screenshots/bloc2-misp-cortex/thehive-alert-enriched.jpg` | Alerte TheHive enrichie |
 
 ---
 
@@ -53,8 +53,8 @@
 
 | Fichier | Technique | Règle | Description |
 |---------|-----------|-------|-------------|
-| `docs/screenshots/scenario1_wazuh_rule100100_list.png` | T1110 | 100100 | Liste alertes brute force |
-| `docs/screenshots/scenario1_wazuh_rule100100_details.png` | T1110 | 100100 | Détail alerte brute force |
+| `docs/screenshots/scenario1_wazuh_rule100100_list.png` | T1046 | 100100 | Liste alertes nmap scan |
+| `docs/screenshots/scenario1_wazuh_rule100100_details.png` | T1046 | 100100 | Détail alerte nmap scan |
 | `docs/screenshots/scenario2_wazuh_rule60122_list_15hits.png` | T1110 | 60122 | 15 alertes brute force DC01 |
 | `docs/screenshots/scenario2_wazuh_rule60122_dc01_details.png` | T1110 | 60122 | Détail événement DC01 |
 | `docs/screenshots/scenario3_dc01_audit_policy_enabled.png` | T1059 | — | Audit policy DC01 activée |
@@ -86,8 +86,8 @@
 
 | Fichier | SC# | Technique | Règle | Description |
 |---------|-----|-----------|-------|-------------|
-| `docs/screenshots/sc05-wazuh-T1003-lsass-credential-dump.png` | SC-05 | T1003.001 | 100121 | Dump LSASS détecté |
-| `docs/screenshots/sc06-wazuh-T1055-process-injection.png` | SC-06 | T1055 | 100060 | Injection processus détectée |
+| `docs/screenshots/sc05-wazuh-T1003-lsass-credential-dump.png` | SC-05 | T1003.001 | 100103 | Dump LSASS détecté |
+| `docs/screenshots/sc06-wazuh-T1055-process-injection.png` | SC-06 | T1055 | 100155 | Injection processus détectée |
 | `docs/screenshots/sc07-wazuh-T1547-registry-persistence.png` | SC-07 | T1547.001 | 92302 | Clé Run registre détectée |
 | `docs/screenshots/sc08-wazuh-T1548-sudo-privilege-escalation.png` | SC-08 | T1548.003 | 5503 | Sudo abuse Linux détecté |
 | `docs/screenshots/sc09-wazuh-T1053-cron-persistence.png` | SC-09 | T1053.003 | 100210 | Cron persistence détectée |

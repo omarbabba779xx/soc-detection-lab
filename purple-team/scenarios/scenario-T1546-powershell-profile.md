@@ -2,7 +2,7 @@
 
 **Session**: 3 — 2026-08-15  
 **Attaquant**: WIN01 (10.10.10.110) — PowerShell admin  
-**MITRE**: T1086 / T1546.013 — Event Triggered Execution: PowerShell Profile  
+**MITRE**: T1546.013 — Event Triggered Execution: PowerShell Profile  
 **Tactique**: Persistence / Privilege Escalation  
 
 ---

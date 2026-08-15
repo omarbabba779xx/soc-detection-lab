@@ -16,7 +16,7 @@ Utiliser des identifiants valides pour établir une connexion réseau via `net u
 ## Commande exécutée
 
 ```cmd
-net use \\localhost\C$ /user:socadmin <mot de passe du lab>
+net use \\localhost\C$ /user:socadmin <LAB_PASSWORD>
 ```
 
 **Résultat** : `System error 5 has occurred. Access is denied.` (accès refusé attendu pour compte non-admin réseau)

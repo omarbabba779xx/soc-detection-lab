@@ -30,7 +30,7 @@
 ### TA0004 — Privilege Escalation
 | Technique      | Nom                         | Couverture  | Règle    | Source         |
 |----------------|-----------------------------|-------------|----------|----------------|
-| T1055          | Process Injection           | ✅ Complète  | 100060   | Sysmon-8       |
+| T1055          | Process Injection           | ✅ Complète  | 100155   | Sysmon-8       |
 | T1548.003      | Sudo Abuse (Linux)          | ✅ Complète  | 100200   | VM11-LINUX01/syslog (SC-08) |
 | T1078          | Valid Accounts              | ✅ Complète  | 92037    | Win-4648/net.exe (SC-11)   |
 
@@ -43,7 +43,7 @@
 ### TA0006 — Credential Access
 | Technique      | Nom                         | Couverture  | Règle           | Source         |
 |----------------|-----------------------------|-------------|-----------------|----------------|
-| T1003          | Credential Dumping          | ✅ Complète  | 100121          | Sysmon-10      |
+| T1003.001      | LSASS Memory Dump           | ✅ Complète  | 100103          | Sysmon-10      |
 | T1110          | Brute Force                 | ✅ Complète  | 100110, 100111, 60122 | Win-4625 |
 | T1110.001      | Password Guessing           | ✅ Complète  | 100111          | Win-4625       |
 

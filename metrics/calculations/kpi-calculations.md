@@ -56,9 +56,9 @@ MTTD moyen Session 2 = (11 + 14) / 2 = **12.5 secondes**
 
 MTTD moyen Session 3 = (84 + 42 + 49) / 3 = **58.3 secondes**
 
-**MTTD global lab (13 scénarios)** = (12+8+15+23+6+9+18+11+14+84+42+49) / 12 = **23.8 secondes**
+**MTTD global lab (12 scénarios Sessions 1-3)** = (12+8+15+23+6+9+18+11+14+84+42+49) / 12 = **24.25 secondes**
 
-**Objectif**: < 5 minutes → ✅ **ATTEINT** (23.8s << 300s)
+**Objectif**: < 5 minutes → ✅ **ATTEINT** (24.25s << 300s)
 
 ---
 
@@ -176,8 +176,8 @@ Extrait du rapport Purple Team complet (7 scénarios) :
 
 | Métrique | TP | FP | FN | Résultat |
 |----------|----|----|----|----------|
-| Précision | 7  | 0  | —  | **100%** |
-| Rappel    | 7  | —  | 0  | **100%** |
+| Précision | 12 | 0  | —  | **100%** |
+| Rappel    | 12 | —  | 0  | **100%** |
 | F1-Score  | —  | —  | —  | **1.00** |
 
 Note: FP=0 dans le contexte de l'exercice. En environnement de production réel, un FPR de 0.001% est attendu (règles de fréquence sur logs normaux).
@@ -245,7 +245,7 @@ Techniques couvertes par l'exercice: T1059.001, T1110, T1046, T1021.002, T1003.0
 
 | KPI                      | Objectif     | Résultat réel        | Source données              | Statut |
 |--------------------------|-------------|----------------------|-----------------------------|--------|
-| MTTD moyen (13 SC)       | < 5 min     | **23.8s**            | Purple team timestamps S1-3 | ✅     |
+| MTTD moyen (12 SC)       | < 5 min     | **24.25s**           | Purple team timestamps S1-3 | ✅     |
 | MTTD moyen (investigation) | < 5 min  | **47.25s**           | Alert export logs           | ✅     |
 | MTTA moyen               | < 15 min    | **~5 min**           | Estimé (Purple Team S1)     | ✅     |
 | MTTR moyen               | < 4h (P1)   | **~2h 06m**          | Session timeline S1         | ✅     |
