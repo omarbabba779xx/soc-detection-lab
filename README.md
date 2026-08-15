@@ -87,32 +87,35 @@ Every result in this repository comes from a real lab session. No simulated outp
          │     │  SC-08 T1548.003 · SC-09 T1053.003                             │
          │     └──────────┬──────────────────────────┬──────────────────────────┘
          │                │  Wazuh agent telemetry   │ Velociraptor remote collect
-         ▼                ▼                          ▼
-┌──────────────────────────────────────────────┐   ┌──────────────────────────┐
-│              VM02-WAZUH  (10.10.10.10)        │   │  VM08-DFIR-HUNT          │
-│  wazuh-manager · wazuh-indexer (OpenSearch)  │   │  Velociraptor 0.77.1     │
-│  Dashboard · 15 custom rules · 7 YARA rules  │   │  10.10.60.10 (dfir zone) │
-└──────────┬───────────────────────────────────┘   └──────────────────────────┘
-           │ webhook (7s pipeline)
-           ▼
-┌──────────────────────┐      ┌──────────────────────────────────────┐
-│  VM06-SHUFFLE SOAR   │─────▶│  VM03-THEHIVE  (10.10.10.20:9000)   │
-│  10.10.10.30         │      │  Case Management · 353+ alerts       │
-│  5-node playbook     │      └──────────────┬───────────────────────┘
-└──────────────────────┘                     │
-                                             ▼
-                               ┌─────────────────────────────────────┐
-                               │  VM04-CORTEX  (10.10.10.21)         │
-                               │  238 analyzers · MISP connector     │
-                               └──────────────┬──────────────────────┘
-                                              │
-                                              ▼
-                               ┌─────────────────────────────────────┐
-                               │  VM05-MISP  (10.10.10.22)           │
-                               │  CIRCL · Botvrij.eu · URLhaus       │
-                               └─────────────────────────────────────┘
-
-VM07-NDR (10.10.10.40) — Zeek + Suricata — passive tap → Wazuh (socforge-mgmt)
+         │    ┌───────────┘                          ▼
+         │    │  ┌──────────────────────────┐   ┌──────────────────────────┐
+         │    │  │  VM07-NDR (10.10.10.40)  │   │  VM08-DFIR-HUNT          │
+         │    │  │  Zeek + Suricata         │   │  Velociraptor 0.77.1     │
+         │    │  │  passive tap mgmt net    │   │  10.10.60.10 (dfir zone) │
+         │    │  └──────────┬───────────────┘   └──────────────────────────┘
+         │    │             │ Filebeat logs
+         ▼    ▼             ▼
+┌──────────────────────────────────────────────┐
+│              VM02-WAZUH  (10.10.10.10)        │
+│  wazuh-manager · wazuh-indexer (OpenSearch)  │
+│  Dashboard · 15 custom rules · 7 YARA rules  │
+└──────────────────┬───────────────────────────┘
+                   │ webhook (7s pipeline)
+                   ▼
+         ┌─────────────────────────────────────────────┐
+         │             VM06-SHUFFLE SOAR              │
+         │      10.10.10.30 · 5-node playbook         │
+         └───┬──────────────────┬──────────────────┬──┘
+             │                  │                  │
+      IOC lookup        enriched case        GeoIP enrich
+             │           creation                  │
+             ▼                  ▼                  ▼
+┌─────────────────┐  ┌──────────────────────┐  ┌──────────────────────────┐
+│  VM05-MISP      │  │  VM03-THEHIVE        │  │  VM04-CORTEX             │
+│  (10.10.10.22)  │  │  (10.10.10.20:9000)  │  │  (10.10.10.21)          │
+│  CIRCL·Botvrij  │  │  Case Management     │  │  238 analyzers           │
+│  URLhaus feeds  │  │  353+ alerts         │  │  MISP connector          │
+└─────────────────┘  └──────────────────────┘  └──────────────────────────┘
 
 Note: Plan prévoyait 5 zones réseau isolées. Déploiement réel = réseau plat socforge-mgmt
 (10.10.10.0/24) + zone dfir (10.10.60.0/24). Isolation VM12-PURPLE via règles firewall VM01-FW.
