@@ -73,22 +73,24 @@ Every result in this repository comes from a real lab session. No simulated outp
 │  10.10.10.1     │      └───────────────────┬──────────────────────────┘
 └────────┬────────┘                          │  socforge-mgmt (10.10.10.0/24)
          │ syslog                            ▼
-         │          ┌──────────────────────────────────────────────────────────────┐
-         │          │                   TARGET ENVIRONMENT                         │
-         │          │  DC01 (Windows Server 2022 — AD/DNS)  WIN01 (Win 11 Sysmon) │
-         │          │  10.10.10.109 — Agent 002             10.10.10.110 — Agent 003│
-         │          │  SC-01 T1059 · SC-02 T1110 · SC-03    SC-10 T1053.005       │
-         │          │  T1046 · SC-04 T1021.002              SC-11 T1078            │
-         │          │                                       SC-12 T1546.013        │
-         │          │  LINUX01 (Ubuntu 22.04) — 10.10.10.111 — Agent 004          │
-         │          │  SC-05 T1003.001 · SC-06 T1055 · SC-07 T1547.001            │
-         │          │  SC-08 T1548.003 · SC-09 T1053.003                          │
-         │          └──────────┬──────────────────────────┬────────────────────────┘
-         │                     │  Wazuh agent telemetry   │ manual artifact
-         ▼                     ▼                          ▼ collection
+         │     ┌─────────────────────────────────────────────────────────────────┐
+         │     │                      TARGET ENVIRONMENT                          │
+         │     │  DC01 (Windows Server 2022 — AD/DNS)  WIN01 (Win 11 Sysmon)    │
+         │     │  10.10.10.109 — Agent 002             10.10.10.110 — Agent 003  │
+         │     │  SC-01 T1059 · SC-02 T1110            SC-05 T1003.001           │
+         │     │  SC-03 T1046 · SC-04 T1021.002        SC-06 T1055               │
+         │     │                                       SC-07 T1547.001           │
+         │     │                                       SC-10 T1053.005           │
+         │     │                                       SC-11 T1078               │
+         │     │                                       SC-12 T1546.013           │
+         │     │  LINUX01 (Ubuntu 22.04) — 10.10.10.111 — Agent 004             │
+         │     │  SC-08 T1548.003 · SC-09 T1053.003                             │
+         │     └──────────┬──────────────────────────┬──────────────────────────┘
+         │                │  Wazuh agent telemetry   │ Velociraptor remote collect
+         ▼                ▼                          ▼
 ┌──────────────────────────────────────────────┐   ┌──────────────────────────┐
 │              VM02-WAZUH  (10.10.10.10)        │   │  VM08-DFIR-HUNT          │
-│  wazuh-manager · wazuh-indexer (OpenSearch)  │◀──│  Velociraptor 0.77.1     │
+│  wazuh-manager · wazuh-indexer (OpenSearch)  │   │  Velociraptor 0.77.1     │
 │  Dashboard · 15 custom rules · 7 YARA rules  │   │  10.10.60.10 (dfir zone) │
 └──────────┬───────────────────────────────────┘   └──────────────────────────┘
            │ webhook (7s pipeline)
