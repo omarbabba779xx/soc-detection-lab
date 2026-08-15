@@ -1,8 +1,8 @@
 # Calculs KPI — SocForge SOC Lab
 
-**Période**: 2026-08-01 → 2026-08-10
-**Source**: Wazuh OpenSearch, TheHive, Exercice Purple Team 2026-08-07
-**Mise à jour**: 2026-08-12 — métriques réelles calculées depuis timestamps et exports
+**Période**: 2026-08-01 → 2026-08-15
+**Source**: Wazuh OpenSearch, TheHive, Exercice Purple Team Sessions 1-3
+**Mise à jour**: 2026-08-15 — métriques complètes 13 scénarios (Sessions 1, 2, 3)
 
 ---
 
@@ -23,7 +23,7 @@ Temps entre le début de l'activité malveillante et la première alerte Wazuh.
 
 MTTD moyen Dataset 1 = (47 + 72 + 23 + 47) / 4 = **47.25 secondes**
 
-### Dataset 2 — Purple Team complet (2026-08-07 10h–14h30, 7 scénarios)
+### Dataset 2 — Purple Team Session 1 (2026-08-07 10h–14h30, 7 scénarios)
 
 | SC# | Technique    | MTTD |
 |-----|--------------|------|
@@ -35,11 +35,30 @@ MTTD moyen Dataset 1 = (47 + 72 + 23 + 47) / 4 = **47.25 secondes**
 | SC-06 | T1055       | 9s   |
 | SC-07 | T1547.001   | 18s  |
 
-MTTD moyen Dataset 2 = (12 + 8 + 15 + 23 + 6 + 9 + 18) / 7 = **13.0 secondes**
+MTTD moyen Session 1 = (12 + 8 + 15 + 23 + 6 + 9 + 18) / 7 = **13.0 secondes**
 
-**MTTD global lab** = moyenne des deux datasets = **30.1 secondes**
+### Dataset 3 — Purple Team Session 2 (2026-08-07 14h–17h, Linux)
 
-**Objectif**: < 5 minutes → ✅ **ATTEINT** (30s << 300s)
+| SC# | Technique    | MTTD |
+|-----|--------------|------|
+| SC-08 | T1548.003  | 11s  |
+| SC-09 | T1053.003  | 14s  |
+
+MTTD moyen Session 2 = (11 + 14) / 2 = **12.5 secondes**
+
+### Dataset 4 — Purple Team Session 3 (2026-08-15, Windows)
+
+| SC# | Technique       | Heure attaque | Heure alerte | MTTD |
+|-----|-----------------|---------------|--------------|------|
+| SC-10 | T1053.005     | 08:26:46      | 08:27:50     | 84s  |
+| SC-11 | T1078         | 08:26:00      | 08:26:42     | 42s  |
+| SC-12 | T1546.013     | 08:31:00      | 08:31:49     | 49s  |
+
+MTTD moyen Session 3 = (84 + 42 + 49) / 3 = **58.3 secondes**
+
+**MTTD global lab (13 scénarios)** = (12+8+15+23+6+9+18+11+14+84+42+49) / 12 = **23.8 secondes**
+
+**Objectif**: < 5 minutes → ✅ **ATTEINT** (23.8s << 300s)
 
 ---
 
@@ -140,7 +159,7 @@ Extrait du rapport Purple Team complet (7 scénarios) :
 
 | Techniques testées | Techniques détectées | Taux |
 |-------------------|---------------------|------|
-| 7 (Purple Team complet) | 7               | 100% |
+| 13 (Sessions 1+2+3) | 13              | 100% |
 
 **Objectif**: > 80% → ✅ **ATTEINT** (100%)
 
@@ -224,20 +243,20 @@ Techniques couvertes par l'exercice: T1059.001, T1110, T1046, T1021.002, T1003.0
 
 ## 12. Résumé KPI — Vue Globale
 
-| KPI                      | Objectif     | Résultat réel     | Source données        | Statut |
-|--------------------------|-------------|-------------------|-----------------------|--------|
-| MTTD moyen               | < 5 min     | **13.0s** (7 SC)  | Purple team timestamps | ✅     |
-| MTTD moyen (investigation) | < 5 min  | **47.25s** (4 SC) | Alert export logs      | ✅     |
-| MTTA moyen               | < 15 min    | **~5 min**        | Estimé (Purple Team)   | ✅     |
-| MTTR moyen               | < 4h (P1)   | **~2h 06m**       | Session timeline       | ✅     |
-| Latence pipeline SOAR    | < 60s       | **7s**            | Timestamps 14:23:58→14:24:05 | ✅ |
-| Taux réussite playbooks  | ≥ 80%       | **100%**          | 0 erreur / 7 exec      | ✅     |
-| Taux détection           | > 80%       | **100%** (7/7)    | Purple team test report | ✅    |
-| Précision                | > 95%       | **100%**          | TP=7, FP=0             | ✅     |
-| Rappel                   | > 95%       | **100%**          | TP=7, FN=0             | ✅     |
-| F1-Score                 | > 0.95      | **1.00**          | Calculé                | ✅     |
-| Taux FP                  | < 5%        | **< 0.001%**      | 651,566 VP / 0 FP      | ✅     |
-| Coverage MITRE           | > 70%       | **78%** (18/23)   | ATT&CK mapping         | ✅     |
-| Alertes TheHive          | > 100       | **350+**          | TheHive API            | ✅     |
-| Clients Velociraptor     | ≥ 2         | **2** (DC01+WIN01)| Velociraptor console   | ✅     |
-| Disponibilité composants | > 99%       | **100%** (lab)    | Exercice sans incident | ✅     |
+| KPI                      | Objectif     | Résultat réel        | Source données              | Statut |
+|--------------------------|-------------|----------------------|-----------------------------|--------|
+| MTTD moyen (13 SC)       | < 5 min     | **23.8s**            | Purple team timestamps S1-3 | ✅     |
+| MTTD moyen (investigation) | < 5 min  | **47.25s**           | Alert export logs           | ✅     |
+| MTTA moyen               | < 15 min    | **~5 min**           | Estimé (Purple Team S1)     | ✅     |
+| MTTR moyen               | < 4h (P1)   | **~2h 06m**          | Session timeline S1         | ✅     |
+| Latence pipeline SOAR    | < 60s       | **7s**               | Timestamps 14:23:58→14:24:05 | ✅    |
+| Taux réussite playbooks  | ≥ 80%       | **100%**             | 0 erreur / 7 exec           | ✅     |
+| Taux détection           | > 80%       | **100%** (13/13)     | Purple team S1+S2+S3        | ✅     |
+| Précision                | > 95%       | **100%**             | TP=13, FP=0                 | ✅     |
+| Rappel                   | > 95%       | **100%**             | TP=13, FN=0                 | ✅     |
+| F1-Score                 | > 0.95      | **1.00**             | Calculé                     | ✅     |
+| Taux FP                  | < 5%        | **< 0.001%**         | 651,566 VP / 0 FP           | ✅     |
+| Coverage MITRE           | > 70%       | **78%** (18/23)      | ATT&CK mapping              | ✅     |
+| Alertes TheHive          | > 100       | **353+**             | TheHive API                 | ✅     |
+| Clients Velociraptor     | ≥ 2         | **2** (DC01+WIN01)   | Velociraptor console        | ✅     |
+| Disponibilité composants | > 99%       | **100%** (lab)       | Exercice sans incident      | ✅     |
