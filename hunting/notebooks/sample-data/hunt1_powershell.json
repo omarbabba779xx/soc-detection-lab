@@ -1,0 +1,5 @@
+[
+  {"@timestamp": "2026-08-07T14:23:47.000Z", "agent.name": "win01", "rule.id": "100121", "rule.level": 12, "rule.description": "Sigma T1059.001: PowerShell Base64 encoded command detected"},
+  {"@timestamp": "2026-08-14T09:05:12.000Z", "agent.name": "win01", "rule.id": "100120", "rule.level": 8, "rule.description": "Sigma T1059.001: PowerShell execution"},
+  {"@timestamp": "2026-08-14T09:05:13.000Z", "agent.name": "win01", "rule.id": "100131", "rule.level": 10, "rule.description": "Sigma T1059.001: PowerShell script block logging — suspicious commandline"}
+]

@@ -1,0 +1,121 @@
+[
+  {
+    "@timestamp": "2026-08-07T15:01:38.000Z",
+    "agent.name": "dc01",
+    "rule.id": "100110",
+    "rule.level": 6,
+    "rule.description": "Sigma T1110: Authentication failure"
+  },
+  {
+    "@timestamp": "2026-08-07T15:02:10.000Z",
+    "agent.name": "dc01",
+    "rule.id": "100111",
+    "rule.level": 10,
+    "rule.description": "Sigma T1110: Brute force"
+  },
+  {
+    "@timestamp": "2026-08-07T15:01:44Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:01:50Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:01:56Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:02:02Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:02:08Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:02:14Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:02:20Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:02:26Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:02:32Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:02:38Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:02:44Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:02:50Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:02:56Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:03:02Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  },
+  {
+    "@timestamp": "2026-08-07T15:03:08Z",
+    "agent.name": "dc01",
+    "rule.id": "60122",
+    "rule.level": 10,
+    "rule.description": "Multiple Windows Logon Failures (Attack likely)"
+  }
+]

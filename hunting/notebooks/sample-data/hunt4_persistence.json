@@ -1,0 +1,6 @@
+[
+  {"@timestamp": "2026-08-15T10:10:21.000Z", "agent.name": "win01", "rule.id": "60642", "rule.level": 8, "rule.description": "Scheduled task created (T1053.005)"},
+  {"@timestamp": "2026-08-15T10:23:46.000Z", "agent.name": "win01", "rule.id": "92004", "rule.level": 9, "rule.description": "PowerShell profile modified (T1546.013)"},
+  {"@timestamp": "2026-08-14T09:00:00.000Z", "agent.name": "win01", "rule.id": "92302", "rule.level": 12, "rule.description": "Registry Run key persistence (T1547.001)"},
+  {"@timestamp": "2026-08-14T09:00:05.000Z", "agent.name": "win01", "rule.id": "100153", "rule.level": 10, "rule.description": "Sigma persistence: process injection follow-up"}
+]
