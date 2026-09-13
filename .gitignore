@@ -72,3 +72,9 @@ docker-compose.override.yml
 .idea/
 *.swp
 *.swo
+
+# Ollama model blobs (large binary files — use ollama pull to restore)
+ollama-models/models/blobs/
+ollama-models/cache/
+ollama-models/id_ed25519
+ollama-models/id_ed25519.pub
