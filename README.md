@@ -1,19 +1,6 @@
 # SocForge — SOC Detection Lab
 
-> A production-grade Security Operations Center built from scratch on a single 16 GB laptop.  
-> Full pipeline: **SIEM → SOAR → Case Management → Threat Intelligence → DFIR → Purple Team**.
-
-<div align="center">
-
-![Status](https://img.shields.io/badge/status-operational-39d353?style=flat-square)
-![Phase](https://img.shields.io/badge/phase-7%20complete-00d4ff?style=flat-square)
-![Detection Rate](https://img.shields.io/badge/detection%20rate-100%25-39d353?style=flat-square)
-![MTTD](https://img.shields.io/badge/MTTD-24s%20avg-00d4ff?style=flat-square)
-![MITRE](https://img.shields.io/badge/MITRE%20ATT%26CK-78%25%20(18%2F23)-f0883e?style=flat-square)
-![Scenarios](https://img.shields.io/badge/purple%20team-13%2F13%20validated-bc8cff?style=flat-square)
-![Wazuh](https://img.shields.io/badge/Wazuh-4.9.2-005571?style=flat-square)
-
-</div>
+Home lab SOC built on VirtualBox (16 GB RAM). 12 VMs, Wazuh + SOAR pipeline, 13 purple team scenarios.
 
 ---
 
