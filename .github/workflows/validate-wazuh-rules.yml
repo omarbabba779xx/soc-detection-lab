@@ -1,0 +1,46 @@
+name: Validate Wazuh Rules
+
+on:
+  push:
+    paths:
+      - 'wazuh/rules/**.xml'
+      - 'scripts/validate_wazuh_rules.py'
+  pull_request:
+    paths:
+      - 'wazuh/rules/**.xml'
+      - 'scripts/validate_wazuh_rules.py'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Wazuh Rules XML Validation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate rules
+        run: python scripts/validate_wazuh_rules.py
+
+      - name: Check rule count
+        run: |
+          COUNT=$(grep -c '<rule id=' wazuh/rules/socforge_sigma_rules.xml)
+          echo "Rules found: $COUNT"
+          if [ "$COUNT" -lt 15 ]; then
+            echo "ERROR: Expected at least 15 rules, found $COUNT"
+            exit 1
+          fi
+          echo "OK: $COUNT rules present"
+
+      - name: Check no hardcoded credentials
+        run: |
+          if grep -rE 'S0cF0rge|password\s*=|api_key\s*=' wazuh/rules/; then
+            echo "ERROR: possible credentials found in rules"
+            exit 1
+          fi
+          echo "OK: no credentials detected"
