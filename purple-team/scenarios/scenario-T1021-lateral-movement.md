@@ -19,7 +19,7 @@ Valider la détection d'accès aux partages administratifs Windows utilisés pou
 
 - [ ] VM12-PURPLE démarrée
 - [ ] DC01 démarrée avec Wazuh Agent + audit object access activé
-- [ ] Credentials valides: `Administrator` / `SocF0rge.Lab2024`
+- [ ] Credentials valides: `Administrator` / `<LAB_PASSWORD>`
 
 ---
 
@@ -29,15 +29,15 @@ Valider la détection d'accès aux partages administratifs Windows utilisés pou
 
 ```bash
 # Depuis VM12-PURPLE (Linux)
-smbclient //10.10.10.109/ADMIN$ -U 'SOCFORGE\Administrator%SocF0rge.Lab2024'
+smbclient //10.10.10.109/ADMIN$ -U 'SOCFORGE\Administrator%<LAB_PASSWORD>'
 # ou
-impacket-smbclient SOCFORGE/Administrator:SocF0rge.Lab2024@10.10.10.109
+impacket-smbclient SOCFORGE/Administrator:<LAB_PASSWORD>@10.10.10.109
 ```
 
 ### Test 2 — Connexion share C$
 
 ```bash
-impacket-smbclient SOCFORGE/Administrator:SocF0rge.Lab2024@10.10.10.109 -k
+impacket-smbclient SOCFORGE/Administrator:<LAB_PASSWORD>@10.10.10.109 -k
 # Dans smbclient: use C$
 ```
 
@@ -45,7 +45,7 @@ impacket-smbclient SOCFORGE/Administrator:SocF0rge.Lab2024@10.10.10.109 -k
 
 ```cmd
 # Depuis WIN01 (simuler pivot)
-net use \\10.10.10.109\ADMIN$ /user:SOCFORGE\Administrator SocF0rge.Lab2024
+net use \\10.10.10.109\ADMIN$ /user:SOCFORGE\Administrator <LAB_PASSWORD>
 dir \\10.10.10.109\ADMIN$
 net use \\10.10.10.109\ADMIN$ /delete
 ```
@@ -65,5 +65,7 @@ net use \\10.10.10.109\ADMIN$ /delete
 
 | Test   | Détecté | Règle  | MTTD  | Hits      |
 |--------|---------|--------|-------|-----------|
-| Test 1 | ✅      | 100140 | 23s   | 651,566   |
+| Test 1 | ✅      | 100140 | 23s   | 651,564   |
 | Test 3 | ✅      | 100140 | 23s   | (inclus)  |
+
+> **Note sur le volume** : la règle 100140 se déclenche sur chaque accès EventID 5140 correspondant à `ADMIN$`/`C$`, y compris le trafic Windows/GPO légitime en arrière-plan (pas seulement l'attaque simulée) — d'où le volume élevé. La règle capture correctement l'attaque, mais nécessiterait un filtre de bruit additionnel (ex: exclusion des comptes machine `$`) pour être utilisable en production sans fatigue d'alerte.

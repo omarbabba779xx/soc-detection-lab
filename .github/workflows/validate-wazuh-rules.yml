@@ -29,10 +29,10 @@ jobs:
 
       - name: Check rule count
         run: |
-          COUNT=$(grep -c '<rule id=' wazuh/rules/socforge_sigma_rules.xml)
+          COUNT=$(cat wazuh/rules/*.xml | grep -c '<rule id=')
           echo "Rules found: $COUNT"
-          if [ "$COUNT" -lt 15 ]; then
-            echo "ERROR: Expected at least 15 rules, found $COUNT"
+          if [ "$COUNT" -lt 17 ]; then
+            echo "ERROR: Expected at least 17 rules, found $COUNT"
             exit 1
           fi
           echo "OK: $COUNT rules present"

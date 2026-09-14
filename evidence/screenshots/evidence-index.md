@@ -91,12 +91,15 @@
 | `docs/screenshots/sc07-wazuh-T1547-registry-persistence.png` | SC-07 | T1547.001 | 92302 | Clé Run registre détectée |
 | `docs/screenshots/sc08-wazuh-T1548-sudo-privilege-escalation.png` | SC-08 | T1548.003 | 5503 | Sudo abuse Linux détecté |
 | `docs/screenshots/sc09-wazuh-T1053-cron-persistence.png` | SC-09 | T1053.003 | 100210 | Cron persistence détectée |
-| `docs/screenshots/sc10-win01-attack-execution.png` | SC-10 | T1053.005 | — | WIN01 : schtasks exécuté |
-| `docs/screenshots/sc11-win01-net-use.png` | SC-11 | T1078 | — | WIN01 : net use exécuté |
+| `docs/screenshots/sc10-win01-attack-execution.png` | SC-10 | T1053.005 | — | WIN01 : schtasks exécuté (plusieurs erreurs "Access is denied" avant succès — capture montre les retries, pas une exécution propre du premier coup) |
+| `docs/screenshots/sc11-win01-net-use.png` | SC-11 | T1078 | — | WIN01 : net use exécuté (idem — plusieurs échecs réseau visibles avant la commande réussie) |
 | `docs/screenshots/sc12-win01-profile-modification.png` | SC-12 | T1546.013 | — | WIN01 : profile.ps1 modifié |
 | `docs/screenshots/sc10-sc11-sc12-wazuh-detection.png` | SC-10/11/12 | Multiple | 60642/92037/92004 | Dashboard Wazuh : 3 détections |
 | `docs/screenshots/phase3-purple/T1059-rule100131-expanded.jpg` | — | T1059 | 100131 | Détail règle étendu |
+| `docs/screenshots/phase3-purple/T1059-rule100131.jpg` | — | T1059 | 100131 | Vue règle 100131 |
+| `docs/screenshots/phase3-purple/T1059-rule100131-rule-details.jpg` | — | T1059 | 100131 | Détails de la définition de règle |
 | `docs/screenshots/phase3-purple/T1110-rule60122-expanded-ip10.10.10.60.jpg` | — | T1110 | 60122 | Brute force depuis Purple VM |
+| `docs/screenshots/kpi-mttd-chart.png` | — | — | — | Graphique MTTD par scénario, généré par `hunting/notebooks/threat-hunting-socforge.ipynb` |
 
 ---
 
@@ -116,4 +119,4 @@
 
 ---
 
-**Total preuves screenshots** : 39 captures réelles de session lab
+**Total preuves screenshots** : 58 captures réelles de session lab (compte vérifié contre `git ls-files docs/screenshots/`)

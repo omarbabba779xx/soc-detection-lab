@@ -132,10 +132,10 @@ rule.id: "100101" OR rule.groups: "powershell"
 rule.id: "100110" OR rule.id: "100111"
 
 # T1046 — Network Scan
-rule.id: "100120"
+rule.id: "100100"
 
 # T1021.002 — SMB Lateral Movement
-rule.id: "100130"
+rule.id: "100140"
 
 # T1003 — Credential Dumping
 rule.id: "100150"

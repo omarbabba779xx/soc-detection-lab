@@ -112,7 +112,7 @@ services:
       - HTTPS_PROXY=
       - SHUFFLE_DEFAULT_USERNAME=admin
       - SHUFFLE_DEFAULT_PASSWORD=${SHUFFLE_DEFAULT_PASSWORD}
-      - SHUFFLE_DEFAULT_APIKEY=socforge-shuffle-api-key
+      - SHUFFLE_DEFAULT_APIKEY=${SHUFFLE_DEFAULT_APIKEY}
     volumes:
       - shuffle_apps:/shuffle-apps
       - shuffle_files:/shuffle-files

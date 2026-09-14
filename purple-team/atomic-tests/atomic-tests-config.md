@@ -74,7 +74,7 @@ nmap -sV -p 22,80,443,445,3389,8080,8443 10.10.10.0/24 -oN /tmp/nmap-lab.txt
 nmap -sS -T4 10.10.10.109 -oX /tmp/nmap-dc01.xml
 ```
 
-**Règle Wazuh attendue**: 100120 (niveau 8)
+**Règle Wazuh attendue**: 100100 (niveau 10)
 **Détection Zeek**: `notice.log` + Suricata SID 9100001
 
 ---
@@ -94,7 +94,7 @@ net use \\10.10.10.109\C$ /delete
 Remove-PSDrive Z
 ```
 
-**Règle Wazuh attendue**: 100130 (niveau 10)
+**Règle Wazuh attendue**: 100140 (niveau 10)
 **EventID Windows**: 5140 (Network Share Object Accessed), 4624 Type 3
 
 ---
@@ -110,7 +110,7 @@ Invoke-AtomicTest T1003.001 -TestNumbers 1
 Invoke-AtomicTest T1003.001 -Cleanup
 ```
 
-**Règle Wazuh attendue**: 100150 (niveau 15)
+**Règle Wazuh attendue**: 100121 (niveau 14)
 **EventID Sysmon**: 10 (ProcessAccess — LSASS)
 
 ---

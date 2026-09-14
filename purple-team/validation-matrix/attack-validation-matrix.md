@@ -20,7 +20,7 @@
 | 6  | T1055            | CreateRemoteThread injection       | Atomic T1055           | ✅ OUI   | 100155  | 9 sec   | 13     | VP    | sc06-wazuh-T1055-*   |
 | 7  | T1547.001        | Registry Run Keys                  | reg.exe + Atomic       | ✅ OUI   | 92302   | 18 sec  | 6      | VP    | sc07-wazuh-T1547-*   |
 | 8  | T1027            | Obfuscation Base64                 | Atomic T1027           | ✅ OUI   | 100127  | 47 sec  | 10     | VP    | rapport SC-01        |
-| 9  | T1548.003        | Sudo privilege escalation (Linux)  | sudo -l + exploit      | ✅ OUI   | 5503    | 11 sec  | 9      | VP    | sc08-wazuh-T1548-*   |
+| 9  | T1548.003        | Sudo privilege escalation (Linux)  | sudo -l + exploit      | ✅ OUI   | 100200  | 11 sec  | 10     | VP    | sc08-wazuh-T1548-*   |
 | 10 | T1053.003        | Cron persistence (Linux)           | crontab -e             | ✅ OUI   | 100210  | 14 sec  | 9      | VP    | sc09-wazuh-T1053-*   |
 | 11 | T1053.005        | Scheduled Task (Windows)           | schtasks /create       | ✅ OUI   | 60642   | 84 sec  | 3      | VP    | sc10-sc11-sc12-wazuh-detection.png |
 | 12 | T1078            | Valid Account Remote Logon         | net use \\localhost\C$ | ✅ OUI   | 92037   | 42 sec  | 3      | VP    | sc10-sc11-sc12-wazuh-detection.png |

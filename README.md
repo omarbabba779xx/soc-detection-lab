@@ -38,7 +38,7 @@ Home lab SOC built on VirtualBox (16 GB RAM). 12 VMs, Wazuh + SOAR pipeline, 12 
 
 **What this lab demonstrates:**
 
-- Detection Engineering — 15 custom Sigma rules mapped to MITRE ATT&CK, deployed to Wazuh
+- Detection Engineering — 17 custom Sigma rules mapped to MITRE ATT&CK, deployed to Wazuh
 - Purple Team Operations — 12 attack scenarios executed and validated (100% detection rate)
 - SOAR Automation — Wazuh → Shuffle → TheHive pipeline, 7-second end-to-end latency
 - Threat Intelligence — MISP feeds (CIRCL, Botvrij.eu, URLhaus, MalwareBazaar) + Cortex enrichment
@@ -83,7 +83,7 @@ All VMs share `socforge-mgmt` (10.10.10.0/24) — flat internal network via Virt
 
 ## Detection Engineering
 
-### Custom Sigma Rules — 15 deployed to Wazuh
+### Custom Sigma Rules — 17 deployed to Wazuh (15 Windows + 2 Linux)
 
 | Rule ID | Level | Technique | Description |
 |---|---|---|---|
@@ -100,8 +100,8 @@ All VMs share `socforge-mgmt` (10.10.10.0/24) — flat internal network via Virt
 | 100155 | 13 | T1055 | Process injection — CreateRemoteThread (Sysmon EventID 8) |
 | 92302 | 6 | T1547.001 | Registry Run key persistence (Sysmon EventID 13, built-in) |
 | 60122 | 5 | T1110 | Logon failure — invalid credentials (built-in) |
-| 100200 | 9 | T1548.003 | Sudo privilege escalation — Linux auditd |
-| 100210 | 9 | T1053.003 | Cron persistence — Linux syslog/auditd |
+| 100200 | 10 | T1548.003 | Sudo privilege escalation — Linux auditd |
+| 100210 | 10 | T1053.003 | Cron persistence — Linux syslog/auditd |
 
 **Example detection chain (T1059.001):**
 ```
@@ -145,7 +145,11 @@ MTTD average across all 12 scenarios (Sessions 1-3): **24.25s**
 | **Tool** | nmap 7.99 |
 | **Command** | `nmap -sS -T4 10.10.10.109` |
 | **Result** | Ports open: 53/DNS, 88/Kerberos, 135/MSRPC, 139/NetBIOS, 389/LDAP, 445/SMB |
-| **Detection** | Rule 100100 — level 10 |
+| **Detection** | Rule 100100 — level 10 (historical ID at capture time — see note below) |
+
+> **Rule ID note**: this screenshot shows `rule.id: 100100`, captured before the ruleset was reorganized. The current `wazuh/rules/socforge_sigma_rules.xml` implements this same detection (T1046 scan-tool match) as **100102** (child of base rule **100101**, level 8). The screenshot is genuine — the ID was renumbered during later cleanup and this reference was never backfilled.
+>
+> **Attribution caveat**: the alert's `agent.name` field shows `wazuh` (the manager itself, agent id 000), not `dc01`. This means the alert was generated from telemetry processed at the manager level rather than a DC01 endpoint event — the scan against DC01 (10.10.10.109) was real, but this specific evidence attributes the detection to the manager, not the target endpoint. Worth re-verifying which host actually emitted the underlying event next time this scenario is re-run.
 
 **Wazuh Threat Hunting — `rule.id:100100` — 2 hits:**
 
@@ -192,12 +196,13 @@ MTTD average across all 12 scenarios (Sessions 1-3): **24.25s**
 | **Event** | EventID 4688 — Process Creation |
 | **Hits** | **4 confirmed in Wazuh** (2 validation runs Aug 5 + 2 Purple Team runs Aug 7) |
 
-> **Why 4 hits?** Rule 100131 targets `ScriptBlockLogging` events with a Base64-encoded payload launched from a non-interactive shell. It fires only when all conditions are met simultaneously — this is intentional precision. 4 hits = 4 true positives, 0 false positives across the full test window. A higher hit count would indicate the rule is too broad. Full IR walkthrough: [`evidence/investigations/ir-narrative-t1059-2026-08-07.md`](evidence/investigations/ir-narrative-t1059-2026-08-07.md)
+> **Why 4 hits?** Rule 100131 targets `ScriptBlockLogging` events with a Base64-encoded payload launched from a non-interactive shell. It fires only when all conditions are met simultaneously — this is intentional precision. 4 hits = 4 true positives, 0 false positives across the full test window. A higher hit count would indicate the rule is too broad.
 
-**Attack payload:**
+**Attack payload (as captured in the alert evidence below):**
 ```bash
-# Payload: whoami; hostname; Get-Date
-powershell -EncodedCommand dwBoAG8AYQBtAGkAOwAgAGgAbwBzAHQAbgBhAG0AZQA7ACAARwBlAHQALQBEAGEAdABlAA==
+# Real commandLine field from the alert (agent dc01, EventID 4688):
+powershell.exe -EncodedCommand VwByAGkAdABlAC0ASABvAHMAdAAgAFQAMQAwADUAOQAuADEA...
+# Decodes to: Write-Host T1059.1... — an Atomic Red Team T1059.001 benign test marker
 ```
 
 Executed via `Win+R` on DC01 — simulating an interactive malicious command.
@@ -253,11 +258,9 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 | **Technique** | T1021.002 — SMB/Windows Admin Shares |
 | **Rule** | 100140 — Level 10 |
 | **Event** | EventID 5140 — Network Share Object Accessed |
-| **Raw events** | 651,564 EventID 5140 (every SMB share access logged by Windows) |
-| **Rule firings** | **2 alerts** (rule 100140 scoped to `ADMIN$` from non-service accounts) |
-| **TheHive cases** | **1 case** (C-003, marked True Positive) |
+| **Rule firings** | **651,564** (confirmed via `rule.id:100140` filter — see noise caveat below) |
 
-> **On the 651k number:** EventID 5140 fires on every SMB share access — it's a high-volume event by design. Rule 100140 filters this down using three conditions: share name must be `ADMIN$` or `C$`, source IP must not be in the management subnet, and the account must not be a service account. Result: 651,564 raw events → 2 alert firings → 1 TheHive case → 0 false positives. This is the correct outcome for a high-fidelity detection rule in a noisy environment.
+> **On the 651k number:** EventID 5140 fires on every SMB share access — it's a high-volume event by design. Rule 100140 matches on `ADMIN$`/`C$` share access, but as deployed it does **not** additionally filter out the background Windows/GPO admin-share traffic that happens constantly in an AD environment — so the rule genuinely fires **651,564 times** (confirmed by filtering directly on `rule.id:100140`, not just the raw EventID), not just on the simulated attack. It correctly caught the attack, but this is an honest limitation: as-is, this rule would flood a real SOC with noise. A production version would need additional conditions (e.g., exclude machine-account (`$`) source identities, exclude known management-plane source IPs) to reach the low-FP precision this detection needs.
 
 **Attack:**
 ```bash
@@ -301,11 +304,13 @@ smbclient //10.10.10.109/ADMIN$ -U 'SOCFORGE/Administrator%<password>' -c 'ls'
 | | |
 |---|---|
 | **Technique** | T1003.001 — OS Credential Dumping: LSASS Memory |
-| **Rule** | 100121 — Level 14 |
+| **Rule** | 100121 — Level 14 (historical ID at capture time — now **100103** in the current ruleset, see note below) |
 | **Event** | Sysmon EventID 10 — Process Access |
 | **MTTD** | **6 seconds** |
 | **Tool** | Atomic Red Team `Invoke-AtomicTest T1003.001 -TestNumbers 1` |
 | **Time** | 13:10:00 UTC |
+
+> **Rule ID note**: at the time this screenshot was captured, this detection was rule `100121`. The ruleset was later reorganized and `100121` was reassigned to the T1059.001 PowerShell-obfuscation rule (see Detection Engineering table); the LSASS detection now lives at **100103**. The screenshot is genuine — only the ID changed, not the detection logic.
 
 **Attack:** Atomic Red Team T1003.001 executed on WIN01 (Administrator context). Test 1 uses `comsvcs.dll MiniDump` — a signed Windows LOLBin — to access LSASS memory without dropping Mimikatz. Triggers Sysmon EventID 10 with `GrantedAccess: 0x1fffff`.
 
@@ -343,7 +348,7 @@ Sysmon EventID 10 (ProcessAccess) on WIN01
 | | |
 |---|---|
 | **Technique** | T1055 / T1055.001 — Process Injection (CreateRemoteThread) |
-| **Rule** | 100155 — Level 12 |
+| **Rule** | 100060 — Level 12 (historical ID at capture time — now **100155** in the current ruleset, see note below) |
 | **Event** | Sysmon EventID 8 — CreateRemoteThread |
 | **MTTD** | **9 seconds** |
 | **Tool** | PowerShell P/Invoke — VirtualAllocEx + WriteProcessMemory + CreateRemoteThread |
@@ -351,23 +356,25 @@ Sysmon EventID 10 (ProcessAccess) on WIN01
 
 **Attack:** Custom PowerShell P/Invoke injects a benign stub into `notepad.exe` via `CreateRemoteThread` Windows API. No shellcode payload — the goal is triggering the Sysmon EID 8 telemetry, not code execution.
 
+> **Rule ID note**: at capture time this detection was rule `100060` (level 12). The ruleset was later reorganized and this same CreateRemoteThread detection now lives at **100155** (level 13) — see the Detection Engineering table above. Screenshot is genuine, only the ID/level changed.
+
 **Detection chain:**
 ```
 Sysmon EventID 8 (CreateRemoteThread) on WIN01
   → sourceImage: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
   → targetImage: C:\Windows\System32\notepad.exe
   → startAddress: 0x... (VirtualAllocEx allocated stub)
-      → Rule 100155 fires — Level 12 — MTTD: 9s
+      → Rule 100060 fires — Level 12 — MTTD: 9s (now rule 100155)
           → Shuffle → TheHive alert (pipeline 7s)
 ```
 
-**Wazuh Threat Hunting — `rule.id:"100155"` — 2 hits — agent win01:**
+**Wazuh Threat Hunting — `rule.id:"100060"` — 2 hits — agent win01:**
 
-![T1055 Process Injection Wazuh rule 100155](docs/screenshots/sc06-wazuh-T1055-process-injection.png)
+![T1055 Process Injection Wazuh rule 100060](docs/screenshots/sc06-wazuh-T1055-process-injection.png)
 
 | Field | Value |
 |---|---|
-| `rule.id` | `100155` |
+| `rule.id` | `100060` (historical, now `100155`) |
 | `rule.level` | `12` |
 | `rule.description` | Sysmon - T1055 Process Injection - CreateRemoteThread detected |
 | `rule.mitre.id` | `T1055`, `T1055.001` |
@@ -426,7 +433,7 @@ Sysmon EventID 13 (RegistryEvent — Value Set) on WIN01
 | **Technique** | T1548.003 — Abuse Elevation Control Mechanism: Sudo and Sudo Caching |
 | **Target** | VM11-LINUX01 (10.10.10.111) — Ubuntu 22.04 |
 | **Tool** | SSH + sudo command execution as root |
-| **MTTD** | **8 seconds** |
+| **MTTD** | **11 seconds** |
 | **Rule** | 100200 (parent: 5402) |
 
 **Attack:** `socadmin` executes `sudo whoami`, `sudo id`, `sudo cat /etc/shadow` — escalating to root via sudo. Simulates post-compromise privilege escalation on a Linux endpoint.
@@ -436,7 +443,7 @@ Sysmon EventID 13 (RegistryEvent — Value Set) on WIN01
 sudo session opens on LINUX01 — /var/log/syslog entry: "sudo: socadmin : TTY=pts/0 ; COMMAND=/usr/bin/whoami"
   → Wazuh agent forwards syslog line
       → Rule 5402 (sudo successful) fires
-          → Custom rule 100200 fires — Level 10 — MTTD: 8s
+          → Custom rule 100200 fires — Level 10 — MTTD: 11s
               → MITRE T1548.003 tagged
 ```
 
@@ -462,7 +469,7 @@ sudo session opens on LINUX01 — /var/log/syslog entry: "sudo: socadmin : TTY=p
 | **Technique** | T1053.003 — Scheduled Task/Job: Cron |
 | **Target** | VM11-LINUX01 (10.10.10.111) — Ubuntu 22.04 |
 | **Tool** | crontab modification via SSH |
-| **MTTD** | **8 seconds** |
+| **MTTD** | **14 seconds** |
 | **Rule** | 100210 (parent: 2832) |
 
 **Attack:** Malicious cron entry `* * * * * /tmp/socforge_persist.sh` written to user crontab. Simulates attacker establishing persistence via scheduled job on a compromised Linux host.
@@ -472,7 +479,7 @@ sudo session opens on LINUX01 — /var/log/syslog entry: "sudo: socadmin : TTY=p
 crontab modified — /var/log/syslog: "CRON[...]: socadmin edited crontab"
   → Wazuh agent forwards syslog entry
       → Rule 2832 (crontab alteration) fires
-          → Custom rule 100210 fires — Level 10 — MTTD: 8s
+          → Custom rule 100210 fires — Level 10 — MTTD: 14s
               → MITRE T1053.003 tagged
 ```
 
@@ -575,6 +582,8 @@ Full process list: PID, PPID, TokenIsElevated, CommandLine, Exe path, MD5/SHA1/S
 
 All metrics calculated from real lab data — timestamps from Wazuh alert exports and TheHive case logs (2026-08-07).
 
+> **On the "0 FP" figures below**: they describe the 12 purple team scenarios' final validated state. During rule development, 4 false positives were found and tuned out — documented in [`false-positive-registry.md`](purple-team/validation-matrix/false-positive-registry.md). Rules didn't start at 0 FP; they were iterated to get there, which is the expected detection-engineering workflow, not a defect. Separately, rule 100140 (T1021.002 admin shares) as currently deployed generates massive volume from legitimate background traffic — see the T1021.002 section above — so "0 FP" does not apply to that rule without additional tuning.
+
 | KPI | Value | Target | Source |
 |---|---|---|---|
 | **MTTD avg** (12 scenarios, Sessions 1-3) | **24.25s** | < 5 min | Purple team timestamps |
@@ -585,13 +594,13 @@ All metrics calculated from real lab data — timestamps from Wazuh alert export
 | **SOAR success rate** | **100%** | ≥ 80% | 0 errors / 7 executions |
 | **Detection rate** | **100%** (12/12) | ≥ 95% | Purple team test report |
 | **Precision** | **100%** | ≥ 95% | TP=12, FP=0 |
-| **Recall** | **100%** | ≥ 95% | TP=7, FN=0 |
+| **Recall** | **100%** | ≥ 95% | TP=12, FN=0 |
 | **F1-Score** | **1.00** | ≥ 0.95 | Calculated |
-| **False positive rate** | **< 0.001%** | < 5% | 651,566 VP / 0 FP |
+| **False positive rate** | **100%** on rule 100140 specifically (see T1021.002 noise caveat) | < 5% | 12/12 scenarios true-positive; rule 100140 needs additional tuning |
 | **MITRE ATT&CK coverage** | **78%** (18/23) | ≥ 70% | ATT&CK v14 mapping |
 | **TheHive alerts** | **350+** | > 100 | TheHive API |
 | **Velociraptor clients** | **2** (DC01 + WIN01) | ≥ 2 | Velociraptor console |
-| **Custom rules deployed** | **15** | — | `socforge_sigma_rules.xml` |
+| **Custom rules deployed** | **17** | — | `socforge_sigma_rules.xml` + `socforge_linux_rules.xml` |
 | **YARA rules deployed** | **9** | — | `socforge_rules.yar` |
 | **Total Wazuh alerts** | **2,004+** | — | `alerts.log` |
 

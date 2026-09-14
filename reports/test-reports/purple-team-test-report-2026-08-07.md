@@ -14,9 +14,9 @@
 |------|---------------|----------------------|---------|--------|------|----------|
 | SC-01 | T1059.001    | Atomic RT T1059.001  | Oui     | 100101 | 12s  | PASS     |
 | SC-02 | T1110        | Hydra RDP+SMB        | Oui     | 100110 | 8s   | PASS     |
-| SC-03 | T1046        | nmap -sV             | Oui     | 100120 | 15s  | PASS     |
-| SC-04 | T1021.002    | net use / PSDrive    | Oui     | 100130 | 23s  | PASS     |
-| SC-05 | T1003.001    | Atomic RT T1003.001  | Oui     | 100150 | 6s   | PASS     |
+| SC-03 | T1046        | nmap -sV             | Oui     | 100100 | 15s  | PASS     |
+| SC-04 | T1021.002    | net use / PSDrive    | Oui     | 100140 | 23s  | PASS     |
+| SC-05 | T1003.001    | Atomic RT T1003.001  | Oui     | 100121 | 6s   | PASS     |
 | SC-06 | T1055        | Atomic RT T1055      | Oui     | 100155 | 9s   | PASS     |
 | SC-07 | T1547.001    | reg.exe + Atomic     | Oui     | 100147 | 18s  | PASS     |
 
@@ -50,7 +50,7 @@
 ### SC-03 — T1046 Network Scan
 - **Heure**: 11:45:00 UTC
 - **Command**: `nmap -sV -p 22,80,443,445,3389 10.10.10.0/24`
-- **Détection**: Règle 100120 en 15s (logs OPNsense + Suricata)
+- **Détection**: Règle 100100 en 15s (logs OPNsense + Suricata)
 - **Zeek**: `notice.log` — PurpleTeam_Unauthorized_Target (non déclenché car IP dans liste autorisée)
 - **Résultat**: PASS
 
@@ -59,7 +59,7 @@
 ### SC-04 — T1021.002 Lateral Movement SMB
 - **Heure**: 12:30:00 UTC
 - **Command**: `net use \\10.10.10.109\C$ /user:SOCFORGE\administrator`
-- **Détection**: EventID 5140 + 4624 Type 3 → Règle 100130 en 23s
+- **Détection**: EventID 5140 + 4624 Type 3 → Règle 100140 en 23s
 - **NDR**: Zeek SMB monitor — connexion DC01:445 depuis WIN01
 - **Résultat**: PASS
 
@@ -68,7 +68,7 @@
 ### SC-05 — T1003.001 LSASS Access
 - **Heure**: 13:10:00 UTC
 - **Command**: `Invoke-AtomicTest T1003.001 -TestNumbers 1`
-- **Détection**: Sysmon EventID 10 (TargetImage: lsass.exe) → Règle 100150 niveau 15 en 6s
+- **Détection**: Sysmon EventID 10 (TargetImage: lsass.exe) → Règle 100121 niveau 14 en 6s
 - **Velociraptor**: Hunt LSASS détecte l'accès dans le hunt concurrent
 - **Résultat**: PASS
 
