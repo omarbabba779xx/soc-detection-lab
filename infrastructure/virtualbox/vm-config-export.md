@@ -40,3 +40,4 @@ lors du premier démarrage d'une VM qui les référence.
 - **EFI activé** : VM09-DC01, VM10-WIN01 (requis pour Windows Server 2022 et Windows 11)
 - **TPM 2.0** : VM10-WIN01 uniquement (requis pour Windows 11)
 - **Mode promiscuous** : à activer sur VM07-NDR (eth0) pour la capture réseau Zeek/Suricata
+- **Cortex sert en HTTP, pas HTTPS** : le port 9001 (forward NAT 19001) répond en `http://`, pas `https://` — un `curl -k https://...` échoue silencieusement (timeout côté TLS, Cortex répond "Illegal request... Perhaps this was an HTTPS request sent to an HTTP endpoint" dans ses logs). Toujours tester avec `http://127.0.0.1:19001`, jamais `https://`.
