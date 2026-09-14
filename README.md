@@ -65,14 +65,14 @@ Every result in this repository comes from a real lab session. No simulated outp
 | `SF-VM05-MISP` | Threat Intelligence | 10.10.10.22 | Ubuntu 22.04 | ✅ Active |
 | `SF-VM06-SHUFFLE` | SOAR | 10.10.10.30 | Ubuntu 22.04 | ✅ Active |
 | `SF-VM07-NDR` | Network Detection | 10.10.10.40 | Ubuntu 22.04 | ✅ Active |
-| `SF-VM08-DFIR` | DFIR / Velociraptor | 10.10.60.10 | Ubuntu 22.04 | ✅ Active |
+| `SF-VM08-DFIR-HUNT` | DFIR / Velociraptor | 10.10.60.10 | Ubuntu 22.04 | ✅ Active |
 | `SF-VM09-DC01` | Active Directory DC | 10.10.10.109 | Windows Server 2022 | ✅ Active |
 | `SF-VM10-WIN01` | Windows Endpoint | 10.10.10.110 | Windows 11 | ✅ Domain-joined |
 | `SF-VM11-LINUX01` | Linux Endpoint | 10.10.10.111 | Ubuntu 22.04 | ✅ Active |
 | `SF-VM12-PURPLE` | Red Team | 10.10.10.60 | Kali Linux 2024.2 | ✅ Active |
 
 **Network:**  
-All VMs share `socforge-mgmt` (10.10.10.0/24) — flat internal network via VirtualBox host-only adapter. VM08-DFIR is on a separate `socforge-dfir` (10.10.60.0/24). No internet exposure during attack simulations.
+All VMs share `socforge-mgmt` (10.10.10.0/24) — flat internal network via VirtualBox Internal Network adapters (not host-only — isolated from the host, reachable only VM-to-VM or through NAT port-forwards for management access). VM08-DFIR is on a separate `socforge-dfir` (10.10.60.0/24). No internet exposure during attack simulations.
 
 ---
 
@@ -173,6 +173,8 @@ MTTD average across all 12 scenarios (Sessions 1-3): **24.25s**
 **T1110 expanded — source IP 10.10.10.60 confirmed:**
 
 ![T1110 rule expanded](docs/screenshots/phase3-purple/T1110-rule60122-expanded-ip10.10.10.60.jpg)
+
+**Independent re-validation (2026-09-14)** — a second, separately-executed T1110 test (SMB/NTLM via `smbclient` from LINUX01 against DC01) confirmed the detection chain end-to-end: 6/6 real auth failures matched to 6 real rule-60122 alerts, MTTD < 1s. Full writeup and dashboard screenshot: [IR-003](reports/incident-reports/IR-003-T1110-real-bruteforce-2026-09-14.md).
 
 ---
 
@@ -336,7 +338,7 @@ Sysmon EventID 10 (ProcessAccess) on WIN01
 | | |
 |---|---|
 | **Technique** | T1055 / T1055.001 — Process Injection (CreateRemoteThread) |
-| **Rule** | 100060 — Level 12 |
+| **Rule** | 100155 — Level 12 |
 | **Event** | Sysmon EventID 8 — CreateRemoteThread |
 | **MTTD** | **9 seconds** |
 | **Tool** | PowerShell P/Invoke — VirtualAllocEx + WriteProcessMemory + CreateRemoteThread |
@@ -350,17 +352,17 @@ Sysmon EventID 8 (CreateRemoteThread) on WIN01
   → sourceImage: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
   → targetImage: C:\Windows\System32\notepad.exe
   → startAddress: 0x... (VirtualAllocEx allocated stub)
-      → Rule 100060 fires — Level 12 — MTTD: 9s
+      → Rule 100155 fires — Level 12 — MTTD: 9s
           → Shuffle → TheHive alert (pipeline 7s)
 ```
 
-**Wazuh Threat Hunting — `rule.id:"100060"` — 2 hits — agent win01:**
+**Wazuh Threat Hunting — `rule.id:"100155"` — 2 hits — agent win01:**
 
-![T1055 Process Injection Wazuh rule 100060](docs/screenshots/sc06-wazuh-T1055-process-injection.png)
+![T1055 Process Injection Wazuh rule 100155](docs/screenshots/sc06-wazuh-T1055-process-injection.png)
 
 | Field | Value |
 |---|---|
-| `rule.id` | `100060` |
+| `rule.id` | `100155` |
 | `rule.level` | `12` |
 | `rule.description` | Sysmon - T1055 Process Injection - CreateRemoteThread detected |
 | `rule.mitre.id` | `T1055`, `T1055.001` |
@@ -584,8 +586,8 @@ All metrics calculated from real lab data — timestamps from Wazuh alert export
 | **MITRE ATT&CK coverage** | **78%** (18/23) | ≥ 70% | ATT&CK v14 mapping |
 | **TheHive alerts** | **350+** | > 100 | TheHive API |
 | **Velociraptor clients** | **2** (DC01 + WIN01) | ≥ 2 | Velociraptor console |
-| **Custom rules deployed** | **14** | — | `socforge_sigma_rules.xml` |
-| **YARA rules deployed** | **7** | — | `socforge_rules.yar` |
+| **Custom rules deployed** | **15** | — | `socforge_sigma_rules.xml` |
+| **YARA rules deployed** | **9** | — | `socforge_rules.yar` |
 | **Total Wazuh alerts** | **2,004+** | — | `alerts.log` |
 
 ---
@@ -663,10 +665,10 @@ All metrics calculated from real lab data — timestamps from Wazuh alert export
 | Threat Intelligence | MISP | 2.4.x |
 | SOAR | Shuffle | 2.2.1 |
 | DFIR | Velociraptor | 0.77.1 |
-| NDR | Zeek + Suricata | — |
+| NDR | Zeek (LTS) / Suricata | 8.0.10 / 6.0.4 |
 | Active Directory | Windows Server 2022 | — |
 | Endpoint | Windows 11 | — |
-| Red Team | Kali Linux | 6.19.14 |
+| Red Team | Kali Linux | 2024.2 |
 | Hypervisor | VirtualBox | 7.x |
 | Detection Language | Sigma | — |
 | Detection Language | YARA | — |
@@ -683,7 +685,7 @@ All metrics calculated from real lab data — timestamps from Wazuh alert export
 | **Phase 2** | Agent deployment, Wazuh→TheHive SOAR pipeline, Cortex/MISP integration | ✅ Complete |
 | **Phase 3** | Purple Team SC-01→SC-04, custom Sigma/YARA rules, live detections verified | ✅ Complete |
 | **Phase 4** | DFIR — Velociraptor remote artifact collection (DC01, Pslist 46 rows) | ✅ Complete |
-| **Phase 5** | NDR — Zeek + Suricata ET Open, 18 custom SIDs, SMB/network monitoring | ✅ Complete |
+| **Phase 5** | NDR — Zeek + Suricata ET Open, 17 custom SIDs, SMB/network monitoring | ✅ Complete |
 | **Phase 6** | Threat Intelligence — MISP feeds, IOC CSV, Cortex enrichment pipeline | ✅ Complete |
 | **Phase 7** | Purple Team SC-05→SC-07, Threat Hunting (8 hypotheses, 10 VQL), KPI metrics | ✅ Complete |
 

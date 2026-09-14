@@ -47,6 +47,8 @@
 | T1110          | Brute Force                 | ✅ Complète  | 100110, 100111, 60122 | Win-4625 |
 | T1110.001      | Password Guessing           | ✅ Complète  | 100111          | Win-4625       |
 
+**Validation réelle (2026-09-14)** : test SMB/NTLM authentifié (`smbclient`, LINUX01 → DC01), 6 échecs réels détectés via règle 60122, MTTD < 1s. Voir [IR-003](../../reports/incident-reports/IR-003-T1110-real-bruteforce-2026-09-14.md). Limite observée : la règle de corrélation fréquence 100111 ne s'est pas déclenchée car les 6 tentatives sont arrivées en moins d'une seconde (plus rapide que la fenêtre d'agrégation) — seule la règle atomique 60122 s'est déclenchée à chaque tentative.
+
 ### TA0007 — Discovery
 | Technique      | Nom                         | Couverture  | Règle           | Source         |
 |----------------|-----------------------------|-------------|-----------------|----------------|

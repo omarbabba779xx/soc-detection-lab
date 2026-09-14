@@ -53,6 +53,12 @@ Wazuh a détecté chaque échec via la règle **60122** (`Logon Failure - Unknow
 
 **MTTD réel** : timestamp de l'attaque (12:36:21.000 environ) → timestamp de l'alerte (12:36:21.855) = **< 1 seconde**. Pas un chiffre calculé ou estimé — la différence brute entre le log `smbclient` côté attaquant et le timestamp Wazuh côté détection.
 
+## Preuve visuelle — Wazuh Threat Hunting
+
+![Rule 60122 — 6 hits, dc01](../../docs/screenshots/sc-real-bruteforce-wazuh-rule60122-dashboard.png)
+
+Capture du dashboard Wazuh confirmant les 6 hits sur `rule.id: 60122`, tous horodatés entre `13:36:21.702` et `13:36:21.855` (heure locale du dashboard, UTC+1) — écart de 153 ms entre la 1ère et la dernière alerte, cohérent avec le MTTD sub-seconde mesuré côté log brut.
+
 ## Application du playbook PB-002
 
 **Phase 1 — Triage** :

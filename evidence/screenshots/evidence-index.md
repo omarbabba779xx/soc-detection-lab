@@ -100,6 +100,14 @@
 
 ---
 
+## Phase 6 — Validation réelle post-déploiement (2026-09-14)
+
+| Fichier | Technique | Règle | Description |
+|---------|-----------|-------|-------------|
+| `docs/screenshots/sc-real-bruteforce-wazuh-rule60122-dashboard.png` | T1110 | 60122 | Attaque SMB réelle LINUX01→DC01, 6 hits, MTTD < 1s — voir [IR-003](../../reports/incident-reports/IR-003-T1110-real-bruteforce-2026-09-14.md) |
+
+---
+
 ## Architecture
 
 | Fichier | Description |
@@ -108,4 +116,4 @@
 
 ---
 
-**Total preuves screenshots** : 38 captures réelles de session lab
+**Total preuves screenshots** : 39 captures réelles de session lab
