@@ -87,6 +87,22 @@ def validate():
                 if rule.find("mitre") is None:
                     warn(f"{rules_file.name}: rule {rule_id} has mitre_ group but no <mitre> block")
 
+            # Regex alternation/anchoring without type="pcre2" — Wazuh's analysisd
+            # rejects this at rule-LOAD time ("Syntax error on tag"), not at XML
+            # parse time, so plain ET.parse() alone never catches it. Confirmed
+            # by a real wazuh-analysisd crash on rules 100101/100178/100147/100153
+            # before this check was added.
+            for field in rule.findall("field"):
+                field_type = field.get("type")
+                field_text = field.get("regex") or (field.text or "")
+                uses_regex_syntax = any(c in field_text for c in ("|", "(?", "^(", ".*", "\\d", "\\w"))
+                if uses_regex_syntax and field_type != "pcre2":
+                    err(
+                        f"{rules_file.name}: rule {rule_id} field '{field.get('name')}' "
+                        f"uses regex syntax without type=\"pcre2\" — Wazuh will refuse to "
+                        f"load this rule at runtime (XML-valid but not rule-valid)"
+                    )
+
     # Report
     print(f"\nSocForge Wazuh Rules Validator")
     print(f"Files  : {', '.join(f.name for f in rules_files)}")

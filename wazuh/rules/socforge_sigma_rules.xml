@@ -10,7 +10,7 @@
   <rule id="100101" level="8">
     <if_group>sysmon</if_group>
     <field name="win.system.eventID">^3$</field>
-    <field name="win.eventdata.destinationPort">^(21|22|23|25|53|80|110|139|143|443|445|3306|3389|5985|8080|8443)$</field>
+    <field name="win.eventdata.destinationPort" type="pcre2">^(21|22|23|25|53|80|110|139|143|443|445|3306|3389|5985|8080|8443)$</field>
     <description>Sigma T1046: Network Service Scanning — $(win.eventdata.image) → $(win.eventdata.destinationIp):$(win.eventdata.destinationPort)</description>
     <group>network_scan,mitre_discovery,</group>
     <mitre>
@@ -104,7 +104,7 @@
   <rule id="100178" level="9">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID">^4624$</field>
-    <field name="win.eventdata.logonType">^(3|10)$</field>
+    <field name="win.eventdata.logonType" type="pcre2">^(3|10)$</field>
     <field name="win.eventdata.targetUserName" type="pcre2">(?i)(administrator|admin|svc_)</field>
     <description>Sigma T1078: Privileged account remote logon — $(win.eventdata.targetUserName) from $(win.eventdata.ipAddress)</description>
     <group>privileged_logon,mitre_privilege_escalation,</group>
@@ -116,11 +116,21 @@
   <!-- ============================================================ -->
   <!-- T1021.002 — Remote Services: SMB/Admin Shares              -->
   <!-- ============================================================ -->
+  <rule id="100139" level="3">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^5140$</field>
+    <field name="win.eventdata.shareName" type="pcre2">(?i)(ADMIN\$|C\$|IPC\$)</field>
+    <field name="win.eventdata.subjectUserName" type="pcre2">(?i)\$$</field>
+    <description>Admin share access by machine account — routine Windows/GPO/WMI background traffic, not lateral movement</description>
+    <group>lateral_movement_noise,</group>
+  </rule>
+
   <rule id="100140" level="10">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID">^5140$</field>
     <field name="win.eventdata.shareName" type="pcre2">(?i)(ADMIN\$|C\$|IPC\$)</field>
-    <description>Sigma T1021.002: Admin share access — possible lateral movement via $(win.eventdata.shareName)</description>
+    <field name="win.eventdata.subjectUserName" type="pcre2" negate="yes">(?i)\$$</field>
+    <description>Sigma T1021.002: Admin share access by non-machine account — possible lateral movement via $(win.eventdata.shareName)</description>
     <group>lateral_movement,mitre_lateral_movement,</group>
     <mitre>
       <id>T1021.002</id>
@@ -146,7 +156,7 @@
   <!-- ============================================================ -->
   <rule id="100147" level="9">
     <if_group>sysmon</if_group>
-    <field name="win.system.eventID">^(13|14)$</field>
+    <field name="win.system.eventID" type="pcre2">^(13|14)$</field>
     <field name="win.eventdata.targetObject" type="pcre2">(?i)(CurrentVersion\\Run|RunOnce|Winlogon|AppInit_DLLs)</field>
     <description>Sigma T1547: Registry autostart persistence — $(win.eventdata.targetObject)</description>
     <group>persistence,mitre_persistence,</group>
@@ -160,7 +170,7 @@
   <!-- ============================================================ -->
   <rule id="100153" level="9">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^(4698|4702)$</field>
+    <field name="win.system.eventID" type="pcre2">^(4698|4702)$</field>
     <description>Sigma T1053: Scheduled task created/modified — $(win.eventdata.taskName)</description>
     <group>persistence,mitre_persistence,</group>
     <mitre>

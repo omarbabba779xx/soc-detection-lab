@@ -68,4 +68,4 @@ net use \\10.10.10.109\ADMIN$ /delete
 | Test 1 | ✅      | 100140 | 23s   | 651,564   |
 | Test 3 | ✅      | 100140 | 23s   | (inclus)  |
 
-> **Note sur le volume** : la règle 100140 se déclenche sur chaque accès EventID 5140 correspondant à `ADMIN$`/`C$`, y compris le trafic Windows/GPO légitime en arrière-plan (pas seulement l'attaque simulée) — d'où le volume élevé. La règle capture correctement l'attaque, mais nécessiterait un filtre de bruit additionnel (ex: exclusion des comptes machine `$`) pour être utilisable en production sans fatigue d'alerte.
+> **Correctif appliqué (2026-09-14)** : la règle se déclenchait sur chaque accès EventID 5140 correspondant à `ADMIN$`/`C$`, y compris le trafic Windows/GPO légitime en arrière-plan (compte machine `HOSTNAME$`) — d'où les 651 564 déclenchements initiaux. Corrigé dans `wazuh/rules/socforge_sigma_rules.xml` : la règle 100140 exclut désormais les comptes se terminant par `$` (nouvelle règle 100139, niveau 3, capture ce bruit séparément sans alerter). Redéployé sur le manager Wazuh en direct et confirmé sans erreur de chargement.

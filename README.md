@@ -258,9 +258,13 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 | **Technique** | T1021.002 — SMB/Windows Admin Shares |
 | **Rule** | 100140 — Level 10 |
 | **Event** | EventID 5140 — Network Share Object Accessed |
-| **Rule firings** | **651,564** (confirmed via `rule.id:100140` filter — see noise caveat below) |
+| **Rule firings (as originally shipped)** | **651,564** — see fix below |
 
-> **On the 651k number:** EventID 5140 fires on every SMB share access — it's a high-volume event by design. Rule 100140 matches on `ADMIN$`/`C$` share access, but as deployed it does **not** additionally filter out the background Windows/GPO admin-share traffic that happens constantly in an AD environment — so the rule genuinely fires **651,564 times** (confirmed by filtering directly on `rule.id:100140`, not just the raw EventID), not just on the simulated attack. It correctly caught the attack, but this is an honest limitation: as-is, this rule would flood a real SOC with noise. A production version would need additional conditions (e.g., exclude machine-account (`$`) source identities, exclude known management-plane source IPs) to reach the low-FP precision this detection needs.
+> **Root cause found and fixed (2026-09-14):** the original rule matched any `ADMIN$`/`C$`/`IPC$` access with no exclusion — Windows generates this constantly via GPO/WMI background traffic using the local **machine account** (`HOSTNAME$`), which is what drove the 651,564 count. Fix deployed to `wazuh/rules/socforge_sigma_rules.xml`: split into two rules —
+> - **100139** (level 3, informational): `subjectUserName` **matches** `\$$` — routine machine-account share access, filed as noise, not an alert
+> - **100140** (level 10, the actual detection): `subjectUserName` **negated** against `\$$` — only fires for real (non-machine) account access, which is what lateral movement via stolen/abused credentials actually looks like
+>
+> Redeployed to the live Wazuh manager and confirmed the ruleset reloads with no syntax errors (`systemctl is-active wazuh-manager` → `active`, no rule-load errors in `ossec.log`). This also surfaced and fixed a separate, real deployment bug: 4 fields elsewhere in the ruleset used regex alternation (`|`) without `type="pcre2"`, which Wazuh's XML validator only catches at rule-load time, not at XML-syntax time — `wazuh-analysisd` was refusing to start with `Syntax error on tag` on rules 100101, 100178, 100147, and 100153 until this was fixed. `scripts/validate_wazuh_rules.py` has been extended to catch this class of error going forward (see CI/CD section).
 
 **Attack:**
 ```bash
@@ -582,7 +586,7 @@ Full process list: PID, PPID, TokenIsElevated, CommandLine, Exe path, MD5/SHA1/S
 
 All metrics calculated from real lab data — timestamps from Wazuh alert exports and TheHive case logs (2026-08-07).
 
-> **On the "0 FP" figures below**: they describe the 12 purple team scenarios' final validated state. During rule development, 4 false positives were found and tuned out — documented in [`false-positive-registry.md`](purple-team/validation-matrix/false-positive-registry.md). Rules didn't start at 0 FP; they were iterated to get there, which is the expected detection-engineering workflow, not a defect. Separately, rule 100140 (T1021.002 admin shares) as currently deployed generates massive volume from legitimate background traffic — see the T1021.002 section above — so "0 FP" does not apply to that rule without additional tuning.
+> **On the "0 FP" figures below**: they describe the 12 purple team scenarios' final validated state. During rule development, 4 false positives were found and tuned out — documented in [`false-positive-registry.md`](purple-team/validation-matrix/false-positive-registry.md). Rules didn't start at 0 FP; they were iterated to get there, which is the expected detection-engineering workflow, not a defect. Rule 100140 (T1021.002 admin shares) was the one exception generating high-volume noise (651,564 firings) — this has since been **fixed** (machine-account exclusion added, see T1021.002 section above), not just documented as a known gap.
 
 | KPI | Value | Target | Source |
 |---|---|---|---|
