@@ -1,0 +1,35 @@
+{
+  "timestamp": "2026-09-14T11:37:45.174Z",
+  "agent": {
+    "name": "wazuh",
+    "ip": "internal"
+  },
+  "rule": {
+    "id": "100200",
+    "level": 10,
+    "description": "Sigma T1548.003: Sudo privilege escalation - user executed sudo as ROOT",
+    "groups": [
+      "sysmon",
+      "windows",
+      "socforge",
+      "sigma",
+      "privilege_escalation",
+      "sudo",
+      "socforge_purple"
+    ]
+  },
+  "data": {
+    "win": {
+      "eventdata": {
+        "commandLine": "/usr/bin/ss -tlnp",
+        "newProcessName": "root",
+        "parentProcessName": "socadmin"
+      }
+    }
+  },
+  "mitre": {
+    "id": "T1548.003",
+    "tactic": "Privilege Escalation"
+  },
+  "full_log": "Sep 14 11:37:44 wazuh sudo[3940]: socadmin : PWD=/home/socadmin ; USER=root ; COMMAND=/usr/bin/ss -tlnp"
+}
