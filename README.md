@@ -1,6 +1,6 @@
 # SocForge — SOC Detection Lab
 
-Home lab SOC built on VirtualBox (16 GB RAM). 12 VMs, Wazuh + SOAR pipeline, 13 purple team scenarios.
+Home lab SOC built on VirtualBox (16 GB RAM). 12 VMs, Wazuh + SOAR pipeline, 12 purple team scenarios.
 
 ---
 
