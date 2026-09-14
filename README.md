@@ -27,6 +27,8 @@ Home lab SOC built on VirtualBox (16 GB RAM). 12 VMs, Wazuh + SOAR pipeline, 13 
 - [Infrastructure Gallery](#infrastructure-gallery)
 - [Tech Stack](#tech-stack)
 - [Project Phases](#project-phases)
+- [Repository Structure](#repository-structure)
+- [Security Notice](#security-notice)
 
 ---
 
@@ -41,6 +43,9 @@ Home lab SOC built on VirtualBox (16 GB RAM). 12 VMs, Wazuh + SOAR pipeline, 13 
 - SOAR Automation — Wazuh → Shuffle → TheHive pipeline, 7-second end-to-end latency
 - Threat Intelligence — MISP feeds (CIRCL, Botvrij.eu, URLhaus, MalwareBazaar) + Cortex enrichment
 - DFIR — Velociraptor remote artifact collection on live Windows targets
+- NDR — Zeek 8.0.10 + Suricata 6.0.4 deployed on live traffic, verified capturing real sessions
+- LLM Alert Triage — local Ollama model triaging real Wazuh alerts, no cloud dependency ([details](docs/llm-triage/))
+- CI/CD — GitHub Actions validates every Wazuh rule change automatically
 
 Every result in this repository comes from a real lab session. No simulated output, no mocked data.
 
@@ -688,41 +693,66 @@ All metrics calculated from real lab data — timestamps from Wazuh alert export
 | **Phase 5** | NDR — Zeek + Suricata ET Open, 17 custom SIDs, SMB/network monitoring | ✅ Complete |
 | **Phase 6** | Threat Intelligence — MISP feeds, IOC CSV, Cortex enrichment pipeline | ✅ Complete |
 | **Phase 7** | Purple Team SC-05→SC-07, Threat Hunting (8 hypotheses, 10 VQL), KPI metrics | ✅ Complete |
+| **Phase 8** | Live re-validation — CI/CD rule validation, real Ollama LLM triage on a live alert, real Zeek/Suricata deployment on NDR, independent T1110 re-test with dashboard proof ([IR-003](reports/incident-reports/IR-003-T1110-real-bruteforce-2026-09-14.md)) | ✅ Complete |
 
 ---
 
 ## Repository Structure
 
+Organized to mirror the project phases below — infrastructure first, then detection content, then the operational layers built on top of it.
+
 ```
 .
-├── wazuh/
-│   ├── rules/              # Custom Sigma rules (15 deployed)
-│   ├── agents/             # Agent configuration (agent.conf)
-│   ├── decoders/           # Custom decoders
-│   └── dashboards/         # Dashboard exports
-├── purple-team/
-│   ├── scenarios/          # Attack playbooks (SC-01 → SC-12, Sessions 1-3)
-│   ├── atomic-tests/       # Atomic Red Team mappings
-│   └── validation-matrix/  # Detection results per technique
-├── detections/
-│   ├── sigma/              # Sigma rule source files
-│   ├── yara/               # YARA rules (7 deployed)
-│   ├── windows/            # Windows detection content
-│   └── linux/              # Linux detection content
-├── dfir/                   # Velociraptor VQL artifacts
-├── threat-intelligence/    # MISP configs, IOC lists
-├── evidence/
-│   ├── logs/               # Wazuh alert exports
-│   ├── cases/              # TheHive case summaries
-│   └── investigations/     # Full IR narratives (triage → enrichment → verdict)
-├── metrics/
-│   ├── datasets/           # Labeled event CSV (MTTD per alert)
-│   └── calculations/       # KPI calculations (real metrics)
-├── reports/                # Final reports
-├── infrastructure/         # Network diagrams, VM specs
-└── docs/
-    └── screenshots/        # All evidence screenshots (real lab sessions)
+├── infrastructure/          # Phase 0 — VM specs, network, firewall, Docker
+│   ├── virtualbox/           # VM configs, UUIDs, RAM/CPU/disk specs
+│   ├── firewall/             # OPNsense rules
+│   ├── ndr/                  # Zeek/Suricata deployment notes
+│   └── docker/               # Container configs (Cortex, MISP, etc.)
+├── docs/                     # Phase 0 — architecture, network plan, ops guides
+│   ├── architecture/          # VM inventory, security policy, naming
+│   ├── network/                # IP plan, segmentation
+│   ├── installation/           # OS install guides
+│   ├── operations/              # Backup/restore, exploitation guide
+│   ├── troubleshooting/          # Known issues and fixes
+│   ├── llm-triage/                # Ollama-based alert triage — setup + real run
+│   └── screenshots/                # All evidence screenshots (real lab sessions)
+├── wazuh/                    # Phase 1 — SIEM / detection engine
+│   ├── rules/                 # Custom Sigma rules (15 deployed)
+│   ├── agents/                  # Agent configuration
+│   ├── decoders/                  # Custom decoders
+│   └── dashboards/                  # Dashboard exports
+├── detections/                # Phase 1 — detection content by platform
+│   ├── sigma/, yara/ (9 rules), windows/, linux/, network/
+├── ndr/                       # Phase 5 — Zeek + Suricata (real capture)
+│   ├── zeek/, suricata/, pcaps/
+├── soar/                      # Phase 2 — SOAR automation
+│   ├── shuffle/, workflows/, test-alerts/
+├── threat-intelligence/       # Phase 6 — MISP + Cortex enrichment
+│   ├── misp/, taxonomies/, ioc-samples/
+├── purple-team/                # Phase 3/7 — attack simulation
+│   ├── scenarios/                # Attack playbooks (SC-01 → SC-12)
+│   ├── atomic-tests/               # Atomic Red Team mappings
+│   └── validation-matrix/            # Detection results per MITRE technique
+├── dfir/                       # Phase 4 — Velociraptor forensics
+│   ├── velociraptor/, artifacts/, chain-of-custody/
+├── hunting/                    # Phase 7 — proactive threat hunting
+│   ├── hypotheses/               # 8 hunt hypotheses
+│   ├── queries/                    # OpenSearch/VQL queries
+│   └── notebooks/                    # Executed Jupyter notebook + sample-data
+├── incident-response/           # Playbooks and case templates
+│   ├── playbooks/, templates/, cortex/, thehive/
+├── evidence/                    # Cross-phase — proof artifacts
+│   ├── logs/, cases/, investigations/, screenshots/
+├── metrics/                     # KPI calculations from real data
+│   ├── datasets/, calculations/, dashboards/
+├── reports/                     # Final report + incident reports
+│   ├── final-report/, incident-reports/, test-reports/
+└── scripts/                     # Automation
+    ├── llm_triage.py             # Ollama-based Wazuh alert triage
+    └── validate_wazuh_rules.py   # CI/CD rule validator (GitHub Actions)
 ```
+
+**CI/CD**: [`.github/workflows/validate-wazuh-rules.yml`](.github/workflows/validate-wazuh-rules.yml) runs `scripts/validate_wazuh_rules.py` on every push touching `wazuh/rules/*.xml`.
 
 ---
 
