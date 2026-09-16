@@ -2,19 +2,15 @@
 
 > Ce document reflète le réseau **tel que réellement déployé**.
 > Le plan initial prévoyait 6 zones réseau séparées (`mgmt`, `srv`, `ep`, `ndr`, `purple`, `dfir`)
-> avec routage inter-zones par VM01-FW. État réel au 2026-09-16 : `dfir`, `srv`, `ep` et `ndr`
-> sont déployées et leur routage inter-zone validé en direct ce jour (voir preuves ci-dessous).
+> avec routage inter-zones par VM01-FW. État réel au 2026-09-16 : les **6 zones sont
+> déployées et leur routage inter-zone validé en direct** (voir preuves ci-dessous).
 > Au passage, une IP mgmt/ndr inversée entre les deux adaptateurs de NDR (bug préexistant qui
-> rendait NDR injoignable sur son vrai réseau mgmt) a été corrigée.
+> rendait NDR injoignable sur son vrai réseau mgmt) a été identifiée et corrigée.
 >
-> **Limite connue** : la zone `purple` (VM12-PURPLE) n'a pas pu être déployée cette session.
-> Sa NIC dédiée et la règle firewall OPNsense correspondante sont déjà actives côté VM01-FW,
-> mais l'accès à la console de la VM (GDM/Kali) a échoué — les identifiants `kali` disponibles
-> dans la documentation du lab ont été testés et refusés par le système (mot de passe transmis
-> intégralement et vérifié caractère par caractère, rejeté par l'authentification), et aucune
-> autre voie d'accès (SSH, TTY) n'était disponible dans le temps de cette session. PURPLE
-> continue donc à opérer sur `socforge-mgmt`, ce qui n'affecte pas sa fonction (l'isolation
-> purple team reste assurée par les règles firewall existantes sur ce réseau).
+> Note historique : un premier essai d'accès à la console de PURPLE avait échoué avec les
+> identifiants `kali`/mot de passe lab (refusés par l'authentification malgré une saisie
+> vérifiée caractère par caractère). Le bon compte, `socadmin` (référencé dans
+> `secrets/lab-registry.md`), a ensuite permis l'accès et la configuration complète de la zone.
 
 ## Preuves — routage inter-zone réel
 
@@ -43,7 +39,10 @@ deux adaptateurs ont été réassignés à leur IP correcte et la connectivité 
 a été re-vérifiée fonctionnelle après correction. Capture :
 [`docs/screenshots/zone-ndr-routing-proof.png`](../screenshots/zone-ndr-routing-proof.png).
 
-**Zone purple (PURPLE)** — non testée cette session. Voir la limite documentée ci-dessus.
+**Zone purple (PURPLE)** — testé en direct le 2026-09-16 : `ping` depuis VM01-FW (10.10.50.1,
+interface em5/OPT4) vers PURPLE (10.10.50.60, adaptateur `eth2` / réseau interne
+`socforge-purple`) → **0% de perte, 3/3 paquets reçus**. Capture :
+[`docs/screenshots/zone-purple-routing-proof.png`](../screenshots/zone-purple-routing-proof.png).
 
 ## Réseaux VirtualBox (déployés)
 
@@ -53,7 +52,7 @@ a été re-vérifiée fonctionnelle après correction. Capture :
 | socforge-srv      | 10.10.20.0/24     | Zone serveurs — DC01 (10.10.20.10), routage validé via VM01-FW (OPT1/em2) |
 | socforge-ep       | 10.10.30.0/24     | Zone endpoints — WIN01 (10.10.30.110), LINUX01 (10.10.30.20), routage validé via VM01-FW (OPT2/em3) |
 | socforge-ndr      | 10.10.40.0/24     | Zone NDR (tap) — NDR (10.10.40.40), routage validé via VM01-FW (OPT3/em4) ; bug d'IP inversée mgmt/ndr corrigé |
-| socforge-purple   | 10.10.50.0/24 (prévu) | Zone purple team — NIC présente sur PURPLE, IP/route non déployée (accès console bloqué, voir limite ci-dessus) |
+| socforge-purple   | 10.10.50.0/24     | Zone purple team — PURPLE (10.10.50.60), routage validé via VM01-FW (OPT4/em5) |
 | socforge-dfir     | 10.10.60.0/24     | Zone isolée — VM08 Velociraptor        |
 | NAT (WAN)         | DHCP hôte         | Accès Internet temporaire (lab only), port-forwards management |
 
@@ -68,7 +67,7 @@ a été re-vérifiée fonctionnelle après correction. Capture :
 | MISP       | 10.10.10.22   | —                    | socforge-mgmt        |
 | SHUFFLE    | 10.10.10.30   | —                    | socforge-mgmt        |
 | NDR        | 10.10.10.40   | **10.10.40.40 (socforge-ndr, validé)** | socforge-ndr + mgmt |
-| PURPLE     | 10.10.10.60   | NIC socforge-purple présente, non configurée | socforge-mgmt (accès console bloqué cette session) |
+| PURPLE     | 10.10.10.60   | **10.10.50.60 (socforge-purple, validé)** | socforge-purple + mgmt |
 | DC01       | 10.10.10.109  | **10.10.20.10 (socforge-srv, validé)** | socforge-srv + mgmt |
 | WIN01      | 10.10.10.110  | **10.10.30.110 (socforge-ep, validé)** | socforge-ep + mgmt |
 | LINUX01    | 10.10.10.111  | **10.10.30.20 (socforge-ep, validé)** | socforge-ep + mgmt |
@@ -76,7 +75,7 @@ a été re-vérifiée fonctionnelle après correction. Capture :
 
 ## Plan initial vs réalité
 
-Le plan de projet prévoyait à l'origine 6 zones réseau (`mgmt`, `srv`, `ep`, `ndr`, `purple`, `dfir`) avec routage inter-zones par VM01-FW. État réel : `dfir`, `srv`, `ep` et `ndr` sont déployées et validées en direct le 2026-09-16 (voir preuves ci-dessus), soit 5 zones sur 6. Seule la zone `purple` (VM12-PURPLE) reste non déployée — sa NIC dédiée et la règle firewall correspondante sont actives sur VM01-FW, mais l'accès à la console de la VM n'a pas pu être obtenu cette session (voir limite documentée en tête de ce fichier). PURPLE continue donc à fonctionner via `socforge-mgmt`, son isolation restant assurée par les règles firewall existantes sur ce réseau plutôt que par une zone dédiée.
+Le plan de projet prévoyait à l'origine 6 zones réseau (`mgmt`, `srv`, `ep`, `ndr`, `purple`, `dfir`) avec routage inter-zones par VM01-FW. État réel : **les 6 zones sont déployées et validées en direct le 2026-09-16** (voir preuves ci-dessus) — le plan initial est désormais respecté intégralement, chaque VM opérant sur sa zone réseau dédiée avec routage inter-zone fonctionnel via VM01-FW.
 
 ## Règles de flux inter-VMs (via VM01-FW)
 

@@ -19,7 +19,7 @@ Généré automatiquement lors de la Phase 0.
 | SF-VM11-LINUX01 | 09177ae9-0392-4cfc-ac1b-d465eccd9745 | 2048 Mo | 1 | 30 Go | socforge-ep |
 | SF-VM12-PURPLE | 440d2a46-041f-4171-b1c8-793587683d3d | 2048 Mo | 2 | 40 Go | socforge-purple |
 
-> **Note (voir `docs/network/IP-plan.md`)** : la colonne "Réseau principal" reflète les noms de réseaux Internal Network configurés à la création des VMs. État réel : `socforge-srv` (DC01), `socforge-ep` (WIN01/LINUX01), `socforge-ndr` (NDR) et `socforge-dfir` (VM08) sont déployées, avec routage inter-zone via VM01-FW validé en direct le 2026-09-16 pour les quatre. Seule `socforge-purple` (VM12) reste à finaliser côté IP/route VM (accès console bloqué cette session) — PURPLE reste donc joignable via `socforge-mgmt` (10.10.10.0/24) en pratique. Voir `docs/network/IP-plan.md` pour le détail complet ("Plan initial vs réalité").
+> **Note (voir `docs/network/IP-plan.md`)** : la colonne "Réseau principal" reflète les noms de réseaux Internal Network configurés à la création des VMs. État réel : les 6 zones (`socforge-mgmt`, `socforge-srv`, `socforge-ep`, `socforge-ndr`, `socforge-purple`, `socforge-dfir`) sont déployées, avec routage inter-zone via VM01-FW validé en direct le 2026-09-16 pour toutes. Voir `docs/network/IP-plan.md` pour le détail complet.
 
 ## Réseaux internes créés automatiquement
 

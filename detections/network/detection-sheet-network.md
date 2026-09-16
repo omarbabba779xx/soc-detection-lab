@@ -50,13 +50,14 @@
 
 ## Zones réseau surveillées
 
-> Le plan initial prévoyait 6 zones réseau isolées. État réel : les zones `srv` (DC01, 10.10.20.0/24), `ep` (WIN01/LINUX01, 10.10.30.0/24) et `ndr` (NDR, 10.10.40.0/24) sont déployées et leur routage inter-zone via VM01-FW a été validé en direct le 2026-09-16 (ping 0% perte sur chacune, voir `docs/network/IP-plan.md`). Seule la zone `purple` (VM12-PURPLE) a sa NIC et sa règle firewall déjà en place côté VM01-FW mais reste à finaliser côté IP/route VM (accès console bloqué cette session) — PURPLE continue donc à apparaître sur `socforge-mgmt` (10.10.10.0/24) dans la capture actuelle. Voir `docs/network/IP-plan.md` ("Plan initial vs réalité").
+> Le plan initial prévoyait 6 zones réseau isolées. État réel : les 6 zones (`mgmt`, `srv`, `ep`, `ndr`, `purple`, `dfir`) sont déployées et leur routage inter-zone via VM01-FW a été validé en direct le 2026-09-16 (ping 0% perte sur chacune, voir `docs/network/IP-plan.md`).
 
 | Zone          | CIDR             | Surveillance                               |
 |---------------|------------------|--------------------------------------------|
-| Management (+ Purple Team en pratique) | 10.10.10.0/24 | Tout le trafic lab via Zeek/Suricata + Wazuh agents |
+| Management    | 10.10.10.0/24 | Tout le trafic lab via Zeek/Suricata + Wazuh agents |
 | Serveurs (srv) | 10.10.20.0/24   | DC01 — routage inter-zone validé            |
 | Endpoints (ep) | 10.10.30.0/24   | WIN01, LINUX01 — routage inter-zone validé  |
 | NDR           | 10.10.40.0/24    | NDR — routage inter-zone validé             |
+| Purple Team   | 10.10.50.0/24    | PURPLE — routage inter-zone validé          |
 | DFIR          | 10.10.60.0/24    | Velociraptor gRPC vers endpoints            |
 | Internet      | 0.0.0.0/0        | NAT via WAN OPNsense (accès lab restreint)  |
