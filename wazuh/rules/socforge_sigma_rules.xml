@@ -137,6 +137,24 @@
     </mitre>
   </rule>
 
+  <!-- Investigated live (2026-09-16): Wazuh's own bundled ruleset
+       (0955-WEF-baseline_rules.xml, rule 67017 "Network share object access
+       without IPC$ and Netlogon shares") independently matches EventID 5140 on
+       IPC$/NetLogon shares from machine-account/anonymous sources and claims
+       those events before 100139 reaches them — confirmed empirically: 100139
+       has never fired historically, and even a minimal diagnostic rule
+       (if_group+eventID only, no other conditions) never fired for that
+       traffic while 67017 did. This has NO security impact: 67017 only ever
+       fires for machine-account/ANONYMOUS LOGON sources (never for a real
+       user, confirmed across every historical hit), and it alerts at the same
+       level 3 "noise" severity 100139 would have — so the noise case is
+       still correctly suppressed either way, just via a different rule ID.
+       Critically, rule 100140 (the actual detection) is NOT affected by this
+       and fires correctly on IPC$ for real accounts — verified live with a
+       real Administrator connection to IPC$ (not just ADMIN$/C$). No fix
+       needed beyond this note; see purple-team/scenarios/scenario-T1021-
+       lateral-movement.md for the full investigation. -->
+
   <!-- ============================================================ -->
   <!-- T1003 — Credential Dumping (LSASS access via Sysmon 10)    -->
   <!-- ============================================================ -->
