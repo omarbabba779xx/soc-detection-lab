@@ -1,4 +1,4 @@
-# SC-10 — T1053.005 : Scheduled Task (Windows)
+# SC-11 — T1053.005 : Scheduled Task (Windows)
 
 **Session**: 3 — 2026-08-15  
 **Attaquant**: WIN01 (10.10.10.110) — PowerShell admin  

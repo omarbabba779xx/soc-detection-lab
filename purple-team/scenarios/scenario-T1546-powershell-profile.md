@@ -1,4 +1,4 @@
-# SC-12 — T1546.013 : PowerShell Profile Persistence
+# SC-13 — T1546.013 : PowerShell Profile Persistence
 
 **Session**: 3 — 2026-08-15  
 **Attaquant**: WIN01 (10.10.10.110) — PowerShell admin  

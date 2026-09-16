@@ -24,7 +24,7 @@ VBoxManage snapshot "VM02-WAZUH" take "avant-test-2026-08-15" `
   --description "Avant session Purple Team Session 3"
 
 VBoxManage snapshot "VM10-WIN01" take "avant-session3-2026-08-15" `
-  --description "Avant SC-10/11/12"
+  --description "Avant SC-11/12/13"
 ```
 
 ### Lister les snapshots

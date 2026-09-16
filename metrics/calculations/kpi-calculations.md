@@ -34,15 +34,16 @@ MTTD moyen Dataset 1 = (47 + 72 + 23 + 47) / 4 = **47.25 secondes**
 | SC-05 | T1003.001   | 6s   |
 | SC-06 | T1055       | 9s   |
 | SC-07 | T1547.001   | 18s  |
+| SC-08 | T1027       | 47s  |
 
-MTTD moyen Session 1 = (12 + 8 + 15 + 23 + 6 + 9 + 18) / 7 = **13.0 secondes**
+MTTD moyen Session 1 = (12 + 8 + 15 + 23 + 6 + 9 + 18 + 47) / 8 = **17.25 secondes**
 
 ### Dataset 3 — Purple Team Session 2 (2026-08-07 14h–17h, Linux)
 
 | SC# | Technique    | MTTD |
 |-----|--------------|------|
-| SC-08 | T1548.003  | 11s  |
-| SC-09 | T1053.003  | 14s  |
+| SC-09 | T1548.003  | 11s  |
+| SC-10 | T1053.003  | 14s  |
 
 MTTD moyen Session 2 = (11 + 14) / 2 = **12.5 secondes**
 
@@ -50,15 +51,15 @@ MTTD moyen Session 2 = (11 + 14) / 2 = **12.5 secondes**
 
 | SC# | Technique       | Heure attaque | Heure alerte | MTTD |
 |-----|-----------------|---------------|--------------|------|
-| SC-10 | T1053.005     | 08:26:46      | 08:27:50     | 84s  |
-| SC-11 | T1078         | 08:26:00      | 08:26:42     | 42s  |
-| SC-12 | T1546.013     | 08:31:00      | 08:31:49     | 49s  |
+| SC-11 | T1053.005     | 08:26:46      | 08:27:50     | 84s  |
+| SC-12 | T1078         | 08:26:00      | 08:26:42     | 42s  |
+| SC-13 | T1546.013     | 08:31:00      | 08:31:49     | 49s  |
 
 MTTD moyen Session 3 = (84 + 42 + 49) / 3 = **58.3 secondes**
 
-**MTTD global lab (12 scénarios Sessions 1-3)** = (12+8+15+23+6+9+18+11+14+84+42+49) / 12 = **24.25 secondes**
+**MTTD global lab (13 scénarios Sessions 1-3)** = (12+8+15+23+6+9+18+47+11+14+84+42+49) / 13 = **26.0 secondes**
 
-**Objectif**: < 5 minutes → ✅ **ATTEINT** (24.25s << 300s)
+**Objectif**: < 5 minutes → ✅ **ATTEINT** (26.0s << 300s)
 
 ---
 
@@ -176,8 +177,8 @@ Extrait du rapport Purple Team complet (7 scénarios) :
 
 | Métrique | TP | FP | FN | Résultat |
 |----------|----|----|----|----------|
-| Précision | 12 | 0  | —  | **100%** |
-| Rappel    | 12 | —  | 0  | **100%** |
+| Précision | 13 | 0  | —  | **100%** |
+| Rappel    | 13 | —  | 0  | **100%** |
 | F1-Score  | —  | —  | —  | **1.00** |
 
 Note: FP=0 dans le contexte de l'exercice. En environnement de production réel, un FPR de 0.001% est attendu (règles de fréquence sur logs normaux).

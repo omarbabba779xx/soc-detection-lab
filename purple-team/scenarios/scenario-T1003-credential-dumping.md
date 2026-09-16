@@ -3,7 +3,7 @@
 **ID Scénario**: SC-005
 **Technique MITRE**: T1003, T1003.001
 **Outil**: Atomic Red Team (Invoke-AtomicTest T1003.001)
-**Date test**: Planifié (semaine 2)
+**Date test**: 2026-08-07
 **VM Attaquant**: VM12-PURPLE ou WIN01 (compte compromis)
 **VM Cible**: WIN01 (10.10.10.110) — LSASS local
 
@@ -57,7 +57,7 @@ rundll32 C:\Windows\System32\comsvcs.dll, MiniDump (Get-Process lsass).Id lsass.
 ## Vérification Blue Team
 
 1. Wazuh Dashboard → `data.win.system.eventID: "10"` + `data.win.eventdata.targetImage: *lsass*`
-2. Règle 100121 doit déclencher avec niveau 14
+2. Règle 100103 doit déclencher avec niveau 14
 3. Vérifier `data.win.eventdata.sourceImage` ≠ processus système légitimes
 4. TheHive → Alerte `[Wazuh] LSASS memory access`
 
@@ -79,8 +79,8 @@ SourceImage:   C:\Windows\System32\rundll32.exe ou powershell.exe
 
 | Test   | Détecté | Règle  | MTTD | Notes |
 |--------|---------|--------|------|-------|
-| Test 1 | ✅ OUI  | 100121 | 6s   | comsvcs.dll MiniDump — EventID 10 GrantedAccess 0x1fffff — Level 14 |
-| Test 3 | ✅ OUI  | 100121 | 6s   | rundll32.exe → lsass.exe — même règle déclenchée |
+| Test 1 | ✅ OUI  | 100103 | 6s   | comsvcs.dll MiniDump — EventID 10 GrantedAccess 0x1fffff — Level 14 |
+| Test 3 | ✅ OUI  | 100103 | 6s   | rundll32.exe → lsass.exe — même règle déclenchée |
 
 **Résultat global**: PASS — 0 FP — TheHive alerte créée automatiquement par Shuffle (7s pipeline)
 

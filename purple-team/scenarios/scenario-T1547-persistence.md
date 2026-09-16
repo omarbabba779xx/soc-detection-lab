@@ -3,7 +3,7 @@
 **ID Scénario**: SC-007
 **Technique MITRE**: T1547.001
 **Outil**: Atomic Red Team (Invoke-AtomicTest T1547.001)
-**Date test**: Planifié (semaine 2)
+**Date test**: 2026-08-07
 **VM Attaquant**: WIN01 (compte compromis)
 **VM Cible**: WIN01 (10.10.10.110)
 

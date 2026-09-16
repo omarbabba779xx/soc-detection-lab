@@ -86,13 +86,39 @@ Chaque entrée identifie un événement déclenché par une règle de détection
 
 ---
 
+### FP-006
+| Champ        | Valeur                                                                 |
+|--------------|------------------------------------------------------------------------|
+| Règle Wazuh  | 100140                                                                 |
+| Technique    | T1021.002                                                              |
+| Agent        | dc01                                                                   |
+| Description  | 651 566 hits sur EventID 5140 (ADMIN$/C$/IPC$) — volume massif en 7 jours |
+| Cause        | Trafic Windows/GPO/WMI légitime en arrière-plan utilisant le compte machine (`HOSTNAME$`) — pas lié à une attaque |
+| Résolution   | Règle 100140 divisée en deux : `100139` (niveau 3, absorbe le bruit compte machine, `subjectUserName` match `\$$`) et `100140` (niveau 10, négation du même filtre — n'alerte que sur compte non-machine). Déployé en direct sur VM02-WAZUH, vérifié sans erreur de chargement. |
+| Date         | 2026-09-14                                                             |
+
+---
+
+### FP-007
+| Champ        | Valeur                                                                 |
+|--------------|------------------------------------------------------------------------|
+| Règle Wazuh  | 100140                                                                 |
+| Technique    | T1021.002                                                              |
+| Agent        | dc01                                                                   |
+| Description  | 5 hits niveau 10 sur `IPC$` en quelques minutes après le boot de WIN01 |
+| Cause        | Trafic natif Windows (résolution de noms/Netlogon vers `IPC$`) authentifié comme `ANONYMOUS LOGON` (SID S-1-5-7) — ne se terminant pas par `$`, donc non filtré par le correctif FP-006 |
+| Résolution   | Filtre élargi de `\$$` à `(?i)(\$$|^ANONYMOUS LOGON$)` sur les règles 100139/100140. Vérifié par test regex direct contre l'événement brut capturé, et par re-test live (0 nouveau hit sur trafic anonyme frais après déploiement). |
+| Date         | 2026-09-16                                                             |
+
+---
+
 ## Statistiques
 
 | Technique    | Total FP | Exclusions ajoutées | Tuning règle |
 |--------------|----------|---------------------|--------------|
 | T1059.001    | 1        | 1                   | Oui          |
-| T1021.002    | 1        | 1                   | Oui          |
+| T1021.002    | 3        | 3                   | Oui          |
 | T1046        | 1        | 1                   | Oui          |
 | T1547.001    | 1        | 1                   | Oui          |
 | T1110        | 0        | 0                   | Non          |
-| **Total**    | **4 FP** | **4**               |              |
+| **Total**    | **6 FP** | **6**               |              |

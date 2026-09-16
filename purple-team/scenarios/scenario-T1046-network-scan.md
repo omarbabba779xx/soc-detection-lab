@@ -1,9 +1,9 @@
 # Scénario Purple Team — T1046 Network Service Discovery
 
-**ID Scénario**: SC-004
+**ID Scénario**: SC-003
 **Technique MITRE**: T1046
 **Outil**: nmap
-**Date test**: Planifié (semaine 2)
+**Date test**: 2026-08-07
 **VM Attaquant**: VM12-PURPLE (10.10.10.60)
 **VM Cible**: Réseau 10.10.10.0/24
 
@@ -60,6 +60,6 @@ Invoke-AtomicTest T1046 -TestNumbers 1
 
 | Test   | Détecté | Règle  | MTTD | Notes               |
 |--------|---------|--------|------|---------------------|
-| Test 1 | ⏳      | 100102 | —    | À effectuer         |
-| Test 2 | ⏳      | 100101 | —    | À effectuer         |
-| Test 3 | ⏳      | 100101 | —    | À effectuer         |
+| Test 1 | ✅      | 100101 | 15s  | nmap -sV depuis VM12-PURPLE — 2 hits |
+| Test 2 | ⏳      | 100102 | —    | Non exécuté séparément (outil nmap détecté via règle 100101) |
+| Test 3 | ⏳      | 100101 | —    | Non exécuté séparément (scan SYN, redondant avec Test 1) |

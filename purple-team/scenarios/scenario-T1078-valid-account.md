@@ -1,4 +1,4 @@
-# SC-11 — T1078 : Valid Account Remote Logon
+# SC-12 — T1078 : Valid Account Remote Logon
 
 **Session**: 3 — 2026-08-15  
 **Attaquant**: WIN01 (10.10.10.110) — PowerShell admin  

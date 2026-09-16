@@ -101,7 +101,7 @@ Artefacts collectés sur DC01 (Agent 002):
 
 | KPI              | Valeur           |
 |------------------|------------------|
-| MTTD moyen       | 1 min 27 sec     |
+| MTTD moyen       | 47 sec           |
 | MTTR             | N/A (exercice lab)|
 | Vrai positifs    | 3/3 (100%)       |
 | Faux positifs    | 0                |

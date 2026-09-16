@@ -16,12 +16,12 @@
 | 2  | T1110.001        | Brute Force SMB/NTLM               | Hydra                  | ✅ OUI   | 100111  | 8 sec   | 10     | VP    | sc02, phase3-purple/ |
 | 3  | T1046            | Network port scan                  | nmap -sV               | ✅ OUI   | 100101  | 15 sec  | 8      | VP    | rapport SC-03        |
 | 4  | T1021.002        | Admin Share ADMIN$                 | net use / PSDrive      | ✅ OUI   | 100140  | 23 sec  | 10     | VP    | scenario4_wazuh_*    |
-| 5  | T1003.001        | LSASS Memory Dump                  | Atomic T1003.001       | ✅ OUI   | 100121  | 6 sec   | 14     | VP    | sc05-wazuh-T1003-*   |
+| 5  | T1003.001        | LSASS Memory Dump                  | Atomic T1003.001       | ✅ OUI   | 100103  | 6 sec   | 14     | VP    | sc05-wazuh-T1003-*   |
 | 6  | T1055            | CreateRemoteThread injection       | Atomic T1055           | ✅ OUI   | 100155  | 9 sec   | 13     | VP    | sc06-wazuh-T1055-*   |
-| 7  | T1547.001        | Registry Run Keys                  | reg.exe + Atomic       | ✅ OUI   | 92302   | 18 sec  | 6      | VP    | sc07-wazuh-T1547-*   |
+| 7  | T1547.001        | Registry Run Keys                  | reg.exe + Atomic       | ✅ OUI   | 100147  | 18 sec  | 9      | VP    | sc07-wazuh-T1547-*   |
 | 8  | T1027            | Obfuscation Base64                 | Atomic T1027           | ✅ OUI   | 100127  | 47 sec  | 10     | VP    | rapport SC-01        |
 | 9  | T1548.003        | Sudo privilege escalation (Linux)  | sudo -l + exploit      | ✅ OUI   | 100200  | 11 sec  | 10     | VP    | sc08-wazuh-T1548-*   |
-| 10 | T1053.003        | Cron persistence (Linux)           | crontab -e             | ✅ OUI   | 100210  | 14 sec  | 9      | VP    | sc09-wazuh-T1053-*   |
+| 10 | T1053.003        | Cron persistence (Linux)           | crontab -e             | ✅ OUI   | 100210  | 14 sec  | 10     | VP    | sc09-wazuh-T1053-*   |
 | 11 | T1053.005        | Scheduled Task (Windows)           | schtasks /create       | ✅ OUI   | 60642   | 84 sec  | 3      | VP    | sc10-sc11-sc12-wazuh-detection.png |
 | 12 | T1078            | Valid Account Remote Logon         | net use \\localhost\C$ | ✅ OUI   | 92037   | 42 sec  | 3      | VP    | sc10-sc11-sc12-wazuh-detection.png |
 | 13 | T1546.013        | PowerShell Profile persistence     | cmd /c echo >> profile | ✅ OUI   | 92004   | 49 sec  | 4      | VP    | sc10-sc11-sc12-wazuh-detection.png |

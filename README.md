@@ -1,6 +1,6 @@
 # SocForge — SOC Detection Lab
 
-Home lab SOC built on VirtualBox (16 GB RAM). 12 VMs, Wazuh + SOAR pipeline, 12 purple team scenarios.
+Home lab SOC built on VirtualBox (16 GB RAM). 12 VMs, Wazuh + SOAR pipeline, 13 purple team scenarios.
 
 ---
 
@@ -38,7 +38,7 @@ Home lab SOC built on VirtualBox (16 GB RAM). 12 VMs, Wazuh + SOAR pipeline, 12 
 
 **What this lab demonstrates:**
 
-- Detection Engineering — 17 custom Sigma rules mapped to MITRE ATT&CK, deployed to Wazuh
+- Detection Engineering — 18 custom Sigma rules mapped to MITRE ATT&CK, deployed to Wazuh
 - Purple Team Operations — 13 attack scenarios executed and validated (100% detection rate)
 - SOAR Automation — Wazuh → Shuffle → TheHive pipeline, 7-second end-to-end latency
 - Threat Intelligence — MISP feeds (CIRCL, Botvrij.eu, URLhaus, MalwareBazaar) + Cortex enrichment
@@ -83,22 +83,26 @@ All VMs share `socforge-mgmt` (10.10.10.0/24) — flat internal network via Virt
 
 ## Detection Engineering
 
-### Custom Sigma Rules — 17 deployed to Wazuh (15 Windows + 2 Linux)
+### Custom Sigma Rules — 18 deployed to Wazuh (16 Windows + 2 Linux)
 
 | Rule ID | Level | Technique | Description |
 |---|---|---|---|
 | 100101 | 8 | T1046 | Network scan — Sysmon EventID 3 network connection |
+| 100102 | 10 | T1046 | Known scanning tool detected (nmap/masscan/zmap) |
 | 100110 | 6 | T1110 | Authentication failure — EventID 4625 |
 | 100111 | 10 | T1110 | Brute force frequency threshold (5 fails / 30s) |
 | 100120 | 8 | T1059.001 | PowerShell execution — EventID 4688 |
 | 100121 | 12 | T1059.001 + T1027 | PowerShell -EncodedCommand / obfuscated — EventID 4688/4104 |
 | **100131** | **12** | **T1059.001** | **Malicious Script Block Logging — EventID 4104** |
 | 100127 | 10 | T1027 | Base64 obfuscation pattern — EventID 4688 |
-| **100140** | **10** | **T1021.002** | **Admin share ADMIN$/C$ access — EventID 5140** |
+| 100139 | 3 | T1021.002 | Admin share access by machine account/anonymous logon — noise, not alerted |
+| **100140** | **10** | **T1021.002** | **Admin share ADMIN$/C$/IPC$ access by non-machine account — EventID 5140** |
+| 100147 | 9 | T1547.001 | Registry Run/RunOnce/Winlogon persistence — Sysmon EventID 13/14 |
 | 100153 | 9 | T1053.005 | Scheduled task creation — EventID 4698 |
 | 100103 | 14 | T1003.001 | LSASS memory access (Sysmon EventID 10) |
 | 100155 | 13 | T1055 | Process injection — CreateRemoteThread (Sysmon EventID 8) |
-| 92302 | 6 | T1547.001 | Registry Run key persistence (Sysmon EventID 13, built-in) |
+| 100178 | 9 | T1078 | Privileged account remote logon — EventID 4624 |
+| 100186 | 8 | T1546.013 | PowerShell profile modification (FIM) |
 | 60122 | 5 | T1110 | Logon failure — invalid credentials (built-in) |
 | 100200 | 10 | T1548.003 | Sudo privilege escalation — Linux auditd |
 | 100210 | 10 | T1053.003 | Cron persistence — Linux syslog/auditd |
@@ -123,10 +127,10 @@ All scenarios executed from `SF-VM12-PURPLE` (10.10.10.60) against `SF-VM09-DC01
 | SC-01 | T1059.001 PowerShell | Atomic Red Team | 12s | 100131 | 4 | ✅ PASS |
 | SC-02 | T1110 Brute Force | Hydra | 8s | 60122 / 100110 | 29 | ✅ PASS |
 | SC-03 | T1046 Network Scan | nmap | 15s | 100101 | 2 | ✅ PASS |
-| SC-04 | T1021.002 SMB | net use / smbclient | 23s | 100140 | 651,564 | ✅ PASS |
+| SC-04 | T1021.002 SMB | net use / smbclient | 23s | 100140 | 651,566 | ✅ PASS |
 | SC-05 | T1003.001 LSASS | PowerShell P/Invoke | 6s | 100103 | 110 | ✅ PASS |
 | SC-06 | T1055 Injection | PowerShell P/Invoke | 9s | 100155 | 2 | ✅ PASS |
-| SC-07 | T1547.001 Registry | reg.exe + Atomic | 18s | 92302 | 3 | ✅ PASS |
+| SC-07 | T1547.001 Registry | reg.exe + Atomic | 18s | 100147 | 3 | ✅ PASS |
 | SC-08 | T1027 Obfuscation | Atomic Red Team (Base64) | 47s | 100127 | 10 | ✅ PASS |
 | SC-09 | T1548.003 Sudo Abuse | SSH + sudo | 11s | 100200 | 4 | ✅ PASS |
 | SC-10 | T1053.003 Cron Persist | crontab | 14s | 100210 | 1 | ✅ PASS |
@@ -259,9 +263,9 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 | **Technique** | T1021.002 — SMB/Windows Admin Shares |
 | **Rule** | 100140 — Level 10 |
 | **Event** | EventID 5140 — Network Share Object Accessed |
-| **Rule firings (as originally shipped)** | **651,564** — see fix below |
+| **Rule firings (as originally shipped)** | **651,566** — see fix below |
 
-> **Root cause found and fixed (2026-09-14):** the original rule matched any `ADMIN$`/`C$`/`IPC$` access with no exclusion — Windows generates this constantly via GPO/WMI background traffic using the local **machine account** (`HOSTNAME$`), which is what drove the 651,564 count. Fix deployed to `wazuh/rules/socforge_sigma_rules.xml`: split into two rules —
+> **Root cause found and fixed (2026-09-14):** the original rule matched any `ADMIN$`/`C$`/`IPC$` access with no exclusion — Windows generates this constantly via GPO/WMI background traffic using the local **machine account** (`HOSTNAME$`), which is what drove the 651,566 count. Fix deployed to `wazuh/rules/socforge_sigma_rules.xml`: split into two rules —
 > - **100139** (level 3, informational): `subjectUserName` **matches** `\$$` — routine machine-account share access, filed as noise, not an alert
 > - **100140** (level 10, the actual detection): `subjectUserName` **negated** against `\$$` — only fires for real (non-machine) account access, which is what lateral movement via stolen/abused credentials actually looks like
 >
@@ -285,7 +289,7 @@ smbclient //10.10.10.109/ADMIN$ -U 'SOCFORGE/Administrator%<password>' -c 'ls'
 
 ![T1021 audit enabled](docs/screenshots/scenario4_dc01_fileshare_audit_enabled.png)
 
-**Wazuh Threat Hunting — `rule.id:100140` — 651,564 hits — timeline spike:**
+**Wazuh Threat Hunting — `rule.id:100140` — 651,566 hits — timeline spike:**
 
 ![T1021 Wazuh rule 100140](docs/screenshots/scenario4_wazuh_rule100140_3hits_overview.png)
 
@@ -403,7 +407,7 @@ Sysmon EventID 8 (CreateRemoteThread) on WIN01
 | | |
 |---|---|
 | **Technique** | T1547.001 — Boot or Logon Autostart: Registry Run Keys |
-| **Rule** | 92302 — Level 6 |
+| **Rule** | 100147 — Level 9 |
 | **Event** | Sysmon EventID 13 — Registry Value Set |
 | **MTTD** | **18 seconds** |
 | **Tool** | `reg.exe` + Atomic Red Team `Invoke-AtomicTest T1547.001` |
@@ -416,19 +420,19 @@ Sysmon EventID 8 (CreateRemoteThread) on WIN01
 Sysmon EventID 13 (RegistryEvent — Value Set) on WIN01
   → targetObject: HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\SocForgeTest
   → details: C:\Windows\System32\calc.exe
-      → Rule 92302 fires — Level 6 — MTTD: 18s
+      → Rule 100147 fires — Level 9 — MTTD: 18s
           → Shuffle → TheHive alert (pipeline 7s)
 ```
 
-**Wazuh Threat Hunting — Sysmon EID 13 — `rule.id:"92302"` — 3 hits — agent win01:**
+**Wazuh Threat Hunting — Sysmon EID 13 — `rule.id:"100147"` — 3 hits — agent win01:**
 
 ![T1547 Registry Persistence Wazuh rule 100147](docs/screenshots/sc07-wazuh-T1547-registry-persistence.png)
 
 | Field | Value |
 |---|---|
-| `rule.id` | `92302` |
-| `rule.level` | `6` |
-| `rule.description` | Registry entry to be executed on next logon was modified |
+| `rule.id` | `100147` |
+| `rule.level` | `9` |
+| `rule.description` | Registry autostart persistence |
 | `rule.mitre.id` | `T1547.001` |
 | `rule.mitre.tactic` | Persistence, Privilege Escalation |
 | `data.win.system.eventID` | `13` |
@@ -461,7 +465,7 @@ sudo session opens on LINUX01 — /var/log/syslog entry: "sudo: socadmin : TTY=p
 
 **Wazuh Threat Hunting — `rule.id:"100200"` — 4 hits — agent linux01:**
 
-![SC-08 T1548.003 Sudo Privilege Escalation](docs/screenshots/sc08-wazuh-T1548-sudo-privilege-escalation.png)
+![SC-09 T1548.003 Sudo Privilege Escalation](docs/screenshots/sc08-wazuh-T1548-sudo-privilege-escalation.png)
 
 | Field | Value |
 |---|---|
@@ -497,7 +501,7 @@ crontab modified — /var/log/syslog: "CRON[...]: socadmin edited crontab"
 
 **Wazuh Threat Hunting — `rule.id:"100210"` — 1 hit — agent linux01:**
 
-![SC-09 T1053.003 Cron Persistence](docs/screenshots/sc09-wazuh-T1053-cron-persistence.png)
+![SC-10 T1053.003 Cron Persistence](docs/screenshots/sc09-wazuh-T1053-cron-persistence.png)
 
 | Field | Value |
 |---|---|
@@ -594,7 +598,7 @@ Full process list: PID, PPID, TokenIsElevated, CommandLine, Exe path, MD5/SHA1/S
 
 All metrics calculated from real lab data — timestamps from Wazuh alert exports and TheHive case logs (2026-08-07).
 
-> **On the "0 FP" figures below**: they describe the 12 purple team scenarios' final validated state. During rule development, 4 false positives were found and tuned out — documented in [`false-positive-registry.md`](purple-team/validation-matrix/false-positive-registry.md). Rules didn't start at 0 FP; they were iterated to get there, which is the expected detection-engineering workflow, not a defect. Rule 100140 (T1021.002 admin shares) was the one exception generating high-volume noise (651,564 firings) — this has since been **fixed** (machine-account exclusion added, see T1021.002 section above), not just documented as a known gap.
+> **On the "0 FP" figures below**: they describe the 13 purple team scenarios' final validated state. During rule development, 6 false positives were found and tuned out — documented in [`false-positive-registry.md`](purple-team/validation-matrix/false-positive-registry.md). Rules didn't start at 0 FP; they were iterated to get there, which is the expected detection-engineering workflow, not a defect. Rule 100140 (T1021.002 admin shares) was the one exception generating high-volume noise (651,566 firings) — this has since been **fixed** (machine-account exclusion added, see T1021.002 section above), not just documented as a known gap.
 
 | KPI | Value | Target | Source |
 |---|---|---|---|
@@ -612,7 +616,7 @@ All metrics calculated from real lab data — timestamps from Wazuh alert export
 | **MITRE ATT&CK coverage** | **78%** (18/23) | ≥ 70% | ATT&CK v14 mapping |
 | **TheHive alerts** | **350+** | > 100 | TheHive API |
 | **Velociraptor clients** | **2** (DC01 + WIN01) | ≥ 2 | Velociraptor console |
-| **Custom rules deployed** | **17** | — | `socforge_sigma_rules.xml` + `socforge_linux_rules.xml` |
+| **Custom rules deployed** | **18** | — | `socforge_sigma_rules.xml` + `socforge_linux_rules.xml` |
 | **YARA rules deployed** | **9** | — | `socforge_rules.yar` |
 | **Total Wazuh alerts** | **2,004+** | — | `alerts.log` |
 
@@ -738,7 +742,7 @@ Organized to mirror the project phases below — infrastructure first, then dete
 │   ├── llm-triage/                # Ollama-based alert triage — setup + real run
 │   └── screenshots/                # All evidence screenshots (real lab sessions)
 ├── wazuh/                    # Phase 1 — SIEM / detection engine
-│   ├── rules/                 # Custom Sigma rules (15 deployed)
+│   ├── rules/                 # Custom Sigma rules (18 deployed)
 │   ├── agents/                  # Agent configuration
 │   ├── decoders/                  # Custom decoders
 │   └── dashboards/                  # Dashboard exports
@@ -751,7 +755,7 @@ Organized to mirror the project phases below — infrastructure first, then dete
 ├── threat-intelligence/       # Phase 6 — MISP + Cortex enrichment
 │   ├── misp/, taxonomies/, ioc-samples/
 ├── purple-team/                # Phase 3/7 — attack simulation
-│   ├── scenarios/                # Attack playbooks (SC-01 → SC-12)
+│   ├── scenarios/                # Attack playbooks (SC-01 → SC-13)
 │   ├── atomic-tests/               # Atomic Red Team mappings
 │   └── validation-matrix/            # Detection results per MITRE technique
 ├── dfir/                       # Phase 4 — Velociraptor forensics

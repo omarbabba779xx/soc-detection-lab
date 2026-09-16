@@ -53,4 +53,6 @@ GET /wazuh-alerts-*/_search
 - Share principal: `\\DC01\ADMIN$`
 - Compte utilisé: `Administrator`
 
-**Conclusion**: Volume anormalement élevé confirmé. La règle 100140 fonctionne. Volume justifié par l'exercice continu Purple Team.
+**Conclusion (au moment du hunt)**: Volume anormalement élevé confirmé. La règle 100140 fonctionne. Volume justifié par l'exercice continu Purple Team.
+
+> **Correction rétroactive (2026-09-14/16)** : cette conclusion était incomplète. L'investigation qui a suivi la Session Purple Team a révélé que le volume de 651 566 hits provenait en réalité majoritairement de trafic Windows/GPO légitime en arrière-plan (comptes machine `HOSTNAME$`, puis `ANONYMOUS LOGON`), pas uniquement de l'activité `Administrator` depuis 10.10.10.60. La règle 100140 générait donc des faux positifs massifs, pas un vrai signal continu. Corrigé dans `wazuh/rules/socforge_sigma_rules.xml` (règles 100139/100140) — voir README.md section T1021.002 pour le détail complet du root cause et du fix.

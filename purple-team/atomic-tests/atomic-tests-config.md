@@ -36,7 +36,7 @@ Invoke-AtomicTest T1059.001 -TestNumbers 2
 Invoke-AtomicTest T1059.001 -Cleanup
 ```
 
-**Règle Wazuh attendue**: 100101 (niveau 12)
+**Règle Wazuh attendue**: 100131 (niveau 12)
 **EventID Sysmon**: 1 (Process Create), 3 (Network Connect)
 
 ---
@@ -74,7 +74,7 @@ nmap -sV -p 22,80,443,445,3389,8080,8443 10.10.10.0/24 -oN /tmp/nmap-lab.txt
 nmap -sS -T4 10.10.10.109 -oX /tmp/nmap-dc01.xml
 ```
 
-**Règle Wazuh attendue**: 100100 (niveau 10)
+**Règle Wazuh attendue**: 100102 (niveau 10)
 **Détection Zeek**: `notice.log` + Suricata SID 9100001
 
 ---
@@ -110,7 +110,7 @@ Invoke-AtomicTest T1003.001 -TestNumbers 1
 Invoke-AtomicTest T1003.001 -Cleanup
 ```
 
-**Règle Wazuh attendue**: 100121 (niveau 14)
+**Règle Wazuh attendue**: 100103 (niveau 14)
 **EventID Sysmon**: 10 (ProcessAccess — LSASS)
 
 ---

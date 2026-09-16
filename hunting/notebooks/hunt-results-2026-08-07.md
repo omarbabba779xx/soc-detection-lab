@@ -58,7 +58,9 @@ rule.id: "100140" AND @timestamp: [2026-08-07T16:00:00 TO 2026-08-07T17:30:00]
 - Compte: `Administrator` (credentials valides)
 - Corrélation Zeek: connexions SMB port 445 continues
 
-**Statut**: ✅ Vrai Positif — Exercice Purple Team T1021.002 confirmé
+**Statut (au moment du hunt)**: ✅ Vrai Positif — Exercice Purple Team T1021.002 confirmé
+
+> **Correction rétroactive (2026-09-14/16)** : le volume de 651 566 hits a ensuite été identifié comme majoritairement du bruit (trafic machine-account/GPO puis ANONYMOUS LOGON), pas uniquement l'activité `Administrator`/10.10.10.60. Faux positif corrigé dans `wazuh/rules/socforge_sigma_rules.xml` (règles 100139/100140) — voir README.md section T1021.002.
 
 ---
 

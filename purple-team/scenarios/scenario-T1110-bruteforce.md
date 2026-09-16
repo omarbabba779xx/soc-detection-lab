@@ -61,7 +61,7 @@ medusa -h 10.10.10.109 -u Administrator -P /usr/share/wordlists/common-passwords
 
 | Test   | Détecté | Règle  | MTTD    | Hits |
 |--------|---------|--------|---------|------|
-| Test 1 | ✅      | 100111 | 1m 12s  | 29   |
+| Test 1 | ✅      | 100111 | 8 sec   | 29   |
 
 ---
 

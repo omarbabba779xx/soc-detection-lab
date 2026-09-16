@@ -3,7 +3,7 @@
 **ID Scénario**: SC-006
 **Technique MITRE**: T1055, T1055.001
 **Outil**: Atomic Red Team (Invoke-AtomicTest T1055)
-**Date test**: Planifié (semaine 2)
+**Date test**: 2026-08-07
 **VM Attaquant**: VM12-PURPLE → WIN01
 **VM Cible**: WIN01 (10.10.10.110)
 

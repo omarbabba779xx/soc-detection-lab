@@ -22,17 +22,17 @@
 ### TA0003 — Persistence
 | Technique      | Nom                         | Couverture  | Règle    | Source         |
 |----------------|-----------------------------|-------------|----------|----------------|
-| T1547.001      | Registry Run Keys           | ✅ Complète  | 92302    | Sysmon-13      |
-| T1053.005      | Scheduled Task              | ✅ Complète  | 60642    | Win-4698/schtasks (SC-10)  |
-| T1053.003      | Cron Job                    | ✅ Complète  | 100210   | VM11-LINUX01/syslog (SC-09) |
-| T1546.013      | PowerShell Profile          | ✅ Complète  | 92004    | Win-4688/cmd.exe (SC-12)   |
+| T1547.001      | Registry Run Keys           | ✅ Complète  | 100147    | Sysmon-13      |
+| T1053.005      | Scheduled Task              | ✅ Complète  | 60642    | Win-4698/schtasks (SC-11)  |
+| T1053.003      | Cron Job                    | ✅ Complète  | 100210   | VM11-LINUX01/syslog (SC-10) |
+| T1546.013      | PowerShell Profile          | ✅ Complète  | 92004    | Win-4688/cmd.exe (SC-13)   |
 
 ### TA0004 — Privilege Escalation
 | Technique      | Nom                         | Couverture  | Règle    | Source         |
 |----------------|-----------------------------|-------------|----------|----------------|
 | T1055          | Process Injection           | ✅ Complète  | 100155   | Sysmon-8       |
-| T1548.003      | Sudo Abuse (Linux)          | ✅ Complète  | 100200   | VM11-LINUX01/syslog (SC-08) |
-| T1078          | Valid Accounts              | ✅ Complète  | 92037    | Win-4648/net.exe (SC-11)   |
+| T1548.003      | Sudo Abuse (Linux)          | ✅ Complète  | 100200   | VM11-LINUX01/syslog (SC-09) |
+| T1078          | Valid Accounts              | ✅ Complète  | 92037    | Win-4648/net.exe (SC-12)   |
 
 ### TA0005 — Defense Evasion
 | Technique      | Nom                         | Couverture  | Règle    | Source         |

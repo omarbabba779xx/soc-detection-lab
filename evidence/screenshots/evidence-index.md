@@ -84,19 +84,19 @@
 
 ---
 
-## Phase 5 — Purple Team Sessions 1-3 (SC-05 à SC-12)
+## Phase 5 — Purple Team Sessions 1-3 (SC-05 à SC-13)
 
 | Fichier | SC# | Technique | Règle | Description |
 |---------|-----|-----------|-------|-------------|
 | `docs/screenshots/sc05-wazuh-T1003-lsass-credential-dump.png` | SC-05 | T1003.001 | 100103 | Dump LSASS détecté |
 | `docs/screenshots/sc06-wazuh-T1055-process-injection.png` | SC-06 | T1055 | 100155 | Injection processus détectée |
-| `docs/screenshots/sc07-wazuh-T1547-registry-persistence.png` | SC-07 | T1547.001 | 92302 | Clé Run registre détectée |
-| `docs/screenshots/sc08-wazuh-T1548-sudo-privilege-escalation.png` | SC-08 | T1548.003 | 5503 | Sudo abuse Linux détecté |
-| `docs/screenshots/sc09-wazuh-T1053-cron-persistence.png` | SC-09 | T1053.003 | 100210 | Cron persistence détectée |
-| `docs/screenshots/sc10-win01-attack-execution.png` | SC-10 | T1053.005 | — | WIN01 : schtasks exécuté (plusieurs erreurs "Access is denied" avant succès — capture montre les retries, pas une exécution propre du premier coup) |
-| `docs/screenshots/sc11-win01-net-use.png` | SC-11 | T1078 | — | WIN01 : net use exécuté (idem — plusieurs échecs réseau visibles avant la commande réussie) |
-| `docs/screenshots/sc12-win01-profile-modification.png` | SC-12 | T1546.013 | — | WIN01 : profile.ps1 modifié |
-| `docs/screenshots/sc10-sc11-sc12-wazuh-detection.png` | SC-10/11/12 | Multiple | 60642/92037/92004 | Dashboard Wazuh : 3 détections |
+| `docs/screenshots/sc07-wazuh-T1547-registry-persistence.png` | SC-07 | T1547.001 | 100147 | Clé Run registre détectée |
+| `docs/screenshots/sc08-wazuh-T1548-sudo-privilege-escalation.png` | SC-09 | T1548.003 | 100200 | Sudo abuse Linux détecté |
+| `docs/screenshots/sc09-wazuh-T1053-cron-persistence.png` | SC-10 | T1053.003 | 100210 | Cron persistence détectée |
+| `docs/screenshots/sc10-win01-attack-execution.png` | SC-11 | T1053.005 | — | WIN01 : schtasks exécuté (plusieurs erreurs "Access is denied" avant succès — capture montre les retries, pas une exécution propre du premier coup) |
+| `docs/screenshots/sc11-win01-net-use.png` | SC-12 | T1078 | — | WIN01 : net use exécuté (idem — plusieurs échecs réseau visibles avant la commande réussie) |
+| `docs/screenshots/sc12-win01-profile-modification.png` | SC-13 | T1546.013 | — | WIN01 : profile.ps1 modifié |
+| `docs/screenshots/sc10-sc11-sc12-wazuh-detection.png` | SC-11/12/13 | Multiple | 60642/92037/92004 | Dashboard Wazuh : 3 détections |
 | `docs/screenshots/phase3-purple/T1059-rule100131-expanded.jpg` | — | T1059 | 100131 | Détail règle étendu |
 | `docs/screenshots/phase3-purple/T1059-rule100131.jpg` | — | T1059 | 100131 | Vue règle 100131 |
 | `docs/screenshots/phase3-purple/T1059-rule100131-rule-details.jpg` | — | T1059 | 100131 | Détails de la définition de règle |

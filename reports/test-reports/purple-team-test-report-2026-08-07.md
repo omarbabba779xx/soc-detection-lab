@@ -12,12 +12,12 @@
 
 | SC#  | Technique     | Outil                | Détecté | Règle  | MTTD | Résultat |
 |------|---------------|----------------------|---------|--------|------|----------|
-| SC-01 | T1059.001    | Atomic RT T1059.001  | Oui     | 100101 | 12s  | PASS     |
+| SC-01 | T1059.001    | Atomic RT T1059.001  | Oui     | 100131 | 12s  | PASS     |
 | SC-02 | T1110        | Hydra RDP+SMB        | Oui     | 100110 | 8s   | PASS     |
 | SC-03 | T1046        | nmap -sV             | Oui     | 100100 | 15s  | PASS     |
 | SC-04 | T1021.002    | net use / PSDrive    | Oui     | 100140 | 23s  | PASS     |
 | SC-05 | T1003.001    | Atomic RT T1003.001  | Oui     | 100121 | 6s   | PASS     |
-| SC-06 | T1055        | Atomic RT T1055      | Oui     | 100155 | 9s   | PASS     |
+| SC-06 | T1055        | Atomic RT T1055      | Oui     | 100060 | 9s   | PASS     |
 | SC-07 | T1547.001    | reg.exe + Atomic     | Oui     | 100147 | 18s  | PASS     |
 
 **MTTD moyen**: 13.0 secondes (cible ≤60s) ✓
@@ -77,7 +77,7 @@
 ### SC-06 — T1055 Process Injection
 - **Heure**: 13:45:00 UTC
 - **Command**: `Invoke-AtomicTest T1055 -TestNumbers 1`
-- **Détection**: Sysmon EventID 8 (CreateRemoteThread) → Règle 100155 niveau 13 en 9s
+- **Détection**: Sysmon EventID 8 (CreateRemoteThread) → Règle 100060 niveau 12 en 9s (historique — ruleset réorganisé depuis, cette détection est maintenant `100155` niveau 13, voir README)
 - **Résultat**: PASS
 
 ---
