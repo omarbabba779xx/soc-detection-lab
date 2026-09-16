@@ -66,6 +66,8 @@
 | `docs/screenshots/scenario4_wazuh_rule100140_3hits_overview.png` | T1021.002 | 100140 | 3 alertes admin shares |
 | `docs/screenshots/scenario4_wazuh_rule100140_list_3hits.png` | T1021.002 | 100140 | Liste hits admin shares |
 | `docs/screenshots/scenario4_wazuh_rule100140_admins_document.png` | T1021.002 | 100140 | Accès ADMIN$ documenté |
+| `docs/screenshots/scenario4-anonymous-logon-fix-1.png` | T1021.002 | 100140 | Preuve live (2026-09-16) : détail événement ANONYMOUS LOGON — faux positif avant correctif |
+| `docs/screenshots/scenario4-anonymous-logon-fix-2.png` | T1021.002 | 100139/100140 | Preuve live (2026-09-16) : liste des 8 hits historiques (5 FP ANONYMOUS LOGON + 3 vrais positifs Administrator) |
 
 ---
 
@@ -119,4 +121,4 @@
 
 ---
 
-**Total preuves screenshots** : 58 captures réelles de session lab (compte vérifié contre `git ls-files docs/screenshots/`)
+**Total preuves screenshots** : 60 captures réelles de session lab (compte vérifié contre `git ls-files docs/screenshots/`)

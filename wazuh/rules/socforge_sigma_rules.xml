@@ -120,8 +120,8 @@
     <if_group>windows_security</if_group>
     <field name="win.system.eventID">^5140$</field>
     <field name="win.eventdata.shareName" type="pcre2">(?i)(ADMIN\$|C\$|IPC\$)</field>
-    <field name="win.eventdata.subjectUserName" type="pcre2">(?i)\$$</field>
-    <description>Admin share access by machine account — routine Windows/GPO/WMI background traffic, not lateral movement</description>
+    <field name="win.eventdata.subjectUserName" type="pcre2">(?i)(\$$|^ANONYMOUS LOGON$)</field>
+    <description>Admin share access by machine account or anonymous null-session — routine Windows/GPO/WMI/netlogon background traffic, not lateral movement</description>
     <group>lateral_movement_noise,</group>
   </rule>
 
@@ -129,7 +129,7 @@
     <if_group>windows_security</if_group>
     <field name="win.system.eventID">^5140$</field>
     <field name="win.eventdata.shareName" type="pcre2">(?i)(ADMIN\$|C\$|IPC\$)</field>
-    <field name="win.eventdata.subjectUserName" type="pcre2" negate="yes">(?i)\$$</field>
+    <field name="win.eventdata.subjectUserName" type="pcre2" negate="yes">(?i)(\$$|^ANONYMOUS LOGON$)</field>
     <description>Sigma T1021.002: Admin share access by non-machine account — possible lateral movement via $(win.eventdata.shareName)</description>
     <group>lateral_movement,mitre_lateral_movement,</group>
     <mitre>

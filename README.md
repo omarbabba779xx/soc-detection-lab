@@ -39,7 +39,7 @@ Home lab SOC built on VirtualBox (16 GB RAM). 12 VMs, Wazuh + SOAR pipeline, 12 
 **What this lab demonstrates:**
 
 - Detection Engineering — 17 custom Sigma rules mapped to MITRE ATT&CK, deployed to Wazuh
-- Purple Team Operations — 12 attack scenarios executed and validated (100% detection rate)
+- Purple Team Operations — 13 attack scenarios executed and validated (100% detection rate)
 - SOAR Automation — Wazuh → Shuffle → TheHive pipeline, 7-second end-to-end latency
 - Threat Intelligence — MISP feeds (CIRCL, Botvrij.eu, URLhaus, MalwareBazaar) + Cortex enrichment
 - DFIR — Velociraptor remote artifact collection on live Windows targets
@@ -127,14 +127,15 @@ All scenarios executed from `SF-VM12-PURPLE` (10.10.10.60) against `SF-VM09-DC01
 | SC-05 | T1003.001 LSASS | PowerShell P/Invoke | 6s | 100103 | 110 | ✅ PASS |
 | SC-06 | T1055 Injection | PowerShell P/Invoke | 9s | 100155 | 2 | ✅ PASS |
 | SC-07 | T1547.001 Registry | reg.exe + Atomic | 18s | 92302 | 3 | ✅ PASS |
-| SC-08 | T1548.003 Sudo Abuse | SSH + sudo | 11s | 100200 | 4 | ✅ PASS |
-| SC-09 | T1053.003 Cron Persist | crontab | 14s | 100210 | 1 | ✅ PASS |
-| SC-10 | T1053.005 Scheduled Task Win | schtasks /create | 84s | 60642 | 1 | ✅ PASS |
-| SC-11 | T1078 Valid Account | net use \\localhost\C$ | 42s | 92037 | 1 | ✅ PASS |
-| SC-12 | T1546.013 PS Profile | cmd echo >> profile.ps1 | 49s | 92004 | 1 | ✅ PASS |
+| SC-08 | T1027 Obfuscation | Atomic Red Team (Base64) | 47s | 100127 | 10 | ✅ PASS |
+| SC-09 | T1548.003 Sudo Abuse | SSH + sudo | 11s | 100200 | 4 | ✅ PASS |
+| SC-10 | T1053.003 Cron Persist | crontab | 14s | 100210 | 1 | ✅ PASS |
+| SC-11 | T1053.005 Scheduled Task Win | schtasks /create | 84s | 60642 | 1 | ✅ PASS |
+| SC-12 | T1078 Valid Account | net use \\localhost\C$ | 42s | 92037 | 1 | ✅ PASS |
+| SC-13 | T1546.013 PS Profile | cmd echo >> profile.ps1 | 49s | 92004 | 1 | ✅ PASS |
 
-MTTD average across all 12 scenarios (Sessions 1-3): **24.25s**  
-(12+8+15+23+6+9+18+11+14+84+42+49) / 12 = 291 / 12 = 24.25s
+MTTD average across all 13 scenarios (Sessions 1-3): **26.0s**  
+(12+8+15+23+6+9+18+47+11+14+84+42+49) / 13 = 338 / 13 = 26.0s
 
 ---
 
@@ -265,6 +266,13 @@ reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /
 > - **100140** (level 10, the actual detection): `subjectUserName` **negated** against `\$$` — only fires for real (non-machine) account access, which is what lateral movement via stolen/abused credentials actually looks like
 >
 > Redeployed to the live Wazuh manager and confirmed the ruleset reloads with no syntax errors (`systemctl is-active wazuh-manager` → `active`, no rule-load errors in `ossec.log`). This also surfaced and fixed a separate, real deployment bug: 4 fields elsewhere in the ruleset used regex alternation (`|`) without `type="pcre2"`, which Wazuh's XML validator only catches at rule-load time, not at XML-syntax time — `wazuh-analysisd` was refusing to start with `Syntax error on tag` on rules 100101, 100178, 100147, and 100153 until this was fixed. `scripts/validate_wazuh_rules.py` has been extended to catch this class of error going forward (see CI/CD section).
+>
+> **Second false-positive found and fixed live (2026-09-16):** a follow-up live re-test (DC01 + WIN01 both running, fresh boot) caught a second real gap in the 2026-09-14 fix — legitimate Windows background traffic (name resolution / Netlogon touching `IPC$`) authenticates as **`ANONYMOUS LOGON`** (SID `S-1-5-7`), which does not end in `$` and therefore was not excluded by the machine-account filter. This produced 5 genuine false-positive hits on rule 100140 within minutes of WIN01 booting, captured live in `alerts.json`. Fixed by widening the exclusion regex from `\$$` to `(?i)(\$$|^ANONYMOUS LOGON$)` on both rules 100139 and 100140, redeployed to the live manager (no rule-load errors), and the filtering logic was verified directly against the captured raw event with a standalone regex test: `ANONYMOUS LOGON` now matches the noise filter (routes to 100139) while `Administrator` and `labuser` still correctly fall through to the real-alert rule 100140.
+>
+> **Evidence — Wazuh dashboard, live query `rule.id:100139 or rule.id:100140`:**
+>
+> ![T1021.002 ANONYMOUS LOGON false-positive evidence — event detail](docs/screenshots/scenario4-anonymous-logon-fix-1.png)
+> ![T1021.002 ANONYMOUS LOGON false-positive evidence — hits list](docs/screenshots/scenario4-anonymous-logon-fix-2.png)
 
 **Attack:**
 ```bash
@@ -590,17 +598,17 @@ All metrics calculated from real lab data — timestamps from Wazuh alert export
 
 | KPI | Value | Target | Source |
 |---|---|---|---|
-| **MTTD avg** (12 scenarios, Sessions 1-3) | **24.25s** | < 5 min | Purple team timestamps |
+| **MTTD avg** (13 scenarios, Sessions 1-3) | **26.0s** | < 5 min | Purple team timestamps |
 | **MTTD avg** (investigation session) | **47.25s** | < 5 min | Alert export logs |
 | **MTTA** | ~5 min | < 15 min | Purple Team exercise (analyst active) |
 | **MTTR** | ~2h 06m | < 4h (P1) | Alert → case closure same session |
 | **Pipeline latency** (Wazuh → TheHive) | **7 seconds** | < 60s | 14:23:58 → 14:24:05 (measured) |
 | **SOAR success rate** | **100%** | ≥ 80% | 0 errors / 7 executions |
-| **Detection rate** | **100%** (12/12) | ≥ 95% | Purple team test report |
-| **Precision** | **100%** | ≥ 95% | TP=12, FP=0 |
-| **Recall** | **100%** | ≥ 95% | TP=12, FN=0 |
+| **Detection rate** | **100%** (13/13) | ≥ 95% | Purple team test report |
+| **Precision** | **100%** | ≥ 95% | TP=13, FP=0 |
+| **Recall** | **100%** | ≥ 95% | TP=13, FN=0 |
 | **F1-Score** | **1.00** | ≥ 0.95 | Calculated |
-| **False positive rate** | **100%** on rule 100140 specifically (see T1021.002 noise caveat) | < 5% | 12/12 scenarios true-positive; rule 100140 needs additional tuning |
+| **False positive rate** | **0%** (post-fix, 2026-09-16) | < 5% | 13/13 scenarios true-positive; rule 100140's original noise problem (machine-account + anonymous-logon background traffic) fixed and re-verified live — see T1021.002 section |
 | **MITRE ATT&CK coverage** | **78%** (18/23) | ≥ 70% | ATT&CK v14 mapping |
 | **TheHive alerts** | **350+** | > 100 | TheHive API |
 | **Velociraptor clients** | **2** (DC01 + WIN01) | ≥ 2 | Velociraptor console |
