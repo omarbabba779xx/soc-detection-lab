@@ -5,11 +5,11 @@
 | ID | Hostname | OS | Rôle | vCPU | RAM | Disque | Zone | IP |
 |---|---|---|---|---|---|---|---|---|
 | VM01 | FW | OPNsense 24.x | Firewall, NAT, logs | 1 | 1 Go | 15 Go | Multi | 10.10.10.1 |
-| VM02 | WAZUH | Ubuntu 22.04 LTS | SIEM/XDR central | 4 | 5 Go | 100 Go | ZONE 10 | 10.10.10.10 |
-| VM03 | THEHIVE | Ubuntu 22.04 LTS | Gestion des incidents | 2 | 3 Go | 40 Go | ZONE 10 | 10.10.10.20 |
-| VM04 | CORTEX | Ubuntu 22.04 LTS | Analyzers IOC | 2 | 2 Go | 30 Go | ZONE 10 | 10.10.10.21 |
-| VM05 | MISP | Ubuntu 22.04 LTS | Threat Intelligence | 2 | 3 Go | 50 Go | ZONE 10 | 10.10.10.22 |
-| VM06 | SHUFFLE | Ubuntu 22.04 LTS | SOAR | 2 | 2 Go | 30 Go | ZONE 10 | 10.10.10.30 |
+| VM02 | WAZUH | Ubuntu 22.04 LTS | SIEM/XDR central | 4 | 5 Go | 100 Go | socforge-mgmt | 10.10.10.10 |
+| VM03 | THEHIVE | Ubuntu 22.04 LTS | Gestion des incidents | 2 | 3 Go | 40 Go | socforge-mgmt | 10.10.10.20 |
+| VM04 | CORTEX | Ubuntu 22.04 LTS | Analyzers IOC | 2 | 2 Go | 30 Go | socforge-mgmt | 10.10.10.21 |
+| VM05 | MISP | Ubuntu 22.04 LTS | Threat Intelligence | 2 | 3 Go | 50 Go | socforge-mgmt | 10.10.10.22 |
+| VM06 | SHUFFLE | Ubuntu 22.04 LTS | SOAR | 2 | 2 Go | 30 Go | socforge-mgmt | 10.10.10.30 |
 | VM07 | NDR | Ubuntu 22.04 LTS | Zeek + Suricata | 2 | 3 Go | 80 Go | socforge-mgmt | 10.10.10.40 |
 | VM08 | DFIR-HUNT | Ubuntu 22.04 LTS | Velociraptor + Jupyter | 2 | 3 Go | 60 Go | socforge-dfir | 10.10.60.10 |
 | VM09 | DC01 | Windows Server 2022 Eval | Active Directory, DNS | 2 | 3 Go | 50 Go | socforge-mgmt | 10.10.10.109 |

@@ -210,13 +210,13 @@
   </rule>
 
   <!-- ============================================================ -->
-  <!-- T1086 — PowerShell (legacy alias, same as T1059.001)       -->
+  <!-- T1546.013 — Event Triggered Execution: PowerShell Profile  -->
   <!-- Wazuh FIM rule for PowerShell profile modification          -->
   <!-- ============================================================ -->
   <rule id="100186" level="8">
     <if_group>syscheck</if_group>
     <field name="file" type="pcre2">(?i)(Microsoft\.PowerShell_profile\.ps1|profile\.ps1)</field>
-    <description>Sigma T1086: PowerShell profile modified — possible persistence</description>
+    <description>Sigma T1546.013: PowerShell profile modified — possible persistence</description>
     <group>persistence,powershell,mitre_persistence,</group>
     <mitre>
       <id>T1546.013</id>

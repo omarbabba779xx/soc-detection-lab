@@ -40,7 +40,7 @@ Access Mask: 0x1410 (PROCESS_VM_READ | PROCESS_QUERY_INFORMATION)
 CallChain: powershell.exe → Invoke-AtomicTest → lsass access
 ```
 
-→ Corrélation: EventID 10 Sysmon détecté par Wazuh (Règle 100121, 6s MTTD)
+→ Corrélation: EventID 10 Sysmon détecté par Wazuh (Règle 100121, 6s MTTD — historique, cette détection est maintenant `100103`, voir README)
 
 ---
 

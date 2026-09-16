@@ -42,6 +42,13 @@
 - **Indicateurs**: Accès à `ADMIN$`, `C$`, `IPC$` depuis une IP externe
 - **Faux positifs**: Administration légale, agents de backup
 
+### T1027 — Obfuscated Files or Information
+- **Source**: Sysmon EventID 1
+- **Règle Wazuh**: 100127
+- **Sigma**: `T1027-obfuscation.yml`
+- **Indicateurs**: `commandLine` contenant un pattern Base64 (≥100 caractères) ou `FromBase64String`
+- **Faux positifs**: Scripts de déploiement légitimes encodant des payloads
+
 ### T1003 — Credential Dumping
 - **Source**: Sysmon EventID 10
 - **Règle Wazuh**: 100103
@@ -70,15 +77,31 @@
 - **Indicateurs**: `CreateRemoteThread` vers n'importe quel processus cible
 - **Faux positifs**: AV/EDR injectant des threads de monitoring
 
+### T1078 — Valid Accounts
+- **Source**: EventID 4624
+- **Règle Wazuh**: 100178
+- **Sigma**: `T1078-valid-accounts.yml`
+- **Indicateurs**: Connexion `logonType` 3 ou 10 sur un compte privilégié (`administrator`/`admin`/`svc_*`)
+- **Faux positifs**: Connexions admin légitimes planifiées
+
+### T1546.013 — PowerShell Profile
+- **Source**: FIM (syscheck)
+- **Règle Wazuh**: 100186
+- **Sigma**: `T1546.013-powershell-profile.yml`
+- **Indicateurs**: Modification de `Microsoft.PowerShell_profile.ps1`/`profile.ps1`
+- **Faux positifs**: Personnalisation légitime de l'environnement PowerShell par l'utilisateur
+
 ---
 
 ## Niveaux de sévérité Wazuh
 
 | Niveau | Description             | Règles                        |
 |--------|-------------------------|-------------------------------|
-| 14     | Critique                | 100103, 100131, 100155        |
+| 14     | Critique                | 100103                        |
+| 13     | Critique                | 100155                        |
 | 12     | Élevé                   | 100121, 100131                |
-| 10     | Moyen-élevé             | 100111, 100127, 100140        |
+| 10     | Moyen-élevé             | 100102, 100111, 100127, 100140|
 | 9      | Moyen                   | 100147, 100153, 100178        |
-| 8      | Informationnel élevé    | 100101, 100120                |
+| 8      | Informationnel élevé    | 100101, 100120, 100186        |
 | 6      | Informationnel          | 100110                        |
+| 3      | Bruit (non alerté)      | 100139                        |

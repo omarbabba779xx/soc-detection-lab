@@ -83,13 +83,17 @@ Ce document décrit le mapping entre les champs bruts des sources de logs (Windo
 
 | `rule.id` | Source       | Technique MITRE  | Champs clés utilisés                          |
 |-----------|--------------|------------------|-----------------------------------------------|
-| 100101    | Sysmon-1     | T1059.001        | `commandLine` contient `powershell`           |
-| 100111    | Sysmon-3     | T1046            | `destinationPort` in [22,23,25,3389,445,8080] |
-| 100120    | Win-5140     | T1021.002        | `shareName` = `\\*\ADMIN$` ou `IPC$`         |
-| 100130    | Win-4688     | T1059            | `newProcessName` contient `powershell`        |
-| 100131    | Win-4688     | T1059.001        | `commandLine` contient encodage Base64        |
-| 100140    | Win-5140     | T1021.002        | `shareName` admin share + `ipAddress` externe |
-| 60122     | Win-4625     | T1110            | `targetUserName` + `logonType=3` + échec      |
+| 100101    | Sysmon-3     | T1046            | `destinationPort` in [21,22,23,25,53,80,110,139,143,443,445,3306,3389,5985,8080,8443] |
+| 100102    | Sysmon-3     | T1046            | `image` contient `nmap`/`masscan`/`zmap` (enfant de 100101) |
+| 100110    | Win-4625     | T1110            | `eventID=4625` — échec d'authentification     |
+| 100111    | Win-4625     | T1110            | Seuil de fréquence : 5 échecs / 60s sur `targetUserName` (enfant de 100110) |
+| 100120    | Win-4688     | T1059.001        | `newProcessName` contient `powershell`        |
+| 100121    | Win-4688     | T1059.001 + T1027| `commandLine` contient `-enc`/`iex`/`downloadstring`/base64 |
+| 100127    | Sysmon-1     | T1027            | `commandLine` contient un pattern Base64 (≥100 car.) |
+| 100131    | Win-4104     | T1059.001        | `scriptBlockText` contient `invoke-mimikatz`/`cobalt`/etc. |
+| 100139    | Win-5140     | T1021.002 (bruit)| `shareName` admin share + `subjectUserName` compte machine/`ANONYMOUS LOGON` |
+| 100140    | Win-5140     | T1021.002        | `shareName` admin share + `subjectUserName` compte réel (non-machine) |
+| 60122     | Win-4625     | T1110            | `targetUserName` + `logonType=3` + échec (règle intégrée) |
 
 ---
 

@@ -31,7 +31,7 @@
 ### SC-01 — T1059.001 PowerShell Exécution
 - **Heure**: 10:23:47 UTC
 - **Command**: `powershell.exe -EncodedCommand <base64>`
-- **Détection**: Règle 100101 niveau 12 en 12s
+- **Détection**: Règle 100131 niveau 12 en 12s
 - **SOAR**: Shuffle → MISP (aucun IOC) → Cortex (GeoIP=RFC1918) → TheHive CASE-001
 - **NDR**: Sysmon EventID 1 + connexion réseau EventID 3 vers 10.10.10.60
 - **Résultat**: PASS
@@ -50,7 +50,7 @@
 ### SC-03 — T1046 Network Scan
 - **Heure**: 11:45:00 UTC
 - **Command**: `nmap -sV -p 22,80,443,445,3389 10.10.10.0/24`
-- **Détection**: Règle 100100 en 15s (logs OPNsense + Suricata)
+- **Détection**: Règle 100100 en 15s (historique — ruleset réorganisé depuis, cette détection est maintenant `100101`/`100102`, voir README) (logs OPNsense + Suricata)
 - **Zeek**: `notice.log` — PurpleTeam_Unauthorized_Target (non déclenché car IP dans liste autorisée)
 - **Résultat**: PASS
 
@@ -68,7 +68,7 @@
 ### SC-05 — T1003.001 LSASS Access
 - **Heure**: 13:10:00 UTC
 - **Command**: `Invoke-AtomicTest T1003.001 -TestNumbers 1`
-- **Détection**: Sysmon EventID 10 (TargetImage: lsass.exe) → Règle 100121 niveau 14 en 6s
+- **Détection**: Sysmon EventID 10 (TargetImage: lsass.exe) → Règle 100121 niveau 14 en 6s (historique — ruleset réorganisé depuis, cette détection est maintenant `100103`, voir README)
 - **Velociraptor**: Hunt LSASS détecte l'accès dans le hunt concurrent
 - **Résultat**: PASS
 

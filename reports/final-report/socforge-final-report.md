@@ -15,7 +15,7 @@ SocForge est un laboratoire SOC complet déployé sur environnement VirtualBox l
 - MTTD moyen: **26.0 secondes** (objectif: < 5 minutes) — 13 scénarios validés en 3 sessions
 - Taux de détection Purple Team: **100%** (13/13 techniques, 0 faux positifs)
 - Coverage MITRE ATT&CK: **78%** (18/23 techniques)
-- Alertes TheHive générées: **353+**
+- Alertes TheHive générées: **350+**
 - Sources de logs intégrées: **7 sources actives**
 
 ---
@@ -142,7 +142,7 @@ PowerShell Encoded Command, PowerShell Download Cradle, Mimikatz Strings, Invoke
 | Taux détection   | > 80%       | **100%** (13/13)    |
 | Faux positifs    | < 5%        | **0** (0.000%)      |
 | Coverage MITRE   | > 70%       | **78%**             |
-| Alertes TheHive  | Pipeline OK | **353+ alertes**    |
+| Alertes TheHive  | Pipeline OK | **350+ alertes**    |
 
 ---
 

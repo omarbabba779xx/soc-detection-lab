@@ -35,9 +35,9 @@
 | Techniques testées    | 8/13          | 2/13          | 3/13          | 13/13 (100%)  |
 | Détections réussies   | 8/8           | 2/2           | 3/3           | 13/13 (100%)  |
 | Détections manquées   | 0             | 0             | 0             | 0             |
-| MTTD moyen            | 13.0 sec      | 12.5 sec      | 58.3 sec      | 24.25 sec     |
+| MTTD moyen            | 17.25 sec    | 12.5 sec      | 58.3 sec      | 26.0 sec      |
 | Faux positifs         | 0             | 0             | 0             | 0             |
-| Alertes TheHive       | 350+          | —             | 3             | 353+          |
+| Alertes TheHive       | 350+          | —             | —             | 350+          |
 
 ---
 
@@ -59,7 +59,7 @@
 | 12 | T1078         | 2026-08-15 08:26:00 | 08:26:42 | 42 sec  |
 | 13 | T1546.013     | 2026-08-15 08:31:00 | 08:31:49 | 49 sec  |
 
-**MTTD global moyen**: 24.25 secondes ← cible ≤ 60s ✅
+**MTTD global moyen**: 26.0 secondes ← cible ≤ 60s ✅
 
 ---
 

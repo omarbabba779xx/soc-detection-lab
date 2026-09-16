@@ -246,7 +246,7 @@ Techniques couvertes par l'exercice: T1059.001, T1110, T1046, T1021.002, T1003.0
 
 | KPI                      | Objectif     | Résultat réel        | Source données              | Statut |
 |--------------------------|-------------|----------------------|-----------------------------|--------|
-| MTTD moyen (12 SC)       | < 5 min     | **24.25s**           | Purple team timestamps S1-3 | ✅     |
+| MTTD moyen (13 SC)       | < 5 min     | **26.0s**           | Purple team timestamps S1-3 | ✅     |
 | MTTD moyen (investigation) | < 5 min  | **47.25s**           | Alert export logs           | ✅     |
 | MTTA moyen               | < 15 min    | **~5 min**           | Estimé (Purple Team S1)     | ✅     |
 | MTTR moyen               | < 4h (P1)   | **~2h 06m**          | Session timeline S1         | ✅     |
@@ -258,6 +258,6 @@ Techniques couvertes par l'exercice: T1059.001, T1110, T1046, T1021.002, T1003.0
 | F1-Score                 | > 0.95      | **1.00**             | Calculé                     | ✅     |
 | Taux FP                  | < 5%        | **< 0.001%**         | 651,566 VP / 0 FP           | ✅     |
 | Coverage MITRE           | > 70%       | **78%** (18/23)      | ATT&CK mapping              | ✅     |
-| Alertes TheHive          | > 100       | **353+**             | TheHive API                 | ✅     |
+| Alertes TheHive          | > 100       | **350+**             | TheHive API                 | ✅     |
 | Clients Velociraptor     | ≥ 2         | **2** (DC01+WIN01)   | Velociraptor console        | ✅     |
 | Disponibilité composants | > 99%       | **100%** (lab)       | Exercice sans incident      | ✅     |

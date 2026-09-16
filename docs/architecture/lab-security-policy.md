@@ -7,11 +7,13 @@ Le laboratoire est exclusivement local, isolé et destiné à un usage éducatif
 
 ## 2. Isolation réseau
 
+> **Note** : le plan initial prévoyait une segmentation en zones numérotées (ZONE 10, ZONE 30, etc.). Le déploiement réel utilise un réseau plat `socforge-mgmt` (10.10.10.0/24) pour toutes les VMs sauf VM08-DFIR-HUNT (`socforge-dfir`, 10.10.60.0/24) — voir `docs/network/IP-plan.md`. Les règles ci-dessous sont reformulées en conséquence.
+
 ### Règles absolues
 
 - Mode **Bridge interdit** pour tout scénario Purple Team ou test actif
-- VM12-PURPLE n'accède qu'aux cibles désignées dans la ZONE 30
-- Les consoles d'administration (Wazuh, TheHive, Shuffle, MISP, Velociraptor) ne sont accessibles que depuis la ZONE 10
+- VM12-PURPLE n'accède qu'aux cibles désignées sur `socforge-mgmt` (10.10.10.0/24)
+- Les consoles d'administration (Wazuh, TheHive, Shuffle, MISP, Velociraptor) sont isolées de l'extérieur via l'absence d'exposition Internet (accès uniquement depuis `socforge-mgmt` ou via NAT port-forward pour la gestion)
 - L'accès Internet est **temporaire uniquement** pour :
   - Installation et mises à jour d'outils
   - Téléchargement d'ISOs légitimes
