@@ -65,7 +65,7 @@
 
 ### T1053.005 — Scheduled Task
 - **Source**: EventID 4698, 4702
-- **Règle Wazuh**: 100153 (déployée) — le test live SC-11 a en réalité été détecté par la règle intégrée **60642** (niveau 3), voir README section T1021.002-style note
+- **Règle Wazuh**: 100153 (déployée) — **testé en direct le 2026-09-16, ne se déclenche jamais**. Root cause confirmée : la sous-catégorie d'audit Windows "Other Object Access Events" (qui gouverne 4698/4702) est réglée sur "No Auditing" sur DC01 (`auditpol /get /subcategory:"Other Object Access Events"`) — Windows ne génère tout simplement jamais l'événement source, indépendamment de la configuration Wazuh. Capture : [`docs/screenshots/rule-100153-root-cause-auditpol.png`](../../docs/screenshots/rule-100153-root-cause-auditpol.png). Ce n'est pas un problème de règle Wazuh mais une politique d'audit à activer (`auditpol /set /subcategory:"Other Object Access Events" /success:enable`) pour rendre cette détection opérationnelle.
 - **Sigma**: `T1053-scheduled-task.yml`
 - **Indicateurs**: Création de tâches en dehors de `\Microsoft\Windows\`
 - **Faux positifs**: Logiciels installant des tâches planifiées
@@ -79,14 +79,14 @@
 
 ### T1078 — Valid Accounts
 - **Source**: EventID 4624
-- **Règle Wazuh**: 100178 (déployée) — le test live SC-12 a en réalité été détecté par la règle intégrée **92037** (niveau 3)
+- **Règle Wazuh**: 100178 (déployée) — **re-testé en direct le 2026-09-16, se déclenche correctement**. Logon réseau (`net use \\localhost\C$ /user:administrator ...`, EventID 4624, LogonType 3, compte Administrator) déclenche bien la règle 100178 (niveau 9, "Sigma T1078: Privileged account remote logon"), confirmé dans `/var/ossec/logs/alerts/alerts.log`. Capture : [`docs/screenshots/rule-100178-fires-live.png`](../../docs/screenshots/rule-100178-fires-live.png). La règle intégrée 92037 mentionnée dans une note antérieure de ce document n'a été retrouvée dans aucun log lors de ce nouveau test — l'affirmation initiale (règle custom non-fonctionnelle) n'a pas pu être reproduite.
 - **Sigma**: `T1078-valid-accounts.yml`
 - **Indicateurs**: Connexion `logonType` 3 ou 10 sur un compte privilégié (`administrator`/`admin`/`svc_*`)
 - **Faux positifs**: Connexions admin légitimes planifiées
 
 ### T1546.013 — PowerShell Profile
 - **Source**: FIM (syscheck)
-- **Règle Wazuh**: 100186 (déployée) — le test live SC-13 a en réalité été détecté par la règle intégrée **92004** (niveau 4)
+- **Règle Wazuh**: 100186 (déployée) — **ne peut pas se déclencher, root cause confirmée par inspection de configuration**. Le fichier `wazuh/agents/agent.conf` ne surveille en FIM (`<directories>`) que `%WINDIR%\System32\drivers\etc`, `%WINDIR%\System32\Tasks`, `%PROGRAMFILES%` et `%PROGRAMFILES(X86)%` — le chemin réel du profil PowerShell (`Documents\WindowsPowerShell\profile.ps1` ou `$PSHOME\profile.ps1`, c.-à-d. `%WINDIR%\System32\WindowsPowerShell\v1.0\`) n'est surveillé par aucune de ces directives. Syscheck ne peut donc jamais générer l'événement FIM que la règle attend. Pour rendre cette détection opérationnelle, ajouter une entrée `<directories>` couvrant ce chemin dans `agent.conf`.
 - **Sigma**: `T1546.013-powershell-profile.yml`
 - **Indicateurs**: Modification de `Microsoft.PowerShell_profile.ps1`/`profile.ps1`
 - **Faux positifs**: Personnalisation légitime de l'environnement PowerShell par l'utilisateur

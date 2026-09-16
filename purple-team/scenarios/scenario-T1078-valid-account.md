@@ -23,6 +23,8 @@ net use \\localhost\C$ /user:socadmin <LAB_PASSWORD>
 
 **Heure d'exécution** : 2026-08-15 08:26:00 (UTC+1)
 
+> **Root cause confirmée le 2026-09-16** : re-testé en direct avec un logon réseau qui **réussit** cette fois (`net use \\localhost\C$ /user:administrator ...` sur DC01) — la règle custom **100178 se déclenche correctement** (niveau 9, confirmé dans `alerts.log`). Explication du test original ci-dessus : la commande a échoué ("Access is denied"), donc aucun EventID 4624 (logon réussi) n'a été généré — seul un événement de processus (`net.exe`) a matché la règle générique 92037. La règle 100178 n'a donc jamais été en défaut : elle n'a simplement pas eu de logon réussi à détecter lors du test original. Voir `detections/windows/detection-sheet-windows.md` et `docs/screenshots/rule-100178-fires-live.png`.
+
 ---
 
 ## Détection Wazuh

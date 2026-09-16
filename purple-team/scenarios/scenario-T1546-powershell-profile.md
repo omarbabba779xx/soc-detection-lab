@@ -23,6 +23,8 @@ cmd /c "echo SocForge-T1546 >> C:\Windows\System32\WindowsPowerShell\v1.0\profil
 
 **Heure d'exécution** : 2026-08-15 08:31:00 (UTC+1)
 
+> **Root cause confirmée le 2026-09-16** : la règle 100186 ne peut pas se déclencher, par construction — elle dépend du FIM (syscheck) pour surveiller `C:\Windows\System32\WindowsPowerShell\v1.0\profile.ps1`, exactement le chemin modifié ci-dessus, mais `wazuh/agents/agent.conf` ne configure aucune directive `<directories>` couvrant `System32\WindowsPowerShell\` — seuls `System32\drivers\etc`, `System32\Tasks`, `%PROGRAMFILES%` et `%PROGRAMFILES(X86)%` sont surveillés. La règle 92004 observée ci-dessus a détecté le lancement du processus PowerShell/cmd, pas la modification du fichier. Corrigible en ajoutant une entrée FIM pour ce chemin dans `agent.conf`, non fait cette session. Voir `detections/windows/detection-sheet-windows.md`.
+
 ---
 
 ## Détection Wazuh
