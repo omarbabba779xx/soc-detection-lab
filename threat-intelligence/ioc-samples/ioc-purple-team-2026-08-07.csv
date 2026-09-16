@@ -1,7 +1,0 @@
-type,value,context,tag,tlp,source,date
-ip-src,10.10.10.60,VM12-PURPLE Kali Linux attacker,socforge:purple-team,red,SocForge Lab,2026-08-07
-hostname,dc01.socforge.lab,Target Domain Controller,socforge:lab,red,SocForge Lab,2026-08-07
-hostname,win01.socforge.lab,Target Workstation,socforge:lab,red,SocForge Lab,2026-08-07
-md5,d41d8cd98f00b204e9800998ecf8427e,Empty payload placeholder (Atomic Red Team),socforge:purple-team,red,SocForge Lab,2026-08-07
-domain,socforge.lab,Internal lab domain - not malicious,socforge:lab,red,SocForge Lab,2026-08-07
-user-agent,Hydra/9.4 (http://www.thc.org/thc-hydra),Hydra brute force tool,mitre-attack:t1110,amber,SocForge Lab,2026-08-07

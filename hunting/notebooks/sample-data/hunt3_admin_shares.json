@@ -1,5 +1,0 @@
-[
-  {"@timestamp": "2026-08-14T09:20:03.000Z", "agent.name": "win01", "rule.id": "100140", "rule.level": 8, "rule.description": "Sigma T1021.002: Admin share access (ADMIN$/C$)"},
-  {"@timestamp": "2026-08-14T09:20:07.000Z", "agent.name": "win01", "rule.id": "100140", "rule.level": 8, "rule.description": "Sigma T1021.002: Admin share access (ADMIN$/C$)"},
-  {"@timestamp": "2026-08-14T09:20:11.000Z", "agent.name": "win01", "rule.id": "100140", "rule.level": 8, "rule.description": "Sigma T1021.002: Admin share access (ADMIN$/C$)"}
-]

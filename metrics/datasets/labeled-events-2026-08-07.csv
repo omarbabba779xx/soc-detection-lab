@@ -1,8 +1,0 @@
-timestamp,agent_name,agent_ip,rule_id,rule_level,rule_description,technique,label,mttd_sec,source_ip
-2026-08-07T14:23:11Z,win01,10.10.10.110,100120,8,PowerShell execution detected,T1059.001,VP,47,10.10.10.60
-2026-08-07T14:23:11Z,win01,10.10.10.110,100121,12,PowerShell encoded/obfuscated command,T1059.001,VP,47,10.10.10.60
-2026-08-07T14:23:11Z,win01,10.10.10.110,100127,10,Base64-encoded command in process arguments,T1027,VP,47,10.10.10.60
-2026-08-07T14:23:11Z,win01,10.10.10.110,100131,12,Sigma T1059.001: PowerShell encoded command,T1059.001,VP,47,10.10.10.60
-2026-08-07T15:01:44Z,dc01,10.10.10.109,60122,5,Logon Failure - Unknown user or bad password,T1110,VP,72,10.10.10.60
-2026-08-07T15:02:56Z,dc01,10.10.10.109,100111,10,Brute force - 5+ failures in 60s,T1110,VP,72,10.10.10.60
-2026-08-07T16:45:02Z,dc01,10.10.10.109,100140,10,Admin share access - possible lateral movement,T1021.002,VP,23,10.10.10.60
