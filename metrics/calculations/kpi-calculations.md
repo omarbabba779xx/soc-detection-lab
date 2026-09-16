@@ -137,20 +137,20 @@ Temps de transit entre la génération d'une alerte Wazuh et sa création dans T
 
 ### Données
 
-Extrait du rapport Purple Team complet (7 scénarios) :
-- Playbooks exécutés : 7
+Extrait du rapport Purple Team complet (13 scénarios) :
+- Playbooks exécutés : 13
 - Timeouts : 0
 - Erreurs API : 0
 - Alertes TheHive créées automatiquement : 350+
 
-**Taux de réussite SOAR = 7/7 = 100%**
+**Taux de réussite SOAR = 13/13 = 100%**
 
 | Workflow step         | Réussite | Erreurs |
 |-----------------------|----------|---------|
-| Wazuh → Shuffle       | 7/7      | 0       |
-| Shuffle → MISP        | 7/7      | 0       |
-| Shuffle → Cortex      | 7/7      | 0       |
-| Shuffle → TheHive     | 7/7      | 0       |
+| Wazuh → Shuffle       | 13/13      | 0       |
+| Shuffle → MISP        | 13/13      | 0       |
+| Shuffle → Cortex      | 13/13      | 0       |
+| Shuffle → TheHive     | 13/13      | 0       |
 
 **Objectif**: ≥ 80% → ✅ **ATTEINT** (100%)
 
@@ -189,7 +189,7 @@ Note: FP=0 dans le contexte de l'exercice. En environnement de production réel,
 
 | Alertes totales | Vrais Positifs | Faux Positifs | FPR      |
 |-----------------|----------------|---------------|----------|
-| 4 (scénarios)   | 4              | 0             | 0%       |
+| 13 (scénarios)  | 13             | 0             | 0%       |
 | Règle 100140    | 651,566        | 0 (Purple Team) | < 0.001% |
 
 **FPR Global** = 0 / 651,570 = **< 0.001%**
@@ -207,7 +207,7 @@ Note: FP=0 dans le contexte de l'exercice. En environnement de production réel,
 | Alertes TheHive     | 350+                 | 2026-08-07      |
 | Cas TheHive ouverts | 3                    | 2026-08-07      |
 | Artefacts Velociraptor | 46 processus DC01 | 2026-08-07      |
-| Techniques MITRE couvertes | 7 / 7 testées | Exercice        |
+| Techniques MITRE couvertes | 18 / 23 testées | Exercice      |
 
 **Taux de promotion alerte → cas** = 3 / 350 = **0.86%** (seules les alertes corrélées manuellement → cas d'investigation)
 

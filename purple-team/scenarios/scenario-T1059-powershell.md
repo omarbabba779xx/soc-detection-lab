@@ -66,9 +66,9 @@ Invoke-AtomicTest T1059.001 -TestNumbers 1,2,3
 
 | Test     | Détecté | Règle  | MTTD   | Notes |
 |----------|---------|--------|--------|-------|
-| Test 1   | ✅      | 100121 | 47s    |       |
-| Test 2   | ✅      | 100131 | 47s    | EventID 4104 aussi |
-| Test 3   | ✅      | 100121 | 47s    |       |
+| Test 1   | ✅      | 100121 | 12s    |       |
+| Test 2   | ✅      | 100131 | 12s    | EventID 4104 aussi |
+| Test 3   | ✅      | 100121 | 12s    |       |
 
 ---
 

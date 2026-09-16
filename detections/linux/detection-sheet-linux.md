@@ -38,10 +38,11 @@
 ### T1548.003 — Abus sudo
 - **Source**: auditd key `privilege_escalation`, /var/log/auth.log
 - **Indicateurs**: `sudo` exécuté par utilisateur non-autorisé, modification /etc/sudoers
-- **Règle Wazuh**: 5401 (native sudo)
+- **Règle Wazuh**: 5402 (native sudo, succès) → règle custom **100200** (niveau 10, T1548.003)
 
 ### T1053.003 — Cron Job
 - **Source**: auditd key `cron_config`
+- **Règle Wazuh**: 100210 (niveau 10, T1053.003)
 - **Indicateurs**: Modification fichiers /etc/cron.* par utilisateur non-root
 
 ### T1046 — Network Scanning

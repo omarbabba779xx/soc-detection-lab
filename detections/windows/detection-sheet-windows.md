@@ -65,7 +65,7 @@
 
 ### T1053.005 — Scheduled Task
 - **Source**: EventID 4698, 4702
-- **Règle Wazuh**: 100153
+- **Règle Wazuh**: 100153 (déployée) — le test live SC-11 a en réalité été détecté par la règle intégrée **60642** (niveau 3), voir README section T1021.002-style note
 - **Sigma**: `T1053-scheduled-task.yml`
 - **Indicateurs**: Création de tâches en dehors de `\Microsoft\Windows\`
 - **Faux positifs**: Logiciels installant des tâches planifiées
@@ -79,14 +79,14 @@
 
 ### T1078 — Valid Accounts
 - **Source**: EventID 4624
-- **Règle Wazuh**: 100178
+- **Règle Wazuh**: 100178 (déployée) — le test live SC-12 a en réalité été détecté par la règle intégrée **92037** (niveau 3)
 - **Sigma**: `T1078-valid-accounts.yml`
 - **Indicateurs**: Connexion `logonType` 3 ou 10 sur un compte privilégié (`administrator`/`admin`/`svc_*`)
 - **Faux positifs**: Connexions admin légitimes planifiées
 
 ### T1546.013 — PowerShell Profile
 - **Source**: FIM (syscheck)
-- **Règle Wazuh**: 100186
+- **Règle Wazuh**: 100186 (déployée) — le test live SC-13 a en réalité été détecté par la règle intégrée **92004** (niveau 4)
 - **Sigma**: `T1546.013-powershell-profile.yml`
 - **Indicateurs**: Modification de `Microsoft.PowerShell_profile.ps1`/`profile.ps1`
 - **Faux positifs**: Personnalisation légitime de l'environnement PowerShell par l'utilisateur

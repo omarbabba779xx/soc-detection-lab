@@ -116,6 +116,8 @@ EventID 4688 (Process Creation + command line logging enabled)
 ```
 Total pipeline: **7 seconds** from Wazuh alert to TheHive case.
 
+> **Note on SC-11/SC-12/SC-13** (T1053.005, T1078, T1546.013): custom rules `100153`, `100178`, and `100186` exist in the ruleset for these techniques, but the live Session 3 purple-team tests were actually caught by **generic built-in Wazuh rules** instead (`60642`, `92037`, `92004` respectively — level 3-4, see the Purple Team Results table below). This is disclosed rather than glossed over: the custom rules are deployed and syntactically valid (confirmed by the CI validator), but SC-11/12/13's "100% detection rate" is evidenced by the built-in rules that actually fired live, not by 100153/100178/100186 specifically — the same kind of built-in-vs-custom precedence interaction investigated for rule 100139 in the T1021.002 section.
+
 ---
 
 ## Purple Team Results
