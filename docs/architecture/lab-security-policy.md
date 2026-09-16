@@ -7,7 +7,7 @@ Le laboratoire est exclusivement local, isolé et destiné à un usage éducatif
 
 ## 2. Isolation réseau
 
-> **Note** : le plan initial prévoyait une segmentation en zones numérotées (ZONE 10, ZONE 30, etc.). État réel : `socforge-mgmt` (10.10.10.0/24) héberge la majorité des VMs, `socforge-dfir` (10.10.60.0/24, VM08-DFIR-HUNT) et `socforge-srv` (10.10.20.0/24, DC01) sont déployées et leur routage inter-zone via VM01-FW est validé — voir `docs/network/IP-plan.md`. Les zones `ep`/`purple`/`ndr` restent à finaliser côté IP/route VM. Les règles ci-dessous sont reformulées en conséquence.
+> **Note** : le plan initial prévoyait une segmentation en zones numérotées (ZONE 10, ZONE 30, etc.). État réel : `socforge-mgmt` (10.10.10.0/24) héberge encore VM12-PURPLE ; les zones `srv` (DC01), `ep` (WIN01/LINUX01), `ndr` (NDR) et `dfir` (VM08-DFIR-HUNT) sont déployées et leur routage inter-zone via VM01-FW validé en direct — voir `docs/network/IP-plan.md`. Seule la zone `purple` reste à finaliser (accès console bloqué). Les règles ci-dessous sont reformulées en conséquence.
 
 ### Règles absolues
 

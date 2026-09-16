@@ -9,9 +9,9 @@
 
 ## Capture interface
 
-> **Note**: the original plan called for a dedicated `socforge-ndr` tap network mirroring traffic from a separate mgmt zone. The `socforge-ndr` NIC is present on this VM and the corresponding firewall rule is active on VM01-FW (confirmed live via `pfctl -sr`), but IP/route configuration on this VM's ndr-zone NIC has not yet been completed/tested — see `docs/network/IP-plan.md` ("Plan initial vs réalité") for the current real state (the `srv` zone has been fully validated as a reference). `enp0s9` below is the interface actually used for passive capture on `socforge-mgmt` in the meantime.
+> **Note**: the original plan called for a dedicated `socforge-ndr` tap network mirroring traffic from a separate mgmt zone. Deployed and validated live on 2026-09-16: `enp0s3` carries the `socforge-ndr` zone IP (10.10.40.40), routed through VM01-FW (OPT3/em4, 0% packet loss, see `docs/network/IP-plan.md`). This test also uncovered and fixed a pre-existing bug where the mgmt (10.10.10.40) and ndr (10.10.40.10) IPs were swapped between `enp0s3` and `enp0s8` — `enp0s8` now correctly carries the mgmt IP.
 
-`enp0s9` — the passive capture NIC on `socforge-mgmt`, separate from `enp0s3` (mgmt) and `enp0s8` (secondary mgmt).
+`enp0s9` — the passive capture NIC on `socforge-mgmt`, separate from `enp0s3` (ndr zone) and `enp0s8` (mgmt).
 
 ## Suricata setup
 
