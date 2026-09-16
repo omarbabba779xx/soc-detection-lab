@@ -9,7 +9,7 @@
 
 ## Capture interface
 
-> **Note**: the original plan called for a dedicated `socforge-ndr` tap network mirroring traffic from a separate mgmt zone. That segmentation was never deployed — the real network is a flat `socforge-mgmt` (10.10.10.0/24), see `docs/network/IP-plan.md` ("Plan initial vs réalité"). `enp0s9` below is the interface actually used for passive capture on `socforge-mgmt` itself.
+> **Note**: the original plan called for a dedicated `socforge-ndr` tap network mirroring traffic from a separate mgmt zone. The `socforge-ndr` NIC is present on this VM and the corresponding firewall rule is active on VM01-FW (confirmed live via `pfctl -sr`), but IP/route configuration on this VM's ndr-zone NIC has not yet been completed/tested — see `docs/network/IP-plan.md` ("Plan initial vs réalité") for the current real state (the `srv` zone has been fully validated as a reference). `enp0s9` below is the interface actually used for passive capture on `socforge-mgmt` in the meantime.
 
 `enp0s9` — the passive capture NIC on `socforge-mgmt`, separate from `enp0s3` (mgmt) and `enp0s8` (secondary mgmt).
 

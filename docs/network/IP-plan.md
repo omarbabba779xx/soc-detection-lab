@@ -1,42 +1,54 @@
 # Plan d'adressage réseau — SocForge (déployé)
 
-> Ce document reflète le réseau **tel que réellement déployé**, pas le plan initial.
-> Le plan initial prévoyait 5 zones réseau séparées avec une NIC dédiée par VM
-> (voir note ci-dessous) — **cette segmentation n'a jamais été déployée**.
-> Le réseau réel est plat : toutes les VMs (sauf DFIR-HUNT) partagent
-> `socforge-mgmt`, l'isolation Purple Team étant assurée par des règles
-> firewall sur ce même réseau plat plutôt que par une zone dédiée.
-> Voir [`infrastructure/firewall/opnsense-rules.md`](../../infrastructure/firewall/opnsense-rules.md)
-> pour la confirmation de cet état réel.
+> Ce document reflète le réseau **tel que réellement déployé**.
+> Le plan initial prévoyait 6 zones réseau séparées (`mgmt`, `srv`, `ep`, `ndr`, `purple`, `dfir`)
+> avec routage inter-zones par VM01-FW. État réel au 2026-09-16 : la zone `dfir` était déjà
+> isolée ; la zone `srv` (DC01) a été déployée et son routage inter-zone validé en direct
+> ce jour (voir preuve ci-dessous). Les zones `ep` (WIN01/LINUX01), `purple` (PURPLE) et `ndr`
+> (NDR) ont leurs NICs dédiées déjà présentes et les règles firewall OPNsense actives côté
+> VM01-FW (`pfctl -sr` confirme les 5 règles `pass` sur em2-em6), mais l'IP/route côté VM n'a
+> pas encore été configurée/testée pour ces 3 zones — elles continuent donc à opérer en
+> pratique sur `socforge-mgmt`.
+
+## Preuve — routage inter-zone réel (zone srv)
+
+Testé en direct le 2026-09-16 : `ping` depuis VM01-FW (10.10.20.1, interface em2/OPT1) vers
+DC01 (10.10.20.10, adaptateur "Ethernet 2" / réseau interne `socforge-srv`) → **0% de perte,
+3/3 paquets reçus** (RTT 0.88-1.48ms), après ajout d'une route retour
+`10.10.10.0/24 via 10.10.20.1` sur DC01. Capture : [`docs/screenshots/zone-srv-routing-proof.png`](../screenshots/zone-srv-routing-proof.png).
 
 ## Réseaux VirtualBox (déployés)
 
 | Réseau VirtualBox | Sous-réseau       | Usage                                                   |
 |-------------------|-------------------|---------------------------------------------------------|
-| socforge-mgmt     | 10.10.10.0/24     | Réseau plat — Wazuh, TheHive, Cortex, MISP, Shuffle, NDR, DC01, WIN01, LINUX01, PURPLE |
-| socforge-dfir     | 10.10.60.0/24     | Seule zone réellement isolée — VM08 Velociraptor        |
+| socforge-mgmt     | 10.10.10.0/24     | Réseau principal — Wazuh, TheHive, Cortex, MISP, Shuffle, WIN01, LINUX01, PURPLE, NDR (interface mgmt) |
+| socforge-srv      | 10.10.20.0/24     | Zone serveurs — DC01 (10.10.20.10), routage validé via VM01-FW (OPT1/em2) |
+| socforge-ep       | 10.10.30.0/24 (prévu) | Zone endpoints — NICs présentes sur WIN01/LINUX01, IP/route non encore configurées |
+| socforge-purple   | 10.10.40.0/24 (prévu) | Zone purple team — NIC présente sur PURPLE, IP/route non encore configurée |
+| socforge-ndr      | 10.10.50.0/24 (prévu) | Zone NDR (tap) — NIC présente sur NDR, IP/route non encore configurée |
+| socforge-dfir     | 10.10.60.0/24     | Zone isolée — VM08 Velociraptor        |
 | NAT (WAN)         | DHCP hôte         | Accès Internet temporaire (lab only), port-forwards management |
 
 ## Adresses IP par VM (réelles)
 
-| Hostname   | IP (socforge-mgmt) | Zone réseau réelle |
-|------------|---------------------|---------------------|
-| FW         | 10.10.10.1          | Passerelle/routeur (NICs supplémentaires configurées mais zones non peuplées) |
-| WAZUH      | 10.10.10.10         | socforge-mgmt        |
-| THEHIVE    | 10.10.10.20         | socforge-mgmt        |
-| CORTEX     | 10.10.10.21         | socforge-mgmt        |
-| MISP       | 10.10.10.22         | socforge-mgmt        |
-| SHUFFLE    | 10.10.10.30         | socforge-mgmt        |
-| NDR        | 10.10.10.40         | socforge-mgmt        |
-| PURPLE     | 10.10.10.60         | socforge-mgmt (isolation par règles firewall, pas par zone dédiée) |
-| DC01       | 10.10.10.109        | socforge-mgmt        |
-| WIN01      | 10.10.10.110        | socforge-mgmt        |
-| LINUX01    | 10.10.10.111        | socforge-mgmt        |
-| DFIR-HUNT  | —                   | socforge-dfir — 10.10.60.10/24 |
+| Hostname   | IP mgmt       | IP zone dédiée      | Zone réseau réelle |
+|------------|---------------|----------------------|---------------------|
+| FW         | 10.10.10.1    | .1 sur chaque zone (OPT1-5) | Passerelle/routeur inter-zones |
+| WAZUH      | 10.10.10.10   | —                    | socforge-mgmt        |
+| THEHIVE    | 10.10.10.20   | —                    | socforge-mgmt        |
+| CORTEX     | 10.10.10.21   | —                    | socforge-mgmt        |
+| MISP       | 10.10.10.22   | —                    | socforge-mgmt        |
+| SHUFFLE    | 10.10.10.30   | —                    | socforge-mgmt        |
+| NDR        | 10.10.10.40   | NIC socforge-ndr présente, non configurée | socforge-mgmt (zone ndr non testée) |
+| PURPLE     | 10.10.10.60   | NIC socforge-purple présente, non configurée | socforge-mgmt (isolation par règles firewall) |
+| DC01       | 10.10.10.109  | **10.10.20.10 (socforge-srv, validé)** | socforge-srv + mgmt |
+| WIN01      | 10.10.10.110  | NIC socforge-ep présente, non configurée | socforge-mgmt (zone ep non testée) |
+| LINUX01    | 10.10.10.111  | NIC socforge-ep présente, non configurée | socforge-mgmt (zone ep non testée) |
+| DFIR-HUNT  | —             | 10.10.60.10/24       | socforge-dfir |
 
 ## Plan initial vs réalité
 
-Le plan de projet prévoyait à l'origine 6 zones réseau (`mgmt`, `srv`, `ep`, `ndr`, `purple`, `dfir`) avec routage inter-zones par VM01-FW. En pratique, seule la zone `dfir` a été effectivement séparée — les 5 autres rôles (serveurs, endpoints, NDR, purple team, management) partagent le même réseau plat `socforge-mgmt`. L'isolation du Purple Team (empêcher PURPLE d'atteindre l'extérieur ou d'autres services que ses cibles autorisées) est assurée par des règles firewall explicites sur ce réseau plat plutôt que par une séparation physique de zone.
+Le plan de projet prévoyait à l'origine 6 zones réseau (`mgmt`, `srv`, `ep`, `ndr`, `purple`, `dfir`) avec routage inter-zones par VM01-FW. État réel : `dfir` et `srv` sont déployées et validées (routage `srv` testé en direct le 2026-09-16, voir preuve ci-dessus). Les zones `ep`, `purple` et `ndr` ont leurs interfaces réseau dédiées déjà présentes sur les VMs concernées et les règles de pare-feu correspondantes sont actives sur VM01-FW, mais la configuration IP/route côté VM reste à finaliser — ces 3 rôles continuent en pratique de fonctionner via `socforge-mgmt`, sans que cela affecte leur fonction (détection, purple team, capture réseau).
 
 ## Règles de flux inter-VMs (via VM01-FW)
 

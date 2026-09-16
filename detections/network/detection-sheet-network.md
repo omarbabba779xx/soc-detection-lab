@@ -50,10 +50,11 @@
 
 ## Zones réseau surveillées
 
-> Le plan initial prévoyait 6 zones réseau isolées (dont Endpoints 10.10.30.0/24 et Purple Team 10.10.50.0/24). Ces deux zones n'ont **jamais été déployées** — le réseau réel est plat sur `socforge-mgmt` (10.10.10.0/24), qui héberge aussi les endpoints (DC01, WIN01, LINUX01) et VM12-PURPLE. Voir `docs/network/IP-plan.md` ("Plan initial vs réalité").
+> Le plan initial prévoyait 6 zones réseau isolées. État réel : la zone `srv` (DC01, 10.10.20.0/24) est déployée et son routage inter-zone via VM01-FW a été validé en direct le 2026-09-16 (ping 0% perte, voir `docs/network/IP-plan.md`). Les zones `ep` (WIN01/LINUX01) et `purple` (VM12-PURPLE) ont leurs NICs et règles firewall déjà en place côté VM01-FW, mais restent à finaliser côté IP/route VM — ces rôles continuent donc à apparaître sur `socforge-mgmt` (10.10.10.0/24) dans la capture actuelle. Voir `docs/network/IP-plan.md` ("Plan initial vs réalité").
 
 | Zone          | CIDR             | Surveillance                               |
 |---------------|------------------|--------------------------------------------|
-| Management + Endpoints + Purple Team (réseau plat réel) | 10.10.10.0/24 | Tout le trafic lab via Zeek/Suricata + Wazuh agents |
+| Management (+ Endpoints/Purple Team en pratique) | 10.10.10.0/24 | Tout le trafic lab via Zeek/Suricata + Wazuh agents |
+| Serveurs (srv) | 10.10.20.0/24   | DC01 — routage inter-zone validé            |
 | DFIR          | 10.10.60.0/24    | Velociraptor gRPC vers endpoints            |
 | Internet      | 0.0.0.0/0        | NAT via WAN OPNsense (accès lab restreint)  |
