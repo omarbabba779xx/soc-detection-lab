@@ -23,7 +23,9 @@ schtasks /create /tn SocForgeTest /tr notepad.exe /sc ONLOGON /f
 
 **Heure d'exécution** : 2026-08-15 08:26:46 (UTC+1)
 
-> **Root cause confirmée le 2026-09-16** : re-testé en direct (nouvelle tâche planifiée créée sur DC01) — la règle custom 100153 ne se déclenche pas, et `auditpol /get /subcategory:"Other Object Access Events"` confirme que cette sous-catégorie d'audit (qui gouverne les EventID 4698/4702 nécessaires à la règle) est réglée sur "No Auditing". La règle 60642 ci-dessous n'est probablement pas liée à cette technique : elle correspond au message générique "Software protection service scheduled successfully", une tâche de vérification de licence Windows qui se déclenche périodiquement de façon autonome, observée à plusieurs reprises pendant le nouveau test sans lien avec `schtasks /create`. Voir `detections/windows/detection-sheet-windows.md` pour le détail complet.
+> **Root cause confirmée et corrigée le 2026-09-16** : re-testé en direct (nouvelle tâche planifiée créée sur DC01) — la règle custom 100153 ne se déclenchait pas, et `auditpol /get /subcategory:"Other Object Access Events"` a confirmé que cette sous-catégorie d'audit (qui gouverne les EventID 4698/4702 nécessaires à la règle) était réglée sur "No Auditing". La règle 60642 ci-dessous n'est pas liée à cette technique : elle correspond au message générique "Software protection service scheduled successfully", une tâche de vérification de licence Windows qui se déclenche périodiquement de façon autonome, observée à plusieurs reprises sans lien avec `schtasks /create`.
+>
+> **Fix appliqué et re-testé avec succès** : `auditpol /set /subcategory:"Other Object Access Events" /success:enable /failure:enable` sur DC01. Nouveau test live (`schtasks /create /tn SocForgeRuleTest2 ...`) → la règle 100153 se déclenche désormais correctement : `Rule: 100153 (level 9) -> 'Sigma T1053: Scheduled task created/modified — \\SocForgeRuleTest2'`, avec le détail complet de la tâche dans l'alerte. Voir `detections/windows/detection-sheet-windows.md` et les captures associées.
 
 ---
 
