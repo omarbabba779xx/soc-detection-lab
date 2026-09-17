@@ -1,0 +1,17 @@
+# Identifiants et inventaire du lab — ne doivent jamais quitter la machine locale
+secrets/
+docs/lab-registry.md
+
+# Artefacts lourds : modèles et fichiers temporaires (~1 Go, hors périmètre du dépôt)
+ollama-models/
+tmp/
+
+# Python
+__pycache__/
+*.pyc
+
+# Images et exports de VM — garde-fou contre un commit de plusieurs Go
+*.vdi
+*.vmdk
+*.ova
+*.vbox-prev
