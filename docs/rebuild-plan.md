@@ -87,7 +87,12 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
 - [x] Étape 3 — LINUX01 depuis PURPLE : 100200/100210 validées en direct (voir
   `scenario-T1548-T1053-linux.md`). Agent recréé dans un groupe `linux` dédié (était dans
   `default`, config Windows sans effet) ; NIC mgmt et redirection SSH réparés/persistés.
-- [ ] Étape 4 — DC01/WIN01 règles restantes
+- [~] Étape 4 — DC01/WIN01 : 100140/100178 validées en direct depuis WIN01 (voir
+  `scenario-T1021-win01-to-dc01.md`). 100103/100147/100155 corrigées (bugs de groupe) mais
+  non re-testées en direct — 100147 bloquée par un scan FIM complet anormalement lent sur
+  WIN01 (>10 min sans terminer sur `%PROGRAMFILES%`), 100103 nécessiterait un vrai outil
+  d'accès mémoire LSASS (hors périmètre bénin), 100155 nécessiterait un vrai outil
+  d'injection de processus.
 - [ ] Étape 5 — NDR
 - [ ] Étape 6 — TheHive + Cortex
 - [ ] Étape 7 — Shuffle

@@ -1,0 +1,69 @@
+# SC-08 — T1021.002 + T1078 : Mouvement latéral WIN01 → DC01
+
+**Session** : Reconstruction, étape 4 — 2026-09-17
+**Attaquant** : WIN01 (10.10.10.110), console locale (`labuser`, cmd élevé)
+**Cible** : dc01 (agent Wazuh ID 007, 10.10.10.109)
+**MITRE** : T1021.002 (Remote Services: SMB), T1078 (Valid Accounts)
+**Tactiques** : Lateral Movement / Privilege Escalation
+
+---
+
+## Objectif
+
+Compléter la validation du mouvement latéral inter-agents prévue à l'étape 4 du plan de
+reconstruction (`docs/rebuild-plan.md`) : un compte réel (`administrator`) accède à un
+partage administratif d'une machine à une autre, simulant un attaquant ayant compromis
+WIN01 et pivotant vers le contrôleur de domaine.
+
+## Commande exécutée (depuis WIN01)
+
+```cmd
+net use \\10.10.10.109\C$ /user:administrator <mot de passe du lab>
+```
+
+**Résultat** : `The command completed successfully.`
+
+## Détection Wazuh
+
+| Règle  | Niveau | Technique  | Rôle                                             |
+|--------|--------|-----------|----------------------------------------------------|
+| 100140 | 10     | T1021.002 | Compte réel (pas machine/anonyme) sur partage admin |
+| 100178 | 9      | T1078     | Logon réseau privilégié depuis une source distante   |
+
+**Testé en direct le 2026-09-17, 22:40:06 UTC** :
+
+```
+Rule: 100140 (level 10) -> 'Sigma T1021.002: Real account accessed an admin share — possible lateral movement — Administrator from 10.10.10.110'
+Rule: 100178 (level 9) -> 'Sigma T1078: Privileged account remote logon — Administrator from 10.10.10.110'
+```
+
+Les deux règles se sont déclenchées simultanément sur le même événement source — la
+détection croisée (mouvement latéral + compte privilégié) renforce le verdict par
+rapport à une alerte isolée.
+
+## Résultats
+
+| Critère    | Valeur                       |
+|------------|--------------------------------|
+| Détecté    | ✅ OUI (les deux règles)      |
+| Règles     | 100140, 100178                |
+| Verdict    | VP (vrai positif)              |
+| Source     | WIN01 (10.10.10.110) → DC01   |
+
+## Méthodologie de vérification
+
+Recherche par texte de description protégé (`Real account access[e]d`) plutôt que par
+numéro de règle, pour éviter de matcher d'anciennes entrées ou des commandes de recherche
+auto-loggées. Confirmé par l'horodatage exact (22:40:06) et l'adresse IP source
+(10.10.10.110 = WIN01), qui distinguent ce test d'une entrée résiduelle d'une session
+antérieure (14:32:56, source 10.10.10.109).
+
+Capture (dashboard Wazuh, 6 correspondances sur 24h — 2 tests distincts visibles à
+15:32:56 et 23:40:06) :
+[`docs/screenshots/wazuh-dashboard-lateral-movement-win01-dc01.png`](../../docs/screenshots/wazuh-dashboard-lateral-movement-win01-dc01.png)
+
+## Nettoyage
+
+```cmd
+net use \\10.10.10.109\C$ /delete /y
+```

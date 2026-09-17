@@ -123,6 +123,11 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
 - **Source**: EventID 5140
 - **Règle Wazuh**: 100139 (bruit filtré), 100140 (alerte réelle)
 - **Correction appliquée**: exclusion des comptes machine (`$`) et `ANONYMOUS LOGON`, root-causée lors d'une session précédente (651 566 faux positifs avant le fix).
+- **Testé en direct le 2026-09-17** : `net use \\10.10.10.109\C$ /user:administrator ...` exécuté depuis WIN01
+  (10.10.10.110) vers DC01, dans la continuité du mouvement latéral DC01↔WIN01 prévu à l'étape 4 de la
+  reconstruction :
+  `Rule: 100140 (level 10) -> 'Sigma T1021.002: Real account accessed an admin share — possible lateral movement — Administrator from 10.10.10.110'`.
+  Le même accès a aussi retriggé 100178 (T1078) depuis cette nouvelle source, confirmant la détection croisée.
 
 ### T1027 — Obfuscated Files or Information
 - **Source**: Sysmon EventID 1
