@@ -1,0 +1,28 @@
+<group name="socforge,linux,">
+
+  <!-- ============================================================ -->
+  <!-- T1548.003 — Sudo and Sudo Caching abuse                       -->
+  <!-- ============================================================ -->
+  <rule id="100200" level="9">
+    <if_sid>5402</if_sid>
+    <description>Sigma T1548.003: sudo command executed — $(command)</description>
+    <group>privilege_escalation,mitre_privilege_escalation,</group>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+  </rule>
+
+  <!-- ============================================================ -->
+  <!-- T1053.003 — Cron Persistence                                  -->
+  <!-- ============================================================ -->
+  <rule id="100210" level="10">
+    <if_group>syscheck</if_group>
+    <field name="file" type="pcre2">(?i)(/etc/cron|/var/spool/cron)</field>
+    <description>Sigma T1053.003: Cron job file created/modified — possible persistence</description>
+    <group>persistence,mitre_persistence,</group>
+    <mitre>
+      <id>T1053.003</id>
+    </mitre>
+  </rule>
+
+</group>
