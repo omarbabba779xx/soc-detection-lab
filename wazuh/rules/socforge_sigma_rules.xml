@@ -69,8 +69,11 @@
     </mitre>
   </rule>
 
+  <!-- 91802 = base ruleset parent for PowerShell/Operational Script Block
+       events (EventID 4104). Chaining on it guarantees scriptBlockText is
+       decoded; an <if_group> on a non-existent group silently never matches. -->
   <rule id="100131" level="12">
-    <if_group>windows_powershell</if_group>
+    <if_sid>91802</if_sid>
     <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)(-EncodedCommand|FromBase64String|IEX|Invoke-Expression)</field>
     <description>Sigma T1059.001: PowerShell ScriptBlock with suspicious content</description>
     <group>powershell,mitre_execution,</group>

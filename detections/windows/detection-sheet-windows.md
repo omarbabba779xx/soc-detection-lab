@@ -42,9 +42,30 @@
 - **Indicateurs**: Connexions vers des ports sensibles (RDP, SMB, DB) ; agrégation sur 10 connexions/5 min pour la détection de scan.
 
 ### T1059.001 — PowerShell Execution
-- **Source**: EventID 4688, 4104, Sysmon-1
-- **Règle Wazuh**: 100120, 100121, 100131
-- **Indicateurs**: `-enc`, `-EncodedCommand`, `IEX`, `DownloadString`, `-bypass`.
+- **Source**: EventID 4688 (process creation), 4104 (script block)
+- **Règle Wazuh**: 100120 (processus), 100121 (paramètres suspects), 100131 (contenu du script block)
+- **Indicateurs**: `-enc`, `-EncodedCommand`, `IEX`, `DownloadString`, `-bypass`, `FromBase64String`.
+- **Prérequis (3, tous indispensables)** — sans eux Windows ne produit jamais l'événement source :
+  ```powershell
+  auditpol /set /subcategory:"Process Creation" /success:enable /failure:enable
+  reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit /v ProcessCreationIncludeCmdLine_Enabled /t REG_DWORD /d 1 /f
+  reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging /v EnableScriptBlockLogging /t REG_DWORD /d 1 /f
+  ```
+  Le premier active les 4688 ; le deuxième y ajoute la ligne de commande (sans quoi 100121 n'a aucun champ
+  `commandLine` à inspecter) ; le troisième active les 4104 requis par 100131.
+- **Bug corrigé sur la règle 100131** : elle chaînait sur `<if_group>windows_powershell</if_group>`, un groupe
+  qui **n'existe pas** dans le ruleset Wazuh (vérifié : aucune occurrence dans `/var/ossec/ruleset/rules/`).
+  La règle ne pouvait donc jamais matcher, même avec les 4104 correctement collectés. Corrigé en chaînant sur
+  `<if_sid>91802</if_sid>`, la règle parente officielle du canal `Microsoft-Windows-PowerShell/Operational`
+  (fichier `0915-win-powershell_rules.xml`), qui garantit que `scriptBlockText` est décodé.
+- **Testé en direct le 2026-09-17** sur WIN01 (commande encodée bénigne, décodant `SocForgeRuleTest`) :
+  - `Rule: 100121 (level 12) -> 'Sigma T1059.001: PowerShell with suspicious parameters (encoded/download cradle/bypass)'` — EventID 4688, `commandLine` contenant `-EncodedCommand JABzAD0A…`
+  - `Rule: 100131 (level 12) -> 'Sigma T1059.001: PowerShell ScriptBlock with suspicious content'` — EventID 4104, `scriptBlockText` contenant `FromBase64String('U29jRm9yZ2VSdWxlVGVzdA==')`
+
+  Capture : [`docs/screenshots/rule-100121-100131-powershell-live.png`](../../docs/screenshots/rule-100121-100131-powershell-live.png)
+- **Faux positifs**: 100120 (niveau 8) se déclenche sur tout lancement de PowerShell, y compris les scripts
+  d'inventaire de Wazuh lui-même (`secedit /export`, `Get-ADDefaultDomainPasswordPolicy`) — observé pendant ce
+  test. À filtrer en production sur `parentProcessName`.
 
 ### T1110 — Brute Force
 - **Source**: EventID 4625
@@ -60,6 +81,10 @@
 - **Source**: Sysmon EventID 1
 - **Règle Wazuh**: 100127
 - **Indicateurs**: `commandLine` contenant un pattern Base64 (≥100 caractères) ou `FromBase64String`.
+- **Confirmé en direct le 2026-09-17** : le même test que T1059.001 a également déclenché
+  `Rule: 100127 (level 10) -> 'Sigma T1027: Base64-encoded pattern in command line — possible obfuscation'`
+  (7 déclenchements). C'est le comportement attendu : une commande encodée est simultanément de
+  l'exécution PowerShell et de l'obfuscation — la corrélation des deux règles renforce le verdict.
 
 ### T1003 — Credential Dumping
 - **Source**: Sysmon EventID 10
