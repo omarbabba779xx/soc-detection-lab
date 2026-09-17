@@ -84,7 +84,9 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
 - [x] Étape 2 — scan + brute force depuis PURPLE contre DC01 : 100101/100102/100110/100111
   validées en direct, captures dashboard incluses (voir `scenario-T1046-port-scan.md` et
   `scenario-T1110-brute-force.md`). Bug `<same_source_ip/>` trouvé et corrigé sur 100111.
-- [ ] Étape 3 — LINUX01 depuis PURPLE
+- [x] Étape 3 — LINUX01 depuis PURPLE : 100200/100210 validées en direct (voir
+  `scenario-T1548-T1053-linux.md`). Agent recréé dans un groupe `linux` dédié (était dans
+  `default`, config Windows sans effet) ; NIC mgmt et redirection SSH réparés/persistés.
 - [ ] Étape 4 — DC01/WIN01 règles restantes
 - [ ] Étape 5 — NDR
 - [ ] Étape 6 — TheHive + Cortex
