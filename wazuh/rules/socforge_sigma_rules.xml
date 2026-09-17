@@ -35,9 +35,13 @@
     </mitre>
   </rule>
 
+  <!-- <same_source_ip/> groups on the generic "srcip" dynamic field, which the
+       JSON eventchannel decoder never populates for win.eventdata.ipAddress —
+       so this never grouped anything. <same_field> groups on any named field,
+       which is what's actually needed here. -->
   <rule id="100111" level="10" frequency="5" timeframe="60">
     <if_matched_sid>100110</if_matched_sid>
-    <same_source_ip />
+    <same_field>win.eventdata.ipAddress</same_field>
     <description>Sigma T1110: Multiple failed logon attempts from the same source — brute force</description>
     <group>authentication_failures,mitre_credential_access,</group>
     <mitre>
@@ -98,8 +102,11 @@
   <!-- ============================================================ -->
   <!-- T1003 — Credential Dumping (Sysmon EventID 10 — LSASS access) -->
   <!-- ============================================================ -->
+  <!-- Sysmon groups for two-digit EventIDs use an underscore before the number
+       (sysmon_event_10, not sysmon_event10 — confirmed via wazuh-logtest
+       "Group ... was not found" warning); single-digit IDs have no underscore. -->
   <rule id="100103" level="14">
-    <if_group>sysmon_event10</if_group>
+    <if_group>sysmon_event_10</if_group>
     <field name="win.eventdata.targetImage" type="pcre2">(?i)lsass\.exe</field>
     <field name="win.eventdata.grantedAccess" type="pcre2">^(0x1010|0x1410)$</field>
     <description>Sigma T1003: Suspicious access to LSASS memory — possible credential dumping</description>
@@ -113,7 +120,7 @@
   <!-- T1547.001 — Registry Run Keys / Startup Folder                -->
   <!-- ============================================================ -->
   <rule id="100147" level="9">
-    <if_group>sysmon_event13,sysmon_event14</if_group>
+    <if_group>sysmon_event_13|sysmon_event_14</if_group>
     <field name="win.eventdata.targetObject" type="pcre2">(?i)(CurrentVersion\\Run|Winlogon\\Shell)</field>
     <description>Sigma T1547.001: Registry autostart persistence — $(win.eventdata.targetObject)</description>
     <group>persistence,mitre_persistence,</group>

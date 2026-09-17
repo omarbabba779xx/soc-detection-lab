@@ -4,6 +4,27 @@
 > Chaque règle listée ici a été redéployée puis testée en direct sur ce socle vierge —
 > aucune entrée n'est un report non vérifié de l'ancienne itération du projet.
 
+## Preuves visuelles — Wazuh Dashboard
+
+En complément des extraits `alerts.log`, les règles validées sont visibles dans le
+dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) :
+
+- Vue d'ensemble (24h, 3956 événements, Top 10 MITRE ATT&CK — PowerShell, Scheduled
+  Task, Valid Accounts, LSASS Memory, Process Injection, Sudo/Sudo Caching, Remote
+  Services, Account Discovery, Obfuscated Files) :
+  [`wazuh-dashboard-threat-hunting-overview.png`](../../docs/screenshots/wazuh-dashboard-threat-hunting-overview.png)
+- Événements filtrés sur `rule.id:(100121 or 100131 or 100120 or 100127 or 100153 or
+  100178)`, agent WIN01, 26 correspondances :
+  [`wazuh-dashboard-win01-powershell-events.png`](../../docs/screenshots/wazuh-dashboard-win01-powershell-events.png)
+- Événements filtrés sur `rule.id:(100153 or 100178)`, agent dc01, 11 correspondances :
+  [`wazuh-dashboard-dc01-events.png`](../../docs/screenshots/wazuh-dashboard-dc01-events.png)
+- Événements filtrés sur `rule.id:(100101 or 100102 or 100110 or 100111)`, agent dc01,
+  60 correspondances (scan PURPLE→dc01) :
+  [`wazuh-dashboard-dc01-scan-events.png`](../../docs/screenshots/wazuh-dashboard-dc01-scan-events.png)
+- Événements filtrés sur `rule.id:(100110 or 100111)`, agent dc01, 13 correspondances
+  (brute force SMB PURPLE→dc01) :
+  [`wazuh-dashboard-dc01-bruteforce-events.png`](../../docs/screenshots/wazuh-dashboard-dc01-bruteforce-events.png)
+
 ## Sources de logs collectés
 
 | Source                            | Canal EventLog                                    | EventIDs clés                                    |
@@ -37,9 +58,24 @@
 - **Statut**: config déployée et synchronisée sur l'agent ; non re-testé en direct dans cette session de reconstruction (déjà validé lors d'une session antérieure).
 
 ### T1046 — Network Service Discovery
-- **Source**: Sysmon EventID 3
-- **Règle Wazuh**: 100101, 100102
+- **Source**: Sysmon EventID 3 (nécessite Sysmon Sysinternals installé — absent par défaut sur ce snapshot, voir ci-dessous)
+- **Règle Wazuh**: 100101 (connexion unique vers port sensible), 100102 (agrégation ≥10 connexions/5 min)
 - **Indicateurs**: Connexions vers des ports sensibles (RDP, SMB, DB) ; agrégation sur 10 connexions/5 min pour la détection de scan.
+- **Prérequis découvert en reconstruction** : Sysmon (Sysinternals) n'était pas installé sur DC01 — seul un
+  `sysmon.ocx` Windows sans rapport existait. Installé (`Sysmon64.exe -accepteula -i`) avec la config
+  SwiftOnSecurity, qui exclut par défaut la plupart des connexions réseau (bruit réduit) — remplacée par une
+  config minimale n'excluant aucune connexion (`Sysmon64.exe -c netconfig.xml`, `<NetworkConnect
+  onmatch='exclude' />` vide = tout inclus), indispensable pour que EventID 3 soit généré.
+- **Testé en direct le 2026-09-17** depuis PURPLE (Kali) contre dc01 via `nmap -sT` sur les ports
+  21/22/23/25/445/1433/3306/3389/5985/5986 :
+  - `Rule: 100101 (level 8) -> 'Sigma T1046: Network connection to a sensitive/admin port — 10.10.10.109:445'`
+  - `Rule: 100101 (level 8) -> '... — 10.10.10.109:5985'`
+  - 5 scans répétés (10 connexions matchées 100101 en moins de 5 min) →
+    `Rule: 100102 (level 10) -> 'Sigma T1046: Multiple ports scanned from the same source — possible port scan'`
+- **Bug de règle trouvé et corrigé** : aucun sur 100101/100102 elles-mêmes — le blocage initial venait d'une
+  déconnexion transitoire de l'agent dc01 après un redémarrage du manager (résolu par `Restart-Service
+  WazuhSvc -Force`, qui force une poignée de main complète). Deux règles voisines avaient en revanche un vrai
+  bug de nommage de groupe, corrigé au même moment : voir T1003 et T1547.001 ci-dessous.
 
 ### T1059.001 — PowerShell Execution
 - **Source**: EventID 4688 (process creation), 4104 (script block)
@@ -69,8 +105,19 @@
 
 ### T1110 — Brute Force
 - **Source**: EventID 4625
-- **Règle Wazuh**: 100110, 100111
+- **Règle Wazuh**: 100110 (échec individuel), 100111 (agrégation ≥5/60s même source)
 - **Indicateurs**: >5 échecs sur le même compte en 60 secondes.
+- **Bug de règle trouvé et corrigé (2026-09-17)** : 100111 utilisait `<same_source_ip/>`,
+  qui regroupe sur le champ générique `srcip` — jamais peuplé par le décodeur JSON
+  générique pour les événements Windows (`win.eventdata.ipAddress` reste un champ
+  dynamique distinct, sans alias automatique vers `srcip`). La règle ne groupait donc
+  jamais rien, même avec des échecs identiques à la même seconde depuis la même IP.
+  Corrigé en `<same_field>win.eventdata.ipAddress</same_field>`, qui permet un
+  regroupement sur n'importe quel champ décodé nommé.
+- **Testé en direct le 2026-09-17** depuis PURPLE (Kali) contre dc01, brute force SMB via
+  `netexec smb 10.10.10.109 -u administrator -p pw.txt` (6 mots de passe invalides) :
+  - 6× `Rule: 100110 (level 6) -> 'Sigma T1110: Failed logon attempt — administrator'`
+  - `Rule: 100111 (level 10) -> 'Sigma T1110: Multiple failed logon attempts from the same source — brute force'`
 
 ### T1021.002 — SMB Admin Shares
 - **Source**: EventID 5140
@@ -90,11 +137,24 @@
 - **Source**: Sysmon EventID 10
 - **Règle Wazuh**: 100103
 - **Indicateurs**: Accès mémoire LSASS avec `GrantedAccess` 0x1010/0x1410.
+- **Bug de règle trouvé et corrigé (2026-09-17)** : chaînait sur `<if_group>sysmon_event10</if_group>` — groupe
+  **inexistant** (confirmé par `wazuh-logtest` : *"Group 'sysmon_event10' was not found. Invalid 'if_group'.
+  Rule '100103' will be ignored."*). Le ruleset Wazuh nomme les groupes des EventID à deux chiffres avec un
+  underscore (`sysmon_event_10`, pas `sysmon_event10`) — les EventID à un chiffre n'en ont pas
+  (`sysmon_event3`, `sysmon_event8`…), incohérence de convention qui piège facilement une règle custom.
+  Corrigé en `<if_group>sysmon_event_10</if_group>`. Non re-testé en direct (nécessiterait un vrai dump LSASS,
+  hors périmètre d'un test bénin) — la correction est validée par l'absence d'avertissement `wazuh-logtest`
+  après déploiement, pas par un déclenchement réel.
 
 ### T1547.001 — Registry Run Keys
 - **Source**: Sysmon EventID 13/14
 - **Règle Wazuh**: 100147
 - **Indicateurs**: Modification des clés `CurrentVersion\Run`, `Winlogon`.
+- **Bug de règle trouvé et corrigé (2026-09-17)** : même piège que 100103 (groupe `sysmon_event13,
+  sysmon_event14` inexistant — deux fautes cumulées : underscore manquant **et** virgule invalide comme
+  séparateur OR dans `<if_group>`, qui attend une syntaxe regex `|`). Corrigé en
+  `<if_group>sysmon_event_13|sysmon_event_14</if_group>`, revalidé sans avertissement via `wazuh-logtest`.
+  Non re-testé en direct (nécessiterait une vraie modification de clé de démarrage).
 
 ### T1055 — Process Injection
 - **Source**: Sysmon EventID 8
