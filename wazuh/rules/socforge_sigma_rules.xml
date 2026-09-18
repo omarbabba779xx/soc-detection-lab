@@ -102,14 +102,16 @@
   <!-- ============================================================ -->
   <!-- T1003 — Credential Dumping (Sysmon EventID 10 — LSASS access) -->
   <!-- ============================================================ -->
-  <!-- Sysmon groups for two-digit EventIDs use an underscore before the number
-       (sysmon_event_10, not sysmon_event10 — confirmed via wazuh-logtest
-       "Group ... was not found" warning); single-digit IDs have no underscore. -->
+  <!-- Same root cause as 100147 (confirmed 2026-09-18): <if_group>sysmon_event_10</if_group>
+       never triggers this CUSTOM rule on this manager, even though the group is correctly
+       tagged (the official rule 92900, which depends on the same group, matches the exact
+       same event). Fixed by chaining directly on <if_sid>92900</if_sid> — the official
+       Sysmon EventID 10 LSASS-access rule — instead of the group. 92900 already filters
+       targetImage=lsass.exe and grantedAccess (0x1010|0x40) and excludes Program
+       Files/wmiprvse.exe sources, so re-stating those fields here would be redundant. -->
   <rule id="100103" level="14">
-    <if_group>sysmon_event_10</if_group>
-    <field name="win.eventdata.targetImage" type="pcre2">(?i)lsass\.exe</field>
-    <field name="win.eventdata.grantedAccess" type="pcre2">^(0x1010|0x1410)$</field>
-    <description>Sigma T1003: Suspicious access to LSASS memory — possible credential dumping</description>
+    <if_sid>92900</if_sid>
+    <description>Sigma T1003: Suspicious access to LSASS memory — possible credential dumping — $(win.eventdata.sourceImage)</description>
     <group>credential_dumping,mitre_credential_access,</group>
     <mitre>
       <id>T1003</id>
@@ -171,8 +173,13 @@
   <!-- ============================================================ -->
   <!-- T1055 — Process Injection (Sysmon EventID 8 — CreateRemoteThread) -->
   <!-- ============================================================ -->
+  <!-- Same if_group-vs-if_sid issue as 100103/100147 (confirmed 2026-09-18). No official
+       Sysmon EventID 8 rule is a generic catch-all (92400/92401/92402/92403 are each
+       scoped to one target process), so this chains on 185006 — the bare, level-0 base
+       rule in 0330-sysmon_rules.xml that tags every EventID 8 event with sysmon_event8 —
+       instead of the group itself. -->
   <rule id="100155" level="13">
-    <if_group>sysmon_event8</if_group>
+    <if_sid>185006</if_sid>
     <description>Sigma T1055: CreateRemoteThread into another process — possible process injection — $(win.eventdata.sourceImage) -> $(win.eventdata.targetImage)</description>
     <group>process_injection,mitre_defense_evasion,</group>
     <mitre>

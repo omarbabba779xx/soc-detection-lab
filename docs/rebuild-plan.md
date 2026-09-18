@@ -88,6 +88,11 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     `<if_sid>92300</if_sid>` (règle officielle équivalente) plutôt que sur le groupe.
     Voir `detections/windows/detection-sheet-windows.md` pour le détail complet de
     l'investigation.
+13. **Même bug `if_group` vs `if_sid` retrouvé sur 100103 et 100155** (chaînage
+    `<if_group>sysmon_event_10</if_group>` et `<if_group>sysmon_event8</if_group>`
+    respectivement) — corrigé par le même pattern : chaînage direct sur la règle/le
+    parent officiel (`92900` pour 100103, `185006` pour 100155). Déployé sur le manager
+    le 2026-09-18 ; re-test en direct en attente (voir Étape 4 ci-dessous).
 
 ## Statut
 
@@ -107,12 +112,17 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   orphelins, puis la vraie root cause : `if_group` ne déclenchait pas cette règle custom
   précise — corrigé en chaînant sur `if_sid` directement). Au passage, un `wazuh-db`
   planté sur le manager a été diagnostiqué et corrigé (redémarrage complet du service).
-  - **100103** : test bénin construit (ouverture de handle LSASS avec droits 0x1010,
-    sans lecture mémoire) mais la frappe clavier simulée d'une commande longue
-    (811 caractères) s'est arrêtée à mi-chemin sans erreur — limite/bug de
-    `VBoxManage keyboardputstring` sur les longues chaînes, pas un problème de règle.
-  - **100155** : non retenté pour éviter de reproduire le même échec d'infrastructure ;
-    nécessiterait un vecteur de transfert de commande plus fiable qu'un clavier simulé.
+  - **100103** : root cause identique à 100147 trouvée et corrigée le 2026-09-18 —
+    `<if_group>sysmon_event_10</if_group>` chaîné sur `<if_sid>92900</if_sid>` (règle
+    officielle LSASS/EventID10). Test bénin (OpenProcess LSASS, droits 0x1010) exécuté
+    avec succès sur WIN01 (`Handle: 0` — accès refusé par l'OS, normal). Règle corrigée
+    déployée sur le manager sans erreur. **Re-test en direct en attente** : le clavier
+    simulé VBoxManage de WIN01 est devenu intermittent après ce test (frappes perdues,
+    focus instable), indépendamment de la charge disque — à refaire après un redémarrage
+    propre de la VM.
+  - **100155** : même correction appliquée par analogie (chaînage sur `<if_sid>185006</if_sid>`,
+    la règle de base EventID8 dans `0330-sysmon_rules.xml`), déployée sur le manager.
+    **Test en direct pas encore effectué**, pour la même raison que 100103 ci-dessus.
 - [ ] Étape 5 — NDR
 - [ ] Étape 6 — TheHive + Cortex
 - [ ] Étape 7 — Shuffle
