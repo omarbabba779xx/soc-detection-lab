@@ -89,10 +89,16 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   `default`, config Windows sans effet) ; NIC mgmt et redirection SSH réparés/persistés.
 - [~] Étape 4 — DC01/WIN01 : 100140/100178 validées en direct depuis WIN01 (voir
   `scenario-T1021-win01-to-dc01.md`). 100103/100147/100155 corrigées (bugs de groupe) mais
-  non re-testées en direct — 100147 bloquée par un scan FIM complet anormalement lent sur
-  WIN01 (>10 min sans terminer sur `%PROGRAMFILES%`), 100103 nécessiterait un vrai outil
-  d'accès mémoire LSASS (hors périmètre bénin), 100155 nécessiterait un vrai outil
-  d'injection de processus.
+  non re-testées en direct après tentative réelle le 2026-09-18 :
+  - **100147** : bug d'infrastructure confirmé — le scan FIM complet sur WIN01 reste
+    bloqué "in progress" (0% CPU) même après redémarrage du service agent. T1547.001 reste
+    couvert par la règle native Sysmon 92302 (temps réel, déjà déclenchée).
+  - **100103** : test bénin construit (ouverture de handle LSASS avec droits 0x1010,
+    sans lecture mémoire) mais la frappe clavier simulée d'une commande longue
+    (811 caractères) s'est arrêtée à mi-chemin sans erreur — limite/bug de
+    `VBoxManage keyboardputstring` sur les longues chaînes, pas un problème de règle.
+  - **100155** : non retenté pour éviter de reproduire le même échec d'infrastructure ;
+    nécessiterait un vecteur de transfert de commande plus fiable qu'un clavier simulé.
 - [ ] Étape 5 — NDR
 - [ ] Étape 6 — TheHive + Cortex
 - [ ] Étape 7 — Shuffle

@@ -147,9 +147,17 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
   Rule '100103' will be ignored."*). Le ruleset Wazuh nomme les groupes des EventID à deux chiffres avec un
   underscore (`sysmon_event_10`, pas `sysmon_event10`) — les EventID à un chiffre n'en ont pas
   (`sysmon_event3`, `sysmon_event8`…), incohérence de convention qui piège facilement une règle custom.
-  Corrigé en `<if_group>sysmon_event_10</if_group>`. Non re-testé en direct (nécessiterait un vrai dump LSASS,
-  hors périmètre d'un test bénin) — la correction est validée par l'absence d'avertissement `wazuh-logtest`
-  après déploiement, pas par un déclenchement réel.
+  Corrigé en `<if_group>sysmon_event_10</if_group>`.
+- **Tentative de test en direct le 2026-09-18** : contrairement à un dump LSASS complet, ouvrir un handle sur
+  `lsass.exe` avec les seuls droits `PROCESS_QUERY_INFORMATION | PROCESS_VM_READ` (0x1010) via `OpenProcess`
+  est un test bénin légitime — c'est exactement le bitmask que la règle inspecte, sans lecture ni
+  exfiltration de mémoire. Construit via un script encodé en Base64 (`powershell -EncodedCommand`, même
+  méthode que le test T1059.001 réussi la veille). **Échec d'infrastructure, pas de règle** : la frappe de la
+  commande (811 caractères) via `VBoxManage keyboardputstring` s'est arrêtée au milieu sans erreur après
+  ~22 caractères (`powershell.exe -Encod`), un comportement non reproduit sur les commandes plus courtes
+  utilisées ailleurs cette session. Annulé proprement (Ctrl+C) sans effet de bord. Non re-testé en direct —
+  nécessiterait une méthode de transfert de commande plus robuste (fichier via SFTP/partage réseau plutôt que
+  clavier simulé).
 
 ### T1547.001 — Registry Run Keys
 - **Source**: Sysmon EventID 13/14
@@ -159,12 +167,29 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
   sysmon_event14` inexistant — deux fautes cumulées : underscore manquant **et** virgule invalide comme
   séparateur OR dans `<if_group>`, qui attend une syntaxe regex `|`). Corrigé en
   `<if_group>sysmon_event_13|sysmon_event_14</if_group>`, revalidé sans avertissement via `wazuh-logtest`.
-  Non re-testé en direct (nécessiterait une vraie modification de clé de démarrage).
+- **Tentative de test en direct le 2026-09-17/18** : clé `CurrentVersion\Run` créée deux fois (avant et après
+  redémarrage du service agent). **Bug d'infrastructure réel découvert** : le scan FIM complet sur WIN01
+  (`agent_control -i 005` → `Syscheck last started at: ... (Scan in progress)`) est resté bloqué "in
+  progress" plus de 10 minutes sans jamais se terminer — vérifié via `tasklist` que `wazuh-agent.exe`
+  restait à 0% CPU pendant cette période, signe d'un blocage réel et non d'une simple lenteur. Un
+  redémarrage complet du service (`net stop`/`net start WazuhSvc`) a relancé un nouveau scan (nouvel
+  horodatage de départ), qui s'est bloqué de la même façon. La détection T1547.001 elle-même reste
+  couverte par la règle native Sysmon 92302 (EventID 13, temps réel), qui **s'est déclenchée immédiatement**
+  sur ce même événement de test lors de la session précédente, sans dépendre du FIM. Root cause du blocage
+  FIM non résolue — piste à investiguer : volume/latence de `%PROGRAMFILES%` sur cette VM, ou bug connu de
+  l'agent Windows 4.9.2 sur le scan initial de dossiers volumineux.
 
 ### T1055 — Process Injection
 - **Source**: Sysmon EventID 8
 - **Règle Wazuh**: 100155
 - **Indicateurs**: `CreateRemoteThread` vers n'importe quel processus cible.
+- **Non testé en direct (2026-09-18)** : simuler `CreateRemoteThread` de façon bénine nécessite d'écrire du
+  shellcode dans un processus cible via `VirtualAllocEx`/`WriteProcessMemory`, une séquence PowerShell plus
+  longue et plus fragile encore que le test LSASS (100103) qui a déjà échoué pour une raison
+  d'infrastructure (frappe clavier simulée interrompue sur une commande longue — voir T1003 ci-dessus). Pas
+  retenté pour éviter de reproduire le même échec ; nécessiterait un vecteur de transfert de commande plus
+  fiable qu'un clavier simulé (partage réseau, SFTP, ou Guest Additions actives — indisponibles sur cette
+  VM).
 
 ---
 
