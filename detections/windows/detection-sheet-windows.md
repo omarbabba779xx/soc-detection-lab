@@ -163,21 +163,31 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
 - **Source**: Sysmon EventID 13/14
 - **Règle Wazuh**: 100147
 - **Indicateurs**: Modification des clés `CurrentVersion\Run`, `Winlogon`.
-- **Bug de règle trouvé et corrigé (2026-09-17)** : même piège que 100103 (groupe `sysmon_event13,
-  sysmon_event14` inexistant — deux fautes cumulées : underscore manquant **et** virgule invalide comme
-  séparateur OR dans `<if_group>`, qui attend une syntaxe regex `|`). Corrigé en
-  `<if_group>sysmon_event_13|sysmon_event_14</if_group>`, revalidé sans avertissement via `wazuh-logtest`.
-- **Tentative de test en direct le 2026-09-17/18** : clé `CurrentVersion\Run` créée deux fois (avant et après
-  redémarrage du service agent). **Bug d'infrastructure réel découvert** : le scan FIM complet sur WIN01
-  (`agent_control -i 005` → `Syscheck last started at: ... (Scan in progress)`) est resté bloqué "in
-  progress" plus de 10 minutes sans jamais se terminer — vérifié via `tasklist` que `wazuh-agent.exe`
-  restait à 0% CPU pendant cette période, signe d'un blocage réel et non d'une simple lenteur. Un
-  redémarrage complet du service (`net stop`/`net start WazuhSvc`) a relancé un nouveau scan (nouvel
-  horodatage de départ), qui s'est bloqué de la même façon. La détection T1547.001 elle-même reste
-  couverte par la règle native Sysmon 92302 (EventID 13, temps réel), qui **s'est déclenchée immédiatement**
-  sur ce même événement de test lors de la session précédente, sans dépendre du FIM. Root cause du blocage
-  FIM non résolue — piste à investiguer : volume/latence de `%PROGRAMFILES%` sur cette VM, ou bug connu de
-  l'agent Windows 4.9.2 sur le scan initial de dossiers volumineux.
+- **Trois bugs successifs trouvés et corrigés (2026-09-17/18)**, du plus superficiel au plus profond :
+  1. Groupe `sysmon_event13,sysmon_event14` inexistant (underscore manquant, virgule invalide comme
+     séparateur OR) — corrigé en `sysmon_event_13|sysmon_event_14`.
+  2. Faux départ d'infrastructure : le scan FIM sur WIN01 restait bloqué "in progress" (0% CPU en continu)
+     à cause de fichiers `.gz` orphelins dans `queue\diff\file\`, laissés par des redémarrages forcés
+     antérieurs pendant qu'un scan tournait. Nettoyé (`queue\diff\file\` + `queue\fim\db\fim.db`
+     supprimés). **Ce n'était en réalité pas le bon chemin** : 100147 dépend de Sysmon EventID 13, pas du
+     FIM/syscheck — tout ce travail a confirmé un vrai bug d'infrastructure séparé, mais n'était pas la
+     cause du non-déclenchement de la règle.
+  3. **Root cause réelle** : sur ce manager et à ce moment précis, `<if_group>sysmon_event_13</if_group>`
+     ne déclenchait pas cette règle custom, alors que le groupe était bien tagué (la règle officielle 92300,
+     qui en dépend, matchait). Confirmé par test A/B : une règle de debug chaînée sur
+     `<if_sid>92300</if_sid>` matchait immédiatement, la même règle avec `<if_group>sysmon_event_13</if_group>`
+     jamais, sans le moindre avertissement au chargement. Point de prudence : d'autres règles de ce fichier
+     (100127, 100153, 100178…) utilisent `if_group` avec succès et ont été validées en direct la même
+     session — donc `if_group` n'est pas cassé en général sur ce manager ; quelque chose de spécifique à ce
+     cas (peut-être un état résiduel du crash `wazuh-db` rencontré juste avant, voir plus haut) a empêché
+     ce chaînage précis de fonctionner. Corrigé en chaînant 100147 directement sur
+     `<if_sid>92300</if_sid>` (`0860-sysmon_id_13.xml`), qui filtre déjà sur `CurrentVersion\Run` et ses
+     variantes WOW6432Node — rendant le field regex superflu, et plus robuste dans tous les cas.
+- **Testé en direct le 2026-09-18** : `reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v
+  SocForgeTest12 ...` sur WIN01 →
+  `Rule: 100147 (level 9) -> 'Sigma T1547.001: Registry autostart persistence — HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\SocForgeTest12'`.
+  Capture (dashboard Wazuh, 2 correspondances) :
+  [`wazuh-dashboard-rule-100147-live.png`](../../docs/screenshots/wazuh-dashboard-rule-100147-live.png)
 
 ### T1055 — Process Injection
 - **Source**: Sysmon EventID 8

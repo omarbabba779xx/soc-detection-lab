@@ -74,6 +74,20 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
    revalidés sans avertissement.
 9. **Agent dc01 bloqué en `Pending`** après redémarrage du manager (poignée de main
    incomplète) — corrigé par `Restart-Service WazuhSvc -Force` côté DC01.
+10. **Scan FIM WIN01 bloqué à 0% CPU indéfiniment** — root cause : fichiers `.gz`
+    orphelins dans `queue\diff\file\`, laissés par des redémarrages forcés antérieurs
+    pendant qu'un scan tournait, bloquant tout renommage FIM (`ERROR (1124): File
+    exists`). Nettoyé (`queue\diff\file\` + `queue\fim\db\fim.db` supprimés). Aggravé
+    par une RAM hôte descendue à ~2 Go libres avec 3 VMs actives.
+11. **`wazuh-db` planté sur le manager** (`Unable to connect to socket 'queue/db/wdb'`
+    en boucle) — processus zombie malgré `wazuh-control status` l'affichant "running".
+    Corrigé par un redémarrage complet du manager (`systemctl restart wazuh-manager`).
+12. **Règle 100147 : `if_group` n'a pas fonctionné pour cette règle custom précise**,
+    même avec un groupe correctement tagué (confirmé par test A/B contre `if_sid`
+    direct) — possiblement lié à l'incident #11. Corrigé en chaînant sur
+    `<if_sid>92300</if_sid>` (règle officielle équivalente) plutôt que sur le groupe.
+    Voir `detections/windows/detection-sheet-windows.md` pour le détail complet de
+    l'investigation.
 
 ## Statut
 
@@ -87,12 +101,12 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
 - [x] Étape 3 — LINUX01 depuis PURPLE : 100200/100210 validées en direct (voir
   `scenario-T1548-T1053-linux.md`). Agent recréé dans un groupe `linux` dédié (était dans
   `default`, config Windows sans effet) ; NIC mgmt et redirection SSH réparés/persistés.
-- [~] Étape 4 — DC01/WIN01 : 100140/100178 validées en direct depuis WIN01 (voir
-  `scenario-T1021-win01-to-dc01.md`). 100103/100147/100155 corrigées (bugs de groupe) mais
-  non re-testées en direct après tentative réelle le 2026-09-18 :
-  - **100147** : bug d'infrastructure confirmé — le scan FIM complet sur WIN01 reste
-    bloqué "in progress" (0% CPU) même après redémarrage du service agent. T1547.001 reste
-    couvert par la règle native Sysmon 92302 (temps réel, déjà déclenchée).
+- [~] Étape 4 — DC01/WIN01 : 100140/100147/100178 validées en direct depuis WIN01 (voir
+  `scenario-T1021-win01-to-dc01.md` et `detection-sheet-windows.md`). 100147 a nécessité
+  trois corrections successives (groupe mal nommé, blocage FIM réel dû à des fichiers
+  orphelins, puis la vraie root cause : `if_group` ne déclenchait pas cette règle custom
+  précise — corrigé en chaînant sur `if_sid` directement). Au passage, un `wazuh-db`
+  planté sur le manager a été diagnostiqué et corrigé (redémarrage complet du service).
   - **100103** : test bénin construit (ouverture de handle LSASS avec droits 0x1010,
     sans lecture mémoire) mais la frappe clavier simulée d'une commande longue
     (811 caractères) s'est arrêtée à mi-chemin sans erreur — limite/bug de
