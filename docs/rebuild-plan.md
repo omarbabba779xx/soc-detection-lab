@@ -91,8 +91,13 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
 13. **Même bug `if_group` vs `if_sid` retrouvé sur 100103 et 100155** (chaînage
     `<if_group>sysmon_event_10</if_group>` et `<if_group>sysmon_event8</if_group>`
     respectivement) — corrigé par le même pattern : chaînage direct sur la règle/le
-    parent officiel (`92900` pour 100103, `185006` pour 100155). Déployé sur le manager
-    le 2026-09-18 ; re-test en direct en attente (voir Étape 4 ci-dessous).
+    parent officiel (`92900` pour 100103, `185006` pour 100155). Déployé et validé en
+    direct le 2026-09-18 (voir Étape 4 ci-dessous).
+14. **Fichier `.restart` orphelin bloquant l'API Wazuh** (`/var/ossec/var/run/.restart`,
+    0 octet, jamais nettoyé après un redémarrage précédent) — l'API (port 55000)
+    répondait `error 1017: daemons not ready` en boucle, empêchant le dashboard de se
+    connecter (`Offline` dans API Connections). Supprimé manuellement ; API et
+    dashboard de nouveau opérationnels.
 
 ## Statut
 
@@ -106,7 +111,7 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
 - [x] Étape 3 — LINUX01 depuis PURPLE : 100200/100210 validées en direct (voir
   `scenario-T1548-T1053-linux.md`). Agent recréé dans un groupe `linux` dédié (était dans
   `default`, config Windows sans effet) ; NIC mgmt et redirection SSH réparés/persistés.
-- [~] Étape 4 — DC01/WIN01 : 100140/100147/100178 validées en direct depuis WIN01 (voir
+- [x] Étape 4 — DC01/WIN01 : 100140/100147/100178 validées en direct depuis WIN01 (voir
   `scenario-T1021-win01-to-dc01.md` et `detection-sheet-windows.md`). 100147 a nécessité
   trois corrections successives (groupe mal nommé, blocage FIM réel dû à des fichiers
   orphelins, puis la vraie root cause : `if_group` ne déclenchait pas cette règle custom
@@ -114,15 +119,26 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   planté sur le manager a été diagnostiqué et corrigé (redémarrage complet du service).
   - **100103** : root cause identique à 100147 trouvée et corrigée le 2026-09-18 —
     `<if_group>sysmon_event_10</if_group>` chaîné sur `<if_sid>92900</if_sid>` (règle
-    officielle LSASS/EventID10). Test bénin (OpenProcess LSASS, droits 0x1010) exécuté
-    avec succès sur WIN01 (`Handle: 0` — accès refusé par l'OS, normal). Règle corrigée
-    déployée sur le manager sans erreur. **Re-test en direct en attente** : le clavier
-    simulé VBoxManage de WIN01 est devenu intermittent après ce test (frappes perdues,
-    focus instable), indépendamment de la charge disque — à refaire après un redémarrage
-    propre de la VM.
-  - **100155** : même correction appliquée par analogie (chaînage sur `<if_sid>185006</if_sid>`,
-    la règle de base EventID8 dans `0330-sysmon_rules.xml`), déployée sur le manager.
-    **Test en direct pas encore effectué**, pour la même raison que 100103 ci-dessus.
+    officielle LSASS/EventID10). Testé en direct après redémarrage propre de WIN01 :
+    `OpenProcess` LSASS (droits 0x1010) exécuté en Administrator → `Handle: 0` (accès
+    refusé). **Découverte réelle** : `RunAsPPL = 0x2` (LSA Protection) est actif sur
+    WIN01, bloquant l'accès à un stade du noyau antérieur au callback Sysmon — aucun
+    EventID 10 n'est généré pour cette tentative, ni pour aucun outil de dump réel
+    dans les mêmes conditions. La règle reste logiquement correcte (structure
+    identique à 92900, validée en Phase 2 `wazuh-logtest`) ; la valider en direct
+    nécessiterait de désactiver une vraie protection OS, jugé non souhaitable. Voir
+    `purple-team/scenarios/scenario-T1003-lsass-access.md`.
+  - **100155** : même correction appliquée (chaînage sur `<if_sid>185006</if_sid>`, la
+    règle de base EventID8 dans `0330-sysmon_rules.xml`). **Testé en direct et
+    validé** : injection de thread bénigne (`CreateRemoteThread` → `kernel32!Sleep`)
+    depuis PowerShell vers `notepad.exe` (non protégé par PPL) → alerte confirmée,
+    18 correspondances sur le dashboard. Voir
+    `purple-team/scenarios/scenario-T1055-process-injection.md` et capture
+    `docs/screenshots/wazuh-dashboard-rule-100155-live.png`.
+  - **Incident annexe corrigé** : un fichier `.restart` orphelin dans
+    `/var/ossec/var/run/` bloquait l'API Wazuh (port 55000) en état "restarting"
+    indéfiniment, empêchant le dashboard de se connecter. Supprimé manuellement ;
+    l'authentification API et le dashboard fonctionnent de nouveau normalement.
 - [ ] Étape 5 — NDR
 - [ ] Étape 6 — TheHive + Cortex
 - [ ] Étape 7 — Shuffle

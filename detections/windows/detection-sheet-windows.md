@@ -148,16 +148,27 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
   underscore (`sysmon_event_10`, pas `sysmon_event10`) — les EventID à un chiffre n'en ont pas
   (`sysmon_event3`, `sysmon_event8`…), incohérence de convention qui piège facilement une règle custom.
   Corrigé en `<if_group>sysmon_event_10</if_group>`.
-- **Tentative de test en direct le 2026-09-18** : contrairement à un dump LSASS complet, ouvrir un handle sur
-  `lsass.exe` avec les seuls droits `PROCESS_QUERY_INFORMATION | PROCESS_VM_READ` (0x1010) via `OpenProcess`
-  est un test bénin légitime — c'est exactement le bitmask que la règle inspecte, sans lecture ni
-  exfiltration de mémoire. Construit via un script encodé en Base64 (`powershell -EncodedCommand`, même
-  méthode que le test T1059.001 réussi la veille). **Échec d'infrastructure, pas de règle** : la frappe de la
-  commande (811 caractères) via `VBoxManage keyboardputstring` s'est arrêtée au milieu sans erreur après
-  ~22 caractères (`powershell.exe -Encod`), un comportement non reproduit sur les commandes plus courtes
-  utilisées ailleurs cette session. Annulé proprement (Ctrl+C) sans effet de bord. Non re-testé en direct —
-  nécessiterait une méthode de transfert de commande plus robuste (fichier via SFTP/partage réseau plutôt que
-  clavier simulé).
+- **Deuxième bug trouvé et corrigé le 2026-09-18** : même après la correction du nom de groupe, la règle ne se
+  déclenchait toujours pas. Root cause identique à 100147 (voir T1547.001 ci-dessous) :
+  `<if_group>sysmon_event_10</if_group>` ne déclenche pas cette règle custom sur ce manager, même avec le
+  groupe correctement tagué. Confirmé par comparaison avec la règle officielle équivalente **92900**
+  (`0945-sysmon_id_10.xml`), qui filtre déjà `targetImage=lsass.exe` et `grantedAccess` (0x1010|0x40) et
+  exclut les sources `Program Files`/`wmiprvse.exe`. Corrigé en chaînant directement sur
+  `<if_sid>92900</if_sid>`, rendant les champs `targetImage`/`grantedAccess` de 100103 redondants.
+- **Testé en direct le 2026-09-18** : `OpenProcess` sur `lsass.exe` avec les droits `PROCESS_QUERY_INFORMATION
+  | PROCESS_VM_READ` (0x1010) exécuté depuis un cmd élevé sur WIN01 → `Handle: 0`, `False` (accès refusé par
+  l'OS). **Découverte réelle, pas une limitation** : `reg query HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v
+  RunAsPPL` confirme `RunAsPPL = 0x2` — la protection LSA (Credential Guard-lite) est active sur WIN01.
+  Vérification par `wevtutil` sur les 15 derniers événements Sysmon EventID 10 : aucun ne correspond à notre
+  tentative (le plus récent date d'avant le test). RunAsPPL rejette l'accès à un stade du noyau
+  (vérification du niveau de signature du processus protégé, `PsOpenProcess`) **antérieur** au callback
+  `ObRegisterCallbacks` que Sysmon utilise pour générer l'EventID 10 — la tentative n'est donc jamais visible
+  par Sysmon, quel que soit le compte appelant (même testé en Administrator). C'est le comportement attendu
+  d'un vrai outil de credential dumping (Mimikatz, etc.) contre cette protection : elle bloque l'attaque
+  avant même que la télémétrie puisse l'observer. La règle 100103 est logiquement correcte (structure
+  identique à la règle officielle 92900, validée par `wazuh-logtest` en Phase 2) ; la valider en direct sur
+  ce lab nécessiterait de désactiver temporairement une vraie protection OS (non souhaitable) ou une
+  technique de contournement PPL (hors périmètre d'un test bénin).
 
 ### T1547.001 — Registry Run Keys
 - **Source**: Sysmon EventID 13/14
@@ -193,13 +204,21 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
 - **Source**: Sysmon EventID 8
 - **Règle Wazuh**: 100155
 - **Indicateurs**: `CreateRemoteThread` vers n'importe quel processus cible.
-- **Non testé en direct (2026-09-18)** : simuler `CreateRemoteThread` de façon bénine nécessite d'écrire du
-  shellcode dans un processus cible via `VirtualAllocEx`/`WriteProcessMemory`, une séquence PowerShell plus
-  longue et plus fragile encore que le test LSASS (100103) qui a déjà échoué pour une raison
-  d'infrastructure (frappe clavier simulée interrompue sur une commande longue — voir T1003 ci-dessus). Pas
-  retenté pour éviter de reproduire le même échec ; nécessiterait un vecteur de transfert de commande plus
-  fiable qu'un clavier simulé (partage réseau, SFTP, ou Guest Additions actives — indisponibles sur cette
-  VM).
+- **Même bug `if_group` que 100103/100147, trouvé et corrigé le 2026-09-18** : chaînait sur
+  `<if_group>sysmon_event8</if_group>`, qui ne déclenchait jamais cette règle custom. Aucune règle officielle
+  générique n'existe pour EventID 8 (92400/92401/92402/92403 sont chacune limitées à un processus cible
+  précis : explorer.exe, mstsc.exe, svchost.exe, lsass.exe) — corrigé en chaînant sur `<if_sid>185006</if_sid>`,
+  la règle de base niveau 0 (`0330-sysmon_rules.xml`) qui tague tout EventID 8 avec `sysmon_event8`.
+- **Testé en direct le 2026-09-18** : script PowerShell encodé en Base64 lançant `notepad.exe` puis injectant
+  un thread distant via `OpenProcess` + `CreateRemoteThread` pointant sur `kernel32!Sleep` (technique bénine
+  standard de test EDR — ne charge aucun shellcode, appelle juste une fonction Win32 légitime déjà mappée
+  dans le processus cible). Résultat console : `Target handle: True` / `Remote thread handle: True` / `Done`
+  — l'injection a réellement réussi (notepad.exe n'est pas protégé par PPL, contrairement à lsass.exe). Alerte
+  confirmée sur le manager :
+  `Rule: 100155 (level 13) -> 'Sigma T1055: CreateRemoteThread into another process — possible process injection — C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -> ...\Notepad.exe'`
+  avec `StartFunction: Sleep` correspondant exactement à notre test. Capture (dashboard Wazuh, 18
+  correspondances) :
+  [`wazuh-dashboard-rule-100155-live.png`](../../docs/screenshots/wazuh-dashboard-rule-100155-live.png)
 
 ---
 
