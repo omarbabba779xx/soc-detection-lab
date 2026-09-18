@@ -139,7 +139,22 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     `/var/ossec/var/run/` bloquait l'API Wazuh (port 55000) en état "restarting"
     indéfiniment, empêchant le dashboard de se connecter. Supprimé manuellement ;
     l'authentification API et le dashboard fonctionnent de nouveau normalement.
-- [ ] Étape 5 — NDR
+- [x] Étape 5 — NDR : deux bugs réels trouvés et corrigés sur VM07-NDR, jamais démarrée
+  avec succès jusqu'ici.
+  1. **Crash noyau au boot** (trace d'appel complète en boucle sur le test
+     `raid6: avx2x4`) — causé par `CPUProfile: host` (AVX2 exposé) combiné à
+     `Paravirt. Provider: Default` (détecté comme KVM par le noyau invité). Corrigé
+     par `VBoxManage modifyvm SF-VM07-NDR --paravirtprovider legacy`.
+  2. **Suricata et Zeek écoutaient sur la mauvaise interface** (`enp0s9`, le NAT, sans
+     trafic inter-VM). Après une première correction erronée vers `enp0s3` (dont
+     l'adressage IP `10.10.10.40/24` était trompeur — vérification par MAC address :
+     `enp0s3` = NIC1 = réseau isolé `socforge-ndr`), la bonne interface s'est révélée
+     être `enp0s8` (NIC2 = `socforge-mgmt`, le réseau partagé par toutes les autres
+     VMs). Corrigé dans `suricata.yaml` et `node.cfg`, mode promiscuous activé côté OS
+     (`ip link set enp0s8 promisc on`) et côté hyperviseur (`--nicpromisc2 allow-all`).
+  Testé avec un scan nmap depuis PURPLE contre WAZUH : Suricata et Zeek capturent
+  tous les deux exactement les 7 sessions TCP du scan. Voir
+  `purple-team/scenarios/scenario-ndr-purple-scan.md`.
 - [ ] Étape 6 — TheHive + Cortex
 - [ ] Étape 7 — Shuffle
 - [ ] Étape 8 — MISP + DFIR-HUNT
