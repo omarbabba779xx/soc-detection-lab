@@ -155,7 +155,18 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   Testé avec un scan nmap depuis PURPLE contre WAZUH : Suricata et Zeek capturent
   tous les deux exactement les 7 sessions TCP du scan. Voir
   `purple-team/scenarios/scenario-ndr-purple-scan.md`.
-- [ ] Étape 6 — TheHive + Cortex
+- [x] Étape 6 — TheHive + Cortex : même crash noyau que VM07-NDR corrigé sur
+  VM03-THEHIVE (`--paravirtprovider legacy`). Alerte créée avec succès depuis un
+  test représentant la règle Wazuh 100155 (`POST /api/v1/alert` → 201). **Découverte
+  logicielle réelle** : la licence TheHive de ce déploiement (bandeau "invalid
+  license" dans l'UI) bloque **toute** opération d'écriture liée aux cas/observables
+  (création de cas, ajout d'observable), quel que soit le compte ou profil utilisé —
+  confirmé par test sur 3 comptes différents et sur un cas existant, pas seulement à
+  la création. La création d'alerte (utilisée pour l'intégration SIEM) n'est pas
+  concernée et fonctionne normalement. Cortex : un analyseur configuré
+  (`MISP_SocForge`) exécuté avec succès sur une IP de test (job soumis, script
+  exécuté, rapport renvoyé) — échec attendu car MISP (étape 8) n'est pas encore
+  démarrée. Voir `purple-team/scenarios/scenario-thehive-cortex-100155.md`.
 - [ ] Étape 7 — Shuffle
 - [ ] Étape 8 — MISP + DFIR-HUNT
 - [ ] Étape 9 — FW
