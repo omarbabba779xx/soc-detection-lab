@@ -53,6 +53,9 @@ POST /api/v1/alert (auth: soar-bot@socforge.local bearer key)
 -> 201 Created, _id: ~122884296
 ```
 
+Capture (liste des alertes TheHive, notre alerte en tête) :
+[`docs/screenshots/thehive-alert-rule100155.png`](../../docs/screenshots/thehive-alert-rule100155.png)
+
 ## Cortex — analyseur exécuté avec succès
 
 Un seul analyseur est configuré (`MISP_SocForge`, interroge un serveur MISP à
