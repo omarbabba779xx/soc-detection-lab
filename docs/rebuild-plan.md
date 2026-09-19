@@ -175,14 +175,26 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   `SHUFFLE_OPENSEARCH_URL` (pas `OPENSEARCH_URL`), heap OpenSearch réduit à 512m,
   RAM de la VM augmentée de 2 à 4 Go (minimum officiel Shuffle), carte réseau
   interne reconfigurée en statique (perdue par la restauration de snapshot).
-  Workflow SOAR créé (`Wazuh Alert to TheHive - Cortex Enrichment`) : appel HTTP
-  authentifié vers TheHive validé en conditions réelles (200, alerte rule 100155
-  récupérée) ; appel vers Cortex avec payload correct (échec de connexion attendu,
-  VM04-CORTEX non démarrée dans le budget 3 VM de cette étape). Limitation d'outil
-  rencontrée (pas de bug applicatif) : l'éditeur visuel Shuffle ne permet de
-  connecter deux nœuds déjà existants que via dépôt d'un nouveau nœud sur une
-  cible, pas de liaison manuelle a posteriori — contourné en validant les deux
-  segments du pipeline séparément avec des données réelles. Voir
+  Workflow SOAR créé (`Wazuh Alert to TheHive - Cortex Enrichment`), **chaîne
+  unique de bout en bout à 5 nœuds** : Change Me → Get_TheHive_Alert (GET
+  authentifié, 200) → Get_TheHive_Observable (POST, récupère l'observable IP
+  réel de l'alerte) → Extract_IP (execute_python, extrait dynamiquement l'IP,
+  aucune valeur codée en dur) → Run_Cortex_Analyzer (POST authentifié vers
+  Cortex avec l'IP extraite en direct). Exécution complète en un clic validée :
+  FINISHED, 5/5 nœuds en succès, job Cortex réellement créé avec la donnée
+  dynamique (`data: "10.10.10.110"` provenant du nœud précédent, pas d'une
+  constante). VM04-CORTEX démarrée pour ce test (WAZUH éteinte en échange,
+  budget 3 VM respecté : SHUFFLE + THEHIVE + CORTEX). Bugs Cortex corrigés au
+  passage : URL en `https://` alors que le service écoute en HTTP simple
+  (`SSLError`), authentification manquante (`401`), et limitation du moteur de
+  templating Shuffle qui ne résout pas les chemins JSON imbriqués
+  (`$node.body[0].data` ne fonctionne pas — seule la référence de premier
+  niveau au nœud entier est supportée, confirmé via le bouton Autocomplete de
+  l'éditeur), contournée avec un nœud Python intermédiaire. La connexion des
+  nœuds elle-même a nécessité une édition directe du JSON du workflow via
+  l'API (`PUT /api/v1/workflows/{id}`), l'éditeur canevas ne permettant de
+  connecter que lors du dépôt d'un nouveau nœud sur un nœud existant, jamais
+  entre deux nœuds déjà présents. Voir
   `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
 - [ ] Étape 8 — MISP + DFIR-HUNT
 - [ ] Étape 9 — FW

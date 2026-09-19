@@ -1,4 +1,4 @@
-# SC-14 — Étape 7 : Workflow SOAR Shuffle (WAZUH + SHUFFLE + THEHIVE)
+# SC-14 — Étape 7 : Workflow SOAR Shuffle (WAZUH + SHUFFLE + THEHIVE + CORTEX)
 
 **Session** : Reconstruction, étape 7 — 2026-09-19
 **Objectif** : Workflow SOAR : alerte → cas TheHive → action Shuffle
@@ -38,90 +38,123 @@ reconstruction quasi complète de la VM :
    récupération (même symptôme AVX2/paravirt que VM03-THEHIVE et VM07-NDR
    documenté aux étapes précédentes) — un second `poweroff` + `startvm` a
    résolu le blocage sans intervention supplémentaire.
-6. RAM de la VM augmentée de 2 Go à 4 Go (`VBoxManage modifyvm --memory 4096`),
-   toujours dans le budget des 3 VM simultanées (WAZUH 5 Go + THEHIVE 2 Go +
-   SHUFFLE 4 Go = 11 Go sur 16 Go).
+6. RAM de la VM augmentée de 2 Go à 4 Go (`VBoxManage modifyvm --memory 4096`).
+7. **VM04-CORTEX a subi le même bug paravirt/AVX2** au premier démarrage — fixé
+   avec `--paravirtprovider legacy`, comme sur les 3 autres VM déjà touchées.
 
 Une fois la stack stable, le compte administrateur Shuffle a été recréé
 (`admin@socforge.local`) et la connexion au dashboard confirmée.
 
-## Construction du workflow
+## Budget VM (3 VM max simultanées)
+
+Pour valider le pipeline complet jusqu'à Cortex, WAZUH (non appelée par le
+workflow lui-même — seul TheHive et Cortex sont contactés) a été éteinte et
+remplacée par CORTEX : **SHUFFLE + THEHIVE + CORTEX** ont tourné simultanément
+pour le test final, dans le respect strict du budget 3 VM.
+
+## Construction du workflow — chaîne unique à 5 maillons
 
 **Nom** : `Wazuh Alert to TheHive - Cortex Enrichment`
 
-**Schéma** :
 ```
 Change Me (trigger)
    │
    ▼
-Get_TheHive_Alert  ──────────────────────────────►  [connecté au trigger]
-   GET http://10.10.10.20:9000/api/v1/alert/~122884296
-   Headers: Authorization: Bearer <clé API bot SOAR>
-
-Get_TheHive_Alert_forCortex ──► Run_Cortex_Analyzer  [paire chaînée séparément]
-   GET (même alerte)                POST https://10.10.10.21:9001/api/analyzer/
-                                     421b31691f33f5ce93618c5bbec4bf51/run
-                                     Body: {"data": "10.10.10.110", "dataType":
-                                     "ip", "tlp": 2, "message": "..."}
+Get_TheHive_Alert          GET http://10.10.10.20:9000/api/v1/alert/~122884296
+   │                       Headers: Authorization: Bearer <clé API bot SOAR>
+   ▼
+Get_TheHive_Observable     POST http://10.10.10.20:9000/api/v1/query?name=alert-observables
+   │                       Body: requête TheHive listant les observables de l'alerte
+   ▼
+Extract_IP                 execute_python (Shuffle Tools)
+   │                       Parse le JSON des observables, extrait le champ "data"
+   │                       (l'IP) du premier observable — donnée 100% dynamique,
+   │                       aucune valeur codée en dur.
+   ▼
+Run_Cortex_Analyzer        POST http://10.10.10.21:9001/api/analyzer/
+                            421b31691f33f5ce93618c5bbec4bf51/run
+                            Headers: Authorization: Bearer <clé API Cortex>
+                            Body: {"data": "$extract_ip.message", "dataType": "ip", ...}
 ```
 
-**Limitation d'outillage rencontrée** : l'éditeur visuel de Shuffle (rendu sur
-un canevas, pas en DOM standard) ne permet de créer une connexion automatique
-que lors du dépôt d'un **nouveau** nœud directement sur un nœud déjà présent
-sur le canevas — il n'a pas été possible de relier deux nœuds déjà existants
-entre eux par glisser-déposer manuel. Résultat : deux sous-chaînes valides
-existent dans le workflow (`Trigger → Get_TheHive_Alert` d'une part,
-`Get_TheHive_Alert_forCortex → Run_Cortex_Analyzer` d'autre part) plutôt
-qu'une chaîne unique à 3 maillons. Les deux étapes ont neanmoins été validées
-individuellement avec des données réelles (voir résultats ci-dessous).
+### Historique des corrections jusqu'à la chaîne complète
 
-## Résultats d'exécution réelle
+Le premier essai de workflow s'est arrêté à un pipeline en deux segments
+disjoints (`Trigger → Get_TheHive_Alert` d'un côté, `Get_TheHive_Alert_forCortex
+→ Run_Cortex_Analyzer` de l'autre), avec une IP codée en dur dans le body
+Cortex. L'utilisateur a explicitement demandé un workflow réel de bout en
+bout ; les corrections suivantes ont été nécessaires :
 
-| Nœud | Test | Résultat |
-|------|------|----------|
-| `Get_TheHive_Alert` (exécution du workflow complet, trigger → nœud) | `status: 200` | Alerte réelle récupérée (`_id: ~122884296`, `type: wazuh`, `source: wazuh-manager`, `_createdBy: soar-bot@socforge.local`) |
-| `Get_TheHive_Alert_forCortex` (Test Action individuel) | `status: 200` | Même alerte récupérée avec succès |
-| `Run_Cortex_Analyzer` (Test Action individuel) | `success: false`, `ConnectionError` vers `10.10.10.21:9001` | **Attendu** — VM04-CORTEX n'est pas démarrée pendant ce test (budget 3 VM : WAZUH + THEHIVE + SHUFFLE). Le payload est correctement formé et envoyé ; l'échec est une dépendance d'infrastructure, pas un défaut du workflow. |
+1. **Connexion manuelle impossible dans l'éditeur canevas** — Shuffle rend le
+   workflow sur un canevas (pas de DOM standard), et l'éditeur ne crée une
+   connexion automatique que lors du dépôt d'un **nouveau** nœud sur un nœud
+   déjà présent (jamais entre deux nœuds déjà existants). Contournement :
+   édition directe du JSON du workflow via l'API (`GET`/`PUT
+   /api/v1/workflows/{id}`), qui accepte un tableau `branches` explicite
+   `{source_id, destination_id}` — bien plus fiable que la manipulation du
+   canevas.
+2. **URL Cortex en `https://` alors que le service écoute en HTTP simple sur
+   le port 9001** → `SSLError: wrong version number`. Fix : passage en
+   `http://`.
+3. **Absence d'authentification sur l'appel Cortex** → `401
+   AuthenticationError`. Fix : ajout de l'en-tête `Authorization: Bearer
+   <clé API Cortex>` (déjà documentée dans `secrets/lab-registry.md`).
+4. **Référencement de champ imbriqué non supporté par le moteur de templating
+   de Shuffle** — la syntaxe `$node.body[0].data` (ou variantes avec `{{ }}`
+   Liquid) ne résout **pas** les chemins JSON imbriqués ; le bouton
+   "Autocomplete" de l'éditeur ne propose que la référence de premier niveau
+   au nœud entier (`$node`), confirmant que Shuffle ne permet l'extraction de
+   champ profond qu'via du code. Fix : ajout d'un nœud intermédiaire
+   `Extract_IP` (action `execute_python` de l'app "Shuffle Tools") qui reçoit
+   le JSON brut par substitution textuelle (`$get_thehive_observable.body`
+   injecté tel quel dans le code Python), le parse avec `json.loads`, et
+   n'affiche (`print`) que la valeur `data` du premier observable — donnée
+   strictement dynamique, extraite en direct de l'alerte TheHive à chaque
+   exécution.
 
-La première tentative sans en-tête `Authorization` a échoué en `401
-AuthenticationError` (preuve que TheHive vérifie bien l'authentification) ;
-l'ajout de l'en-tête a permis d'obtenir un `200` avec le corps complet de
-l'alerte.
+## Résultat final — exécution réelle de bout en bout
 
-**Point de vigilance identifié en vérifiant le schéma** : Shuffle affiche un
-avertissement persistant ("Multiple actions with name 'Get_TheHive_Alert'")
-même après renommage du second nœud en `Get_TheHive_Alert_forCortex` via le
-champ "Name" de l'interface. Investigation : le renommage affiché (Setup →
-Name) ne modifie qu'un label d'affichage — l'identifiant interne utilisé pour
-les références de sortie (`$get_thehive_alert`, visible dans le JSON de
-résultat des deux nœuds) reste basé sur le nom d'origine généré à la création
-et n'est pas mis à jour. Sans conséquence pratique ici (les deux branches sont
-indépendantes, aucune ne référence la sortie de l'autre), mais à surveiller si
-un futur nœud doit référencer spécifiquement l'une des deux sorties — un
-renommage plus profond (suppression/recréation du nœud) serait alors requis.
+Exécution du 19/09/2026 14:32:59 → 14:33:34, statut **FINISHED**, 5/5 nœuds en
+succès (aucune icône d'erreur) :
+
+| Nœud | Résultat réel |
+|---|---|
+| `Change Me` | `Hello world` (déclencheur) |
+| `Get_TheHive_Alert` | `status: 200`, alerte réelle (`_id: ~122884296`, `type: wazuh`, `_createdBy: soar-bot@socforge.local`) |
+| `Get_TheHive_Observable` | `status: 200`, `success: true`, liste réelle des observables de l'alerte (requête `alert-observables` sur TheHive) |
+| `Extract_IP` | `success: true`, `message: "10.10.10.110"` — IP extraite dynamiquement, aucune valeur en dur |
+| `Run_Cortex_Analyzer` | `status: 200`, `success: true`, job Cortex réel créé (`status: "Waiting"`, `data: "10.10.10.110"`) avec la valeur **provenant du nœud précédent**, pas d'une constante |
+
+Le job Cortex a été accepté et traité par le pipeline d'analyse (script Python
+de l'analyseur `MISP_SocForge` exécuté) ; son échec final (`No route to
+host` vers `10.10.10.22`) est attendu et déjà documenté en SC-13 : VM05-MISP
+appartient à l'étape 8 et n'est pas démarrée à ce stade — ce n'est pas un
+défaut du workflow Shuffle, dont la responsabilité (déclencher l'analyseur
+avec la bonne donnée) est intégralement remplie et vérifiée.
 
 ## Captures d'écran
 
 - [`docs/screenshots/shuffle-dashboard.png`](../../docs/screenshots/shuffle-dashboard.png) — Dashboard Shuffle après reconstruction
-- [`docs/screenshots/shuffle-workflow-full-canvas.png`](../../docs/screenshots/shuffle-workflow-full-canvas.png) — Vue d'ensemble du canevas du workflow
-- [`docs/screenshots/shuffle-workflow-execution-200.png`](../../docs/screenshots/shuffle-workflow-execution-200.png) — Exécution réelle du workflow (Trigger → TheHive), statut 200
+- [`docs/screenshots/shuffle-final-run-part1-alert.png`](../../docs/screenshots/shuffle-final-run-part1-alert.png) — Exécution complète : statut FINISHED, Change Me + Get_TheHive_Alert (200)
+- [`docs/screenshots/shuffle-final-run-part2-cortex-success.png`](../../docs/screenshots/shuffle-final-run-part2-cortex-success.png) — Extract_IP (IP réelle extraite) + Run_Cortex_Analyzer (200, success: true, données dynamiques)
 - [`docs/screenshots/shuffle-node1-changeme-trigger.png`](../../docs/screenshots/shuffle-node1-changeme-trigger.png) — Config nœud déclencheur
 - [`docs/screenshots/shuffle-node2-get-thehive-alert.png`](../../docs/screenshots/shuffle-node2-get-thehive-alert.png) — Config nœud Get_TheHive_Alert (URL + headers)
-- [`docs/screenshots/shuffle-node3-get-thehive-alert-forcortex.png`](../../docs/screenshots/shuffle-node3-get-thehive-alert-forcortex.png) — Config nœud Get_TheHive_Alert_forCortex
-- [`docs/screenshots/shuffle-node4-run-cortex-analyzer.png`](../../docs/screenshots/shuffle-node4-run-cortex-analyzer.png) — Config nœud Run_Cortex_Analyzer (POST + body)
-- [`docs/screenshots/shuffle-cortex-test-result.png`](../../docs/screenshots/shuffle-cortex-test-result.png) — Résultat du test Cortex (ConnectionError attendue, VM04 arrêtée)
+- [`docs/screenshots/shuffle-node4-run-cortex-analyzer.png`](../../docs/screenshots/shuffle-node4-run-cortex-analyzer.png) — Config nœud Run_Cortex_Analyzer (POST + body dynamique)
 
 ## Nettoyage
 
 Aucun. Le workflow reste dans l'organisation Shuffle comme preuve ; l'alerte
-TheHive de test (rule 100155) était déjà documentée dans SC-13 et peut rester.
+TheHive de test (rule 100155) et l'alerte de test avec observable IP
+(`rule-100155-soar`, créée pour cette étape avec un observable structuré)
+peuvent rester.
 
 ## Résultats
 
 | Critère | Valeur |
 |---|---|
 | VM06-SHUFFLE opérationnelle après reconstruction complète | ✅ OUI |
-| Workflow créé et connecté au trigger | ✅ OUI (Trigger → Get_TheHive_Alert) |
-| Appel réel à l'API TheHive (authentifié) | ✅ OUI (200, alerte réelle) |
-| Appel réel à l'API Cortex | ✅ Payload correct envoyé — échec de connexion attendu (VM04 non démarrée) |
-| Chaînage complet en un seul workflow à 3 maillons | ⚠️ Partiel — limitation de l'outil d'édition visuelle, contournée en validant les deux segments séparément |
+| Workflow connecté en une chaîne unique de bout en bout (5 nœuds) | ✅ OUI |
+| Données transmises dynamiquement d'un nœud à l'autre (pas de valeur codée en dur) | ✅ OUI (IP extraite en direct de l'alerte TheHive) |
+| Appel réel à l'API TheHive (authentifié) | ✅ OUI (200, alerte + observable réels) |
+| Appel réel à l'API Cortex (authentifié, données dynamiques) | ✅ OUI (200, job créé et traité) |
+| Exécution complète en un clic (bouton "Execute workflow") | ✅ OUI (FINISHED, 5/5 nœuds) |
