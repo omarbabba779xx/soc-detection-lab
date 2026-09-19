@@ -1,4 +1,4 @@
-# SC-14 — Étape 7 : Workflow SOAR Shuffle (WAZUH + SHUFFLE + THEHIVE + CORTEX)
+# SC-14 — Étape 7 : Workflow SOAR Shuffle (SHUFFLE + THEHIVE + CORTEX + MISP)
 
 **Session** : Reconstruction, étape 7 — 2026-09-19
 **Objectif** : Workflow SOAR : alerte → cas TheHive → action Shuffle
@@ -47,10 +47,20 @@ Une fois la stack stable, le compte administrateur Shuffle a été recréé
 
 ## Budget VM (3 VM max simultanées)
 
-Pour valider le pipeline complet jusqu'à Cortex, WAZUH (non appelée par le
-workflow lui-même — seul TheHive et Cortex sont contactés) a été éteinte et
-remplacée par CORTEX : **SHUFFLE + THEHIVE + CORTEX** ont tourné simultanément
-pour le test final, dans le respect strict du budget 3 VM.
+Pour valider le pipeline jusqu'à Cortex, WAZUH (non appelée par le workflow
+lui-même — seuls TheHive et Cortex sont contactés) a été éteinte et remplacée
+par CORTEX : **SHUFFLE + THEHIVE + CORTEX** ont tourné simultanément pour un
+premier test.
+
+Une fois cette première exécution validée, l'utilisateur a explicitement
+demandé de corriger aussi l'échec en aval vers MISP plutôt que de le
+documenter comme une limitation acceptée. Cela nécessitait TheHive + Shuffle
++ Cortex + MISP simultanément (Cortex interroge MISP de façon synchrone
+pendant le traitement du job) — soit 4 VM. **Dérogation temporaire explicite
+de l'utilisateur** au budget de 3 VM, le temps de cette validation finale
+(RAM totale ≈ 9,5 Go sur 16 Go, largement dans la capacité matérielle). VM04
+et VM05 ont été éteintes immédiatement après le test, revenant à SHUFFLE +
+THEHIVE (2 VM) pour la suite.
 
 ## Construction du workflow — chaîne unique à 5 maillons
 
@@ -112,25 +122,52 @@ bout ; les corrections suivantes ont été nécessaires :
    strictement dynamique, extraite en direct de l'alerte TheHive à chaque
    exécution.
 
-## Résultat final — exécution réelle de bout en bout
+## Résultat final — exécution réelle de bout en bout, MISP inclus
 
-Exécution du 19/09/2026 14:32:59 → 14:33:34, statut **FINISHED**, 5/5 nœuds en
-succès (aucune icône d'erreur) :
+### Corrections supplémentaires pour éliminer l'échec MISP en aval
+
+Le premier test complet (SHUFFLE+THEHIVE+CORTEX) se terminait avec succès côté
+Shuffle, mais le job Cortex échouait en interne à l'étape MISP
+(`No route to host`). Plutôt que d'accepter cette limitation, deux problèmes
+réels ont été diagnostiqués et corrigés :
+
+1. **Réseau interne de VM05-MISP down** (`enp0s3`, même bug que sur les autres
+   VM — absent de `/etc/netplan/`, jamais reperdu que par cette VM) → corrigé
+   avec le même pattern que VM06-SHUFFLE (`00-installer-config.yaml`, IP
+   statique `10.10.10.22/24`).
+2. **Clé API MISP invalide** — la clé documentée dans `secrets/lab-registry.md`
+   (`a0b1c2d3e4f5...`) ne fonctionnait plus (`403 Authentication failed`),
+   probablement un reliquat d'une insertion manuelle en base jamais vraiment
+   activée. Diagnostiquée en testant l'appel en local sur la VM MISP
+   elle-même (même échec, donc pas un problème réseau). Fix : régénération
+   propre de la clé via la CLI officielle MISP
+   (`cake user change_authkey 1 <clé>`), qui a aussi révélé que
+   l'analyseur Cortex `MISP_SocForge` avait sa **propre** clé stockée
+   (`SLNoBz...`, différente de celle du registre) — mise à jour via
+   `PATCH /api/analyzer/{id}` pour pointer vers la nouvelle clé validée.
+
+### Exécution finale
+
+Exécution du 19/09/2026 14:55:44, statut **FINISHED**, 5/5 nœuds en succès :
 
 | Nœud | Résultat réel |
 |---|---|
 | `Change Me` | `Hello world` (déclencheur) |
 | `Get_TheHive_Alert` | `status: 200`, alerte réelle (`_id: ~122884296`, `type: wazuh`, `_createdBy: soar-bot@socforge.local`) |
-| `Get_TheHive_Observable` | `status: 200`, `success: true`, liste réelle des observables de l'alerte (requête `alert-observables` sur TheHive) |
-| `Extract_IP` | `success: true`, `message: "10.10.10.110"` — IP extraite dynamiquement, aucune valeur en dur |
-| `Run_Cortex_Analyzer` | `status: 200`, `success: true`, job Cortex réel créé (`status: "Waiting"`, `data: "10.10.10.110"`) avec la valeur **provenant du nœud précédent**, pas d'une constante |
+| `Get_TheHive_Observable` | `status: 200`, `success: true`, liste réelle des observables de l'alerte |
+| `Extract_IP` | `success: true`, `message: "10.10.10.110"` — IP extraite dynamiquement |
+| `Run_Cortex_Analyzer` | `status: 200`, `success: true`, job Cortex **complet** : `"status": "Success"`, `"workerName": "MISP_SocForge"`, `"data": "10.10.10.110"` (valeur dynamique du nœud précédent) |
 
-Le job Cortex a été accepté et traité par le pipeline d'analyse (script Python
-de l'analyseur `MISP_SocForge` exécuté) ; son échec final (`No route to
-host` vers `10.10.10.22`) est attendu et déjà documenté en SC-13 : VM05-MISP
-appartient à l'étape 8 et n'est pas démarrée à ce stade — ce n'est pas un
-défaut du workflow Shuffle, dont la responsabilité (déclencher l'analyseur
-avec la bonne donnée) est intégralement remplie et vérifiée.
+**Vérification anti-cache** : Cortex met en cache les résultats d'analyseur
+par donnée (`jobCache: 10` min). Pour écarter tout doute qu'un job précédent
+mis en cache masquerait un problème réel, un appel direct avec une IP jamais
+testée (`8.8.8.8`) et un message unique a été effectué séparément —
+`"status": "Success"` obtenu également, confirmant que le pipeline
+Cortex → MISP fonctionne réellement, pas par effet de cache.
+
+**Plus aucune réserve** : la chaîne complète alerte TheHive → extraction
+d'IOC → analyse Cortex → enrichissement MISP fonctionne de bout en bout, en
+un seul clic ("Execute workflow"), avec des données réelles à chaque étape.
 
 ## Captures d'écran
 
@@ -140,6 +177,7 @@ avec la bonne donnée) est intégralement remplie et vérifiée.
 - [`docs/screenshots/shuffle-node1-changeme-trigger.png`](../../docs/screenshots/shuffle-node1-changeme-trigger.png) — Config nœud déclencheur
 - [`docs/screenshots/shuffle-node2-get-thehive-alert.png`](../../docs/screenshots/shuffle-node2-get-thehive-alert.png) — Config nœud Get_TheHive_Alert (URL + headers)
 - [`docs/screenshots/shuffle-node4-run-cortex-analyzer.png`](../../docs/screenshots/shuffle-node4-run-cortex-analyzer.png) — Config nœud Run_Cortex_Analyzer (POST + body dynamique)
+- [`docs/screenshots/shuffle-final-misp-success.png`](../../docs/screenshots/shuffle-final-misp-success.png) — Exécution finale : Extract_IP + Run_Cortex_Analyzer avec `"status": "Success"` (MISP inclus, sans réserve)
 
 ## Nettoyage
 
@@ -157,4 +195,6 @@ peuvent rester.
 | Données transmises dynamiquement d'un nœud à l'autre (pas de valeur codée en dur) | ✅ OUI (IP extraite en direct de l'alerte TheHive) |
 | Appel réel à l'API TheHive (authentifié) | ✅ OUI (200, alerte + observable réels) |
 | Appel réel à l'API Cortex (authentifié, données dynamiques) | ✅ OUI (200, job créé et traité) |
+| Job Cortex → MISP terminé avec succès (`status: Success`, pas d'échec en aval) | ✅ OUI (vérifié aussi hors cache avec une IP inédite) |
 | Exécution complète en un clic (bouton "Execute workflow") | ✅ OUI (FINISHED, 5/5 nœuds) |
+| Réseau interne + clé API MISP corrigés | ✅ OUI (netplan statique + régénération de clé via `cake` CLI) |

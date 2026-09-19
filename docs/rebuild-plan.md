@@ -183,18 +183,25 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   Cortex avec l'IP extraite en direct). Exécution complète en un clic validée :
   FINISHED, 5/5 nœuds en succès, job Cortex réellement créé avec la donnée
   dynamique (`data: "10.10.10.110"` provenant du nœud précédent, pas d'une
-  constante). VM04-CORTEX démarrée pour ce test (WAZUH éteinte en échange,
-  budget 3 VM respecté : SHUFFLE + THEHIVE + CORTEX). Bugs Cortex corrigés au
-  passage : URL en `https://` alors que le service écoute en HTTP simple
-  (`SSLError`), authentification manquante (`401`), et limitation du moteur de
-  templating Shuffle qui ne résout pas les chemins JSON imbriqués
-  (`$node.body[0].data` ne fonctionne pas — seule la référence de premier
-  niveau au nœud entier est supportée, confirmé via le bouton Autocomplete de
-  l'éditeur), contournée avec un nœud Python intermédiaire. La connexion des
-  nœuds elle-même a nécessité une édition directe du JSON du workflow via
-  l'API (`PUT /api/v1/workflows/{id}`), l'éditeur canevas ne permettant de
-  connecter que lors du dépôt d'un nouveau nœud sur un nœud existant, jamais
-  entre deux nœuds déjà présents. Voir
+  constante). Bugs Cortex corrigés au passage : URL en `https://` alors que le
+  service écoute en HTTP simple (`SSLError`), authentification manquante
+  (`401`), et limitation du moteur de templating Shuffle qui ne résout pas les
+  chemins JSON imbriqués (`$node.body[0].data` ne fonctionne pas — seule la
+  référence de premier niveau au nœud entier est supportée, confirmé via le
+  bouton Autocomplete de l'éditeur), contournée avec un nœud Python
+  intermédiaire. La connexion des nœuds elle-même a nécessité une édition
+  directe du JSON du workflow via l'API (`PUT /api/v1/workflows/{id}`),
+  l'éditeur canevas ne permettant de connecter que lors du dépôt d'un nouveau
+  nœud sur un nœud existant, jamais entre deux nœuds déjà présents.
+  **Chaîne complète validée sans réserve, MISP inclus** : job Cortex terminé
+  avec `"status": "Success"` (pas seulement soumis) grâce à deux corrections
+  supplémentaires sur VM05-MISP (réseau interne statique reperdu par un
+  redémarrage, clé API invalide régénérée via la CLI `cake`, et clé
+  correspondante mise à jour dans la config de l'analyseur Cortex). Validé
+  aussi hors cache Cortex (job indépendant avec IP inédite). Dérogation
+  temporaire et explicite de l'utilisateur au budget 3 VM (4 VM : SHUFFLE +
+  THEHIVE + CORTEX + MISP, ≈9,5 Go de RAM) le temps de cette vérification
+  finale ; retour à 2 VM (SHUFFLE + THEHIVE) immédiatement après. Voir
   `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
 - [ ] Étape 8 — MISP + DFIR-HUNT
 - [ ] Étape 9 — FW
