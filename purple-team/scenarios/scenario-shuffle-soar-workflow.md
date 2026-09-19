@@ -62,7 +62,7 @@ de l'utilisateur** au budget de 3 VM, le temps de cette validation finale
 et VM05 ont été éteintes immédiatement après le test, revenant à SHUFFLE +
 THEHIVE (2 VM) pour la suite.
 
-## Construction du workflow — chaîne unique à 5 maillons
+## Construction du workflow — chaîne unique à 6 maillons, 100 % dynamique
 
 **Nom** : `Wazuh Alert to TheHive - Cortex Enrichment`
 
@@ -70,11 +70,19 @@ THEHIVE (2 VM) pour la suite.
 Change Me (trigger)
    │
    ▼
-Get_TheHive_Alert          GET http://10.10.10.20:9000/api/v1/alert/~122884296
-   │                       Headers: Authorization: Bearer <clé API bot SOAR>
+Get_TheHive_Alert          POST http://10.10.10.20:9000/api/v1/query?name=alert-list
+   │                       Body: {"query":[{"_name":"listAlert"},
+   │                              {"_name":"sort","_fields":[{"date":"desc"}]},
+   │                              {"_name":"page","from":0,"to":1}]}
+   │                       → récupère la DERNIÈRE alerte TheHive réelle, pas un ID fixe.
+   ▼
+Extract_Alert_ID           execute_python (Shuffle Tools)
+   │                       Parse le JSON de la réponse, extrait "_id" de la
+   │                       première (donc dernière) alerte.
    ▼
 Get_TheHive_Observable     POST http://10.10.10.20:9000/api/v1/query?name=alert-observables
-   │                       Body: requête TheHive listant les observables de l'alerte
+   │                       Body: filtre sur "$extract_alert_id.message" (dynamique,
+   │                       plus aucun ID codé en dur)
    ▼
 Extract_IP                 execute_python (Shuffle Tools)
    │                       Parse le JSON des observables, extrait le champ "data"
@@ -165,9 +173,41 @@ testée (`8.8.8.8`) et un message unique a été effectué séparément —
 `"status": "Success"` obtenu également, confirmant que le pipeline
 Cortex → MISP fonctionne réellement, pas par effet de cache.
 
-**Plus aucune réserve** : la chaîne complète alerte TheHive → extraction
-d'IOC → analyse Cortex → enrichissement MISP fonctionne de bout en bout, en
-un seul clic ("Execute workflow"), avec des données réelles à chaque étape.
+### Correction du déclencheur figé et de l'absence de renseignement MISP réel
+
+Après cette première validation "sans réserve", un examen plus poussé (à la
+demande explicite de l'utilisateur : *"est-ce que tout est parfait ?"* puis
+*"sans limitation ?"*) a révélé **deux problèmes réels**, pas de simples
+nuances :
+
+1. **`Get_TheHive_Alert` pointait sur un ID d'alerte figé**
+   (`~122884296`) alors que **`Get_TheHive_Observable` utilisait un ID
+   différent et codé en dur lui aussi** (`~163844344`, en réalité la bonne
+   alerte, la plus récente). Autrement dit le nœud `Get_TheHive_Alert`
+   récupérait une alerte que la suite de la chaîne **n'utilisait jamais** —
+   la donnée fictivement "dynamique" ne l'était qu'en apparence. Fix :
+   transformation de `Get_TheHive_Alert` en requête `listAlert` triée par
+   date décroissante (donc toujours la dernière alerte réelle, quelle
+   qu'elle soit), ajout d'un nœud `Extract_Alert_ID` qui en extrait l'`_id`
+   réel, et câblage de cet ID dans le corps de `Get_TheHive_Observable` via
+   `$extract_alert_id.message`. Vérifié par exécution réelle : la chaîne
+   récupère maintenant dynamiquement l'alerte `~163844344` (la plus
+   récente) sans aucun ID codé en dur nulle part.
+2. **MISP ne contenait aucune donnée de renseignement réelle** — le job
+   Cortex atteignait `"status": "Success"` uniquement parce que la requête
+   technique aboutissait, pas parce qu'une correspondance était trouvée.
+   Fix : création d'un événement MISP réel et publié (`POST /events/add`,
+   attribut `ip-dst` = `10.10.10.110`, `to_ids: true`) correspondant à l'IOC
+   effectivement extrait par le workflow. Le job Cortex a ensuite été
+   rejoué : le rapport contient désormais une véritable corrélation
+   (`"taxonomies":[{"level":"suspicious","namespace":"MISP","predicate":
+   "Search","value":"1 event(s)"}]`) au lieu d'un résultat vide.
+
+**Plus aucune réserve** : la chaîne complète (6 nœuds) alerte TheHive la plus
+récente → extraction dynamique de l'ID → extraction de l'observable →
+extraction de l'IP → analyse Cortex → corrélation MISP réelle fonctionne de
+bout en bout, en un seul clic ("Execute workflow"), sans aucune valeur codée
+en dur et avec un véritable renseignement de menace en base MISP.
 
 ## Captures d'écran
 
@@ -177,7 +217,8 @@ un seul clic ("Execute workflow"), avec des données réelles à chaque étape.
 - [`docs/screenshots/shuffle-node1-changeme-trigger.png`](../../docs/screenshots/shuffle-node1-changeme-trigger.png) — Config nœud déclencheur
 - [`docs/screenshots/shuffle-node2-get-thehive-alert.png`](../../docs/screenshots/shuffle-node2-get-thehive-alert.png) — Config nœud Get_TheHive_Alert (URL + headers)
 - [`docs/screenshots/shuffle-node4-run-cortex-analyzer.png`](../../docs/screenshots/shuffle-node4-run-cortex-analyzer.png) — Config nœud Run_Cortex_Analyzer (POST + body dynamique)
-- [`docs/screenshots/shuffle-final-misp-success.png`](../../docs/screenshots/shuffle-final-misp-success.png) — Exécution finale : Extract_IP + Run_Cortex_Analyzer avec `"status": "Success"` (MISP inclus, sans réserve)
+- [`docs/screenshots/shuffle-final-misp-success.png`](../../docs/screenshots/shuffle-final-misp-success.png) — Exécution : Extract_IP + Run_Cortex_Analyzer avec `"status": "Success"` (MISP inclus)
+- [`docs/screenshots/shuffle-dynamic-trigger-misp-match.png`](../../docs/screenshots/shuffle-dynamic-trigger-misp-match.png) — Exécution finale (6 nœuds, tous verts) : déclencheur dynamique (dernière alerte réelle), IP extraite en direct, job Cortex avec corrélation MISP réelle (`"level":"suspicious"`)
 
 ## Nettoyage
 
@@ -191,10 +232,12 @@ peuvent rester.
 | Critère | Valeur |
 |---|---|
 | VM06-SHUFFLE opérationnelle après reconstruction complète | ✅ OUI |
-| Workflow connecté en une chaîne unique de bout en bout (5 nœuds) | ✅ OUI |
-| Données transmises dynamiquement d'un nœud à l'autre (pas de valeur codée en dur) | ✅ OUI (IP extraite en direct de l'alerte TheHive) |
+| Workflow connecté en une chaîne unique de bout en bout (6 nœuds) | ✅ OUI |
+| Déclencheur dynamique (dernière alerte réelle, aucun ID figé) | ✅ OUI (requête `listAlert` triée par date, vérifiée en exécution réelle) |
+| Données transmises dynamiquement d'un nœud à l'autre (pas de valeur codée en dur, à aucune étape) | ✅ OUI (alerte, ID d'alerte, observable, IP — tous extraits en direct) |
 | Appel réel à l'API TheHive (authentifié) | ✅ OUI (200, alerte + observable réels) |
 | Appel réel à l'API Cortex (authentifié, données dynamiques) | ✅ OUI (200, job créé et traité) |
 | Job Cortex → MISP terminé avec succès (`status: Success`, pas d'échec en aval) | ✅ OUI (vérifié aussi hors cache avec une IP inédite) |
-| Exécution complète en un clic (bouton "Execute workflow") | ✅ OUI (FINISHED, 5/5 nœuds) |
+| MISP contient un renseignement de menace réel correspondant à l'IOC testé | ✅ OUI (événement publié, corrélation `"level":"suspicious"` confirmée dans le rapport Cortex) |
+| Exécution complète en un clic (bouton "Execute workflow") | ✅ OUI (FINISHED, 6/6 nœuds) |
 | Réseau interne + clé API MISP corrigés | ✅ OUI (netplan statique + régénération de clé via `cake` CLI) |

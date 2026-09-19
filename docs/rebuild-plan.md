@@ -176,32 +176,47 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   RAM de la VM augmentée de 2 à 4 Go (minimum officiel Shuffle), carte réseau
   interne reconfigurée en statique (perdue par la restauration de snapshot).
   Workflow SOAR créé (`Wazuh Alert to TheHive - Cortex Enrichment`), **chaîne
-  unique de bout en bout à 5 nœuds** : Change Me → Get_TheHive_Alert (GET
-  authentifié, 200) → Get_TheHive_Observable (POST, récupère l'observable IP
-  réel de l'alerte) → Extract_IP (execute_python, extrait dynamiquement l'IP,
-  aucune valeur codée en dur) → Run_Cortex_Analyzer (POST authentifié vers
-  Cortex avec l'IP extraite en direct). Exécution complète en un clic validée :
-  FINISHED, 5/5 nœuds en succès, job Cortex réellement créé avec la donnée
-  dynamique (`data: "10.10.10.110"` provenant du nœud précédent, pas d'une
-  constante). Bugs Cortex corrigés au passage : URL en `https://` alors que le
-  service écoute en HTTP simple (`SSLError`), authentification manquante
-  (`401`), et limitation du moteur de templating Shuffle qui ne résout pas les
-  chemins JSON imbriqués (`$node.body[0].data` ne fonctionne pas — seule la
-  référence de premier niveau au nœud entier est supportée, confirmé via le
-  bouton Autocomplete de l'éditeur), contournée avec un nœud Python
-  intermédiaire. La connexion des nœuds elle-même a nécessité une édition
-  directe du JSON du workflow via l'API (`PUT /api/v1/workflows/{id}`),
-  l'éditeur canevas ne permettant de connecter que lors du dépôt d'un nouveau
-  nœud sur un nœud existant, jamais entre deux nœuds déjà présents.
+  unique de bout en bout à 6 nœuds, entièrement dynamique** : Change Me →
+  Get_TheHive_Alert (requête `listAlert` triée par date, récupère toujours la
+  DERNIÈRE alerte réelle, aucun ID figé) → Extract_Alert_ID (execute_python,
+  extrait l'`_id` réel) → Get_TheHive_Observable (POST, récupère l'observable
+  IP réel de cette alerte via l'ID extrait dynamiquement) → Extract_IP
+  (execute_python, extrait dynamiquement l'IP) → Run_Cortex_Analyzer (POST
+  authentifié vers Cortex avec l'IP extraite en direct). Exécution complète en
+  un clic validée : FINISHED, 6/6 nœuds en succès, job Cortex réellement créé
+  avec la donnée dynamique (`data: "10.10.10.110"` provenant du nœud
+  précédent, pas d'une constante). Bugs Cortex corrigés au passage : URL en
+  `https://` alors que le service écoute en HTTP simple (`SSLError`),
+  authentification manquante (`401`), et limitation du moteur de templating
+  Shuffle qui ne résout pas les chemins JSON imbriqués
+  (`$node.body[0].data` ne fonctionne pas — seule la référence de premier
+  niveau au nœud entier est supportée, confirmé via le bouton Autocomplete de
+  l'éditeur), contournée avec des nœuds Python intermédiaires. La connexion
+  des nœuds elle-même a nécessité une édition directe du JSON du workflow via
+  l'API (`PUT /api/v1/workflows/{id}`), l'éditeur canevas ne permettant de
+  connecter que lors du dépôt d'un nouveau nœud sur un nœud existant, jamais
+  entre deux nœuds déjà présents.
   **Chaîne complète validée sans réserve, MISP inclus** : job Cortex terminé
   avec `"status": "Success"` (pas seulement soumis) grâce à deux corrections
   supplémentaires sur VM05-MISP (réseau interne statique reperdu par un
   redémarrage, clé API invalide régénérée via la CLI `cake`, et clé
   correspondante mise à jour dans la config de l'analyseur Cortex). Validé
-  aussi hors cache Cortex (job indépendant avec IP inédite). Dérogation
-  temporaire et explicite de l'utilisateur au budget 3 VM (4 VM : SHUFFLE +
-  THEHIVE + CORTEX + MISP, ≈9,5 Go de RAM) le temps de cette vérification
-  finale ; retour à 2 VM (SHUFFLE + THEHIVE) immédiatement après. Voir
+  aussi hors cache Cortex (job indépendant avec IP inédite).
+  **Deux limitations résiduelles identifiées puis corrigées pour de vrai**
+  (après un examen plus poussé demandé par l'utilisateur) : (1)
+  `Get_TheHive_Alert` pointait vers un ID d'alerte figé tandis que
+  `Get_TheHive_Observable` utilisait un ID différent codé en dur — la donnée
+  n'était donc pas réellement transmise d'un nœud à l'autre malgré les
+  apparences ; corrigé en rendant tout le déclenchement dynamique (voir
+  ci-dessus). (2) MISP ne contenait aucun renseignement de menace réel, donc
+  le `"status": "Success"` ne prouvait qu'une exécution technique correcte,
+  pas une vraie détection ; corrigé en publiant un événement MISP réel
+  (IOC `ip-dst 10.10.10.110`, `to_ids: true`) — le rapport Cortex contient
+  désormais une corrélation authentique
+  (`"level":"suspicious","value":"1 event(s)"`). Dérogation temporaire et
+  explicite de l'utilisateur au budget 3 VM à deux reprises (4 VM : SHUFFLE +
+  THEHIVE + CORTEX + MISP, ≈9,5 Go de RAM) le temps de ces vérifications ;
+  retour à 2 VM (SHUFFLE + THEHIVE) immédiatement après chaque fois. Voir
   `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
 - [ ] Étape 8 — MISP + DFIR-HUNT
 - [ ] Étape 9 — FW
