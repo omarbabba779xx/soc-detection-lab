@@ -167,6 +167,22 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   (`MISP_SocForge`) exécuté avec succès sur une IP de test (job soumis, script
   exécuté, rapport renvoyé) — échec attendu car MISP (étape 8) n'est pas encore
   démarrée. Voir `purple-team/scenarios/scenario-thehive-cortex-100155.md`.
-- [ ] Étape 7 — Shuffle
+- [x] Étape 7 — Shuffle : reconstruction complète de VM06-SHUFFLE après une
+  cascade d'incidents (disque plein → corruption FS → boot bloqué → restauration
+  d'un snapshot antérieur à l'installation Docker → réinstallation complète de
+  Docker/Compose/Shuffle). Bugs corrigés en repartant de zéro : mapping de ports
+  frontend (80/443 réels vs 3001/3443 supposés), nom de variable d'env
+  `SHUFFLE_OPENSEARCH_URL` (pas `OPENSEARCH_URL`), heap OpenSearch réduit à 512m,
+  RAM de la VM augmentée de 2 à 4 Go (minimum officiel Shuffle), carte réseau
+  interne reconfigurée en statique (perdue par la restauration de snapshot).
+  Workflow SOAR créé (`Wazuh Alert to TheHive - Cortex Enrichment`) : appel HTTP
+  authentifié vers TheHive validé en conditions réelles (200, alerte rule 100155
+  récupérée) ; appel vers Cortex avec payload correct (échec de connexion attendu,
+  VM04-CORTEX non démarrée dans le budget 3 VM de cette étape). Limitation d'outil
+  rencontrée (pas de bug applicatif) : l'éditeur visuel Shuffle ne permet de
+  connecter deux nœuds déjà existants que via dépôt d'un nouveau nœud sur une
+  cible, pas de liaison manuelle a posteriori — contourné en validant les deux
+  segments du pipeline séparément avec des données réelles. Voir
+  `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
 - [ ] Étape 8 — MISP + DFIR-HUNT
 - [ ] Étape 9 — FW
