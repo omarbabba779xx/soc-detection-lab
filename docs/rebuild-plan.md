@@ -218,5 +218,19 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   THEHIVE + CORTEX + MISP, ≈9,5 Go de RAM) le temps de ces vérifications ;
   retour à 2 VM (SHUFFLE + THEHIVE) immédiatement après chaque fois. Voir
   `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
-- [ ] Étape 8 — MISP + DFIR-HUNT
+- [x] Étape 8 — MISP + DFIR-HUNT. Trois vrais défauts corrigés sur VM08-DFIR-HUNT
+  (Velociraptor) : carte réseau mgmt `enp0s8` jamais configurée (maintenant
+  `10.10.10.61/24`, persistante), URL du frontend annoncée aux clients incorrecte
+  (`https://10.10.10.61:8889/`), et création d'un utilisateur API (`socforge-api`).
+  Agent déployé sur WIN01 après le passage de sa souris en tablette USB (sans Guest
+  Additions, la souris PS/2 empêchait l'intégration). Le service Windows hérité d'une
+  installation d'août ne se connectait pas ; il est remplacé par une tâche planifiée SYSTEM
+  au démarrage. Persistance vérifiée par un redémarrage sans ouverture de session. Chasse 1 :
+  3 événements 4104 du test T1059 (SC-04) retrouvés dans le `.evtx` de WIN01. Import MISP :
+  événement #2 publié avec 5 IOC de la campagne. Chasse 2 pilotée par ces IOC (lus via
+  l'API MISP) : 11 événements, dont la chronologie complète de la persistance Run key SC-09
+  (création puis suppression par le nettoyage), alors que la clé n'existe plus. Le 3ᵉ IOC
+  (tâche SC-01) ne donne aucun résultat sur WIN01, ce qui est attendu puisque SC-01 a été
+  exécuté sur DC01. Incident : WIN01 a figé une fois (`AHCI port reset`, pression RAM de
+  l'hôte) et a été redémarré. Voir `purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md`.
 - [ ] Étape 9 — FW
