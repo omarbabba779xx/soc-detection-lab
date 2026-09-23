@@ -49,7 +49,8 @@ Client : `C.07dab9364f98e1aa` — `DESKTOP-75LAKDV.socforge.lab` — `10.10.10.1
 
 ### Pourquoi une tâche planifiée et pas le service Windows
 
-`service install` a réutilisé le service `Velociraptor` d'une installation d'août. Ce
+`service install` a réutilisé le service `Velociraptor` créé lors de la première
+réalisation du projet (04/08, voir la chronologie dans `docs/rebuild-plan.md`). Ce
 service démarre mais ne se connecte jamais. Le 23/09, le problème a été reproduit en test
 contrôlé, sans ouvrir de session sur WIN01, par des collectes Velociraptor :
 
@@ -182,7 +183,7 @@ confirme :
 | Security | 20 975 616 o (maximum par défaut, plein) | 22/09 19:10 UTC* |
 | Microsoft-Windows-Sysmon/Operational | 49 Mo | 13/08 |
 | Microsoft-Windows-PowerShell/Operational | 15 Mo | 13/08 |
-| System | 4 Mo | 03/08 |
+| System | 4 Mo | 03/08 (première réalisation du projet) |
 
 \* Horodatage écrit pendant la dérive d'horloge de WIN01 (voir Incidents). En réalité,
 l'événement date du 23/09.
@@ -197,8 +198,11 @@ conclure « l'événement n'a pas eu lieu » sans vérifier la rétention.
 - **22/09 19:02 UTC** — WIN01 figé, `AHCI#0: Port 0 reset` dans le journal VirtualBox,
   sous pression mémoire de l'hôte (3 VM). Corrigé ensuite par `storagectl --hostiocache on`
   sur les contrôleurs SATA de WIN01 et de MISP (MISP avait aussi figé pendant un démarrage).
-- **23/09** — horloges de VM08 et WIN01 en retard d'environ 14 h après la veille de l'hôte
-  (celle de MISP, synchronisée par NTP, était juste). VM08 a été recalée sur l'heure UTC de
+- **23/09, reprise après la pause de la nuit** — les VM étaient restées allumées pendant
+  la veille de l'hôte. Les horloges de VM08 et WIN01 avaient donc environ 14 h de retard
+  (celle de MISP, synchronisée par NTP, était juste). Ce n'est pas un défaut du lab, mais
+  une conséquence du travail en plusieurs sessions (voir la chronologie dans
+  `docs/rebuild-plan.md`). VM08 a été recalée sur l'heure UTC de
   l'hôte. Pour WIN01, sans Guest Additions, un `reset` ne suffit pas : l'horloge RTC émulée
   suit le temps virtuel de la VM. Seul un arrêt complet suivi d'un démarrage l'a recalée.
 - **23/09** — en 0.77.1, `Windows.System.PowerShell` et `Windows.System.CmdShell` ouvrent

@@ -22,6 +22,29 @@
 | VM11-LINUX01 | 10.10.10.111 | Cible Linux (victime) | 2048 |
 | VM12-PURPLE | — | Kali — **source d'attaque** | 2048 |
 
+## Chronologie du projet
+
+Le projet a été réalisé en plusieurs périodes de travail, séparées par des pauses. Les
+dates visibles dans les preuves (journaux, fichiers, identifiants) s'expliquent par ce
+calendrier. Ce ne sont pas des incohérences.
+
+| Période | Travail |
+|---|---|
+| 02/08 → 15/08/2026 | Première réalisation : cadrage, création des 12 VM, Wazuh, premiers scénarios purple-team, premier déploiement Velociraptor/MISP |
+| 16/08 → 12/09 | Pause (environ 4 semaines) |
+| 13/09 → 19/09 | Reprise : audit de l'existant (17/09), puis reconstruction étape par étape (ce plan) |
+| 20/09 → 21/09 | Courte pause |
+| 22/09 → 23/09 | Étape 8 (MISP + DFIR-HUNT) et intégration native MISP ↔ Velociraptor |
+
+Conséquences visibles :
+
+- Des éléments datés d'**août** sur les VM viennent de la première réalisation et sont
+  normaux : journaux Windows qui remontent au 03/08 et au 13/08, service Velociraptor et
+  identité client de WIN01 créés le 04/08, flux MISP activés le 04/08.
+- Une VM laissée allumée pendant la veille de l'hôte reprend avec une **horloge en
+  retard**. C'est arrivé le 23/09 (environ 14 h sur VM08 et WIN01). Les horloges ont été
+  recalées avant les tests, pour que les horodatages des preuves restent justes.
+
 ## Faiblesses corrigées avant la reprise du planning
 
 1. **Dashboard Wazuh inaccessible** — aucun port-forward vers le 443 de la VM. Corrigé :
