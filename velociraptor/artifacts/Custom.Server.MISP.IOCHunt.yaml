@@ -1,0 +1,44 @@
+name: Custom.Server.MISP.IOCHunt
+author: SocForge
+description: |
+  Launches a Velociraptor hunt driven by a MISP event.
+
+  The IOCs are read from MISP by Custom.Server.MISP.Iocs, turned into a
+  single IocRegex and passed to Windows.EventLogs.EvtxHunter on every
+  Windows client. The hunt is tagged "misp" and "misp-event-<id>" so that
+  Custom.Server.MISP.Sightings can report each hit back to MISP.
+
+  Run it from Server Artifacts in the GUI (or with collect_client on
+  client "server"). Nothing runs outside the Velociraptor server.
+
+type: SERVER
+
+parameters:
+  - name: MispUrl
+    default: https://10.10.10.22
+  - name: MispSecret
+    default: misp_api
+  - name: EventId
+    default: "2"
+  - name: IocTypes
+    type: json_array
+    default: '["text", "regkey|value"]'
+
+sources:
+  - query: |
+      LET Iocs <= SELECT * FROM Artifact.Custom.Server.MISP.Iocs(
+          MispUrl=MispUrl, MispSecret=MispSecret, EventId=EventId,
+          IocTypes=IocTypes)
+
+      LET IocRegex <= join(array=Iocs.Pattern, sep='|')
+
+      SELECT hunt(
+               description=format(format='MISP event #%v - EvtxHunter on %v IOC(s): %v',
+                                  args=[EventId, len(list=Iocs), IocRegex]),
+               tags=['misp', 'misp-event-' + EventId],
+               artifacts='Windows.EventLogs.EvtxHunter',
+               spec=dict(`Windows.EventLogs.EvtxHunter`=dict(IocRegex=IocRegex)),
+               os='windows').HuntId AS HuntId,
+             EventId, len(list=Iocs) AS NbIocs, IocRegex
+      FROM scope()
+      WHERE NbIocs > 0

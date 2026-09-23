@@ -1,0 +1,24 @@
+name: Custom.Windows.EventLogs.Retention
+author: SocForge
+description: |
+  For each event log, gives its size and the date of the oldest event
+  still present. Tells the analyst how far back a hunt in the logs can
+  look before concluding that an event "never happened".
+
+parameters:
+  - name: EvtxGlob
+    default: C:/Windows/System32/winevt/Logs/{Security,System,Microsoft-Windows-Sysmon%4Operational,Microsoft-Windows-PowerShell%4Operational}.evtx
+
+sources:
+  - precondition: SELECT OS FROM info() WHERE OS = 'windows'
+    query: |
+      SELECT * FROM foreach(
+        row={ SELECT OSPath, Size FROM glob(globs=EvtxGlob) },
+        query={
+          -- .evtx files are circular: the first record in the file is not
+          -- the oldest one once the log has wrapped, so take the minimum.
+          SELECT OSPath.Basename AS Log, Size, count() AS Events,
+                 timestamp(epoch=min(item=System.TimeCreated.SystemTime)) AS OldestEvent
+          FROM parse_evtx(filename=OSPath)
+          GROUP BY Log
+        })

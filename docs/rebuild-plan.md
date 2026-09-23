@@ -218,19 +218,29 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   THEHIVE + CORTEX + MISP, ≈9,5 Go de RAM) le temps de ces vérifications ;
   retour à 2 VM (SHUFFLE + THEHIVE) immédiatement après chaque fois. Voir
   `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
-- [x] Étape 8 — MISP + DFIR-HUNT. Trois vrais défauts corrigés sur VM08-DFIR-HUNT
+- [x] Étape 8 — MISP + DFIR-HUNT. Deux défauts corrigés sur VM08-DFIR-HUNT
   (Velociraptor) : carte réseau mgmt `enp0s8` jamais configurée (maintenant
-  `10.10.10.61/24`, persistante), URL du frontend annoncée aux clients incorrecte
-  (`https://10.10.10.61:8889/`), et création d'un utilisateur API (`socforge-api`).
+  `10.10.10.61/24`, persistante) et URL du frontend annoncée aux clients incorrecte
+  (`https://10.10.10.61:8889/`). Ajout d'un utilisateur API (`socforge-api`).
   Agent déployé sur WIN01 après le passage de sa souris en tablette USB (sans Guest
-  Additions, la souris PS/2 empêchait l'intégration). Le service Windows hérité d'une
-  installation d'août ne se connectait pas ; il est remplacé par une tâche planifiée SYSTEM
-  au démarrage. Persistance vérifiée par un redémarrage sans ouverture de session. Chasse 1 :
-  3 événements 4104 du test T1059 (SC-04) retrouvés dans le `.evtx` de WIN01. Import MISP :
-  événement #2 publié avec 5 IOC de la campagne. Chasse 2 pilotée par ces IOC (lus via
-  l'API MISP) : 11 événements, dont la chronologie complète de la persistance Run key SC-09
-  (création puis suppression par le nettoyage), alors que la clé n'existe plus. Le 3ᵉ IOC
-  (tâche SC-01) ne donne aucun résultat sur WIN01, ce qui est attendu puisque SC-01 a été
-  exécuté sur DC01. Incident : WIN01 a figé une fois (`AHCI port reset`, pression RAM de
-  l'hôte) et a été redémarré. Voir `purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md`.
+  Additions, la souris PS/2 empêchait l'intégration). Il tourne via une tâche planifiée
+  SYSTEM au démarrage, et sa persistance a été vérifiée par un redémarrage sans ouverture
+  de session. Le service Windows hérité d'août démarre mais ne se connecte jamais. Un test
+  contrôlé le 23/09 (même binaire, même config) situe le défaut dans le mode service, pas
+  dans la config. Chasse 1 : 3 événements 4104 du test T1059 (SC-04), un par exécution de
+  la charge ce jour-là, retrouvés dans le `.evtx` de WIN01. Import MISP : événement #2
+  publié avec 5 IOC de la campagne. Chasse 2 pilotée par ces IOC : 11 événements, dont la
+  chronologie complète de la persistance Run key SC-09 (création puis suppression par le
+  nettoyage), alors que la clé n'existe plus. Le 3ᵉ IOC (tâche SC-01) ne donne rien sur
+  WIN01, ce qui est attendu puisque SC-01 a été exécuté sur DC01.
+  **Intégration native (23/09)** : le script hôte de la chasse 2 est remplacé par trois
+  artefacts serveur Velociraptor (`velociraptor/artifacts/`). La clé MISP est dans un
+  secret serveur. `Custom.Server.MISP.IOCHunt`, lancé depuis le GUI, crée une vraie chasse
+  taguée `misp`. Le monitoring `Custom.Server.MISP.Sightings` renvoie un sighting MISP par
+  IOC vu : 4 sightings sur l'événement #2, sans doublon. La seconde chasse ne ramène que
+  9 lignes, parce que le journal Security de WIN01 (20 Mo, plein) a écrasé les 4688 du
+  18/09. C'est confirmé par l'artefact `Custom.Windows.EventLogs.Retention`, et Sysmon garde
+  la chronologie. Incidents : WIN01 figé une fois (`AHCI port reset`, corrigé par le cache
+  I/O hôte), horloges de VM08/WIN01 en retard après la veille de l'hôte (recalées).
+  Voir `purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md`.
 - [ ] Étape 9 — FW
