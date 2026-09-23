@@ -162,6 +162,12 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     après l'autre, et cache I/O hôte activé sur les contrôleurs SATA.
 23. **Anciens tests non nettoyés** : `profile.ps1` laissés sur WIN01 et DC01 par les tests
     T1546 d'août, retirés (leur suppression a servi de test 100186).
+24. **`wazuh-indexer` en échec après un redémarrage à froid de la VM** (`start operation
+    timed out`, 3 min écoulées) : sur un hôte chargé, OpenSearch met plus longtemps que le
+    délai systemd par défaut à finir son initialisation. Corrigé par un override
+    `/etc/systemd/system/wazuh-indexer.service.d/socforge-timeout.conf`
+    (`TimeoutStartSec=600`), conforme à la recommandation Wazuh pour les machines lentes.
+    Après ce correctif, cluster `green`, tous les services actifs.
 
 ## Statut
 
@@ -302,3 +308,8 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
 - **Licence TheHive** : obtenir la clé Community gratuite sur le portail StrangeBee
   (inscription du propriétaire du lab), l'installer, puis valider la promotion
   alerte → cas depuis une alerte Wazuh arrivée automatiquement.
+- **Règle 100103 (LSASS) sur DC01, non tentée.** WIN01 bloque la lecture de LSASS via
+  `RunAsPPL`, avant que Sysmon ne la voie (voir Étape 4). Windows Server n'active pas
+  toujours cette protection par défaut : un test sur DC01 pourrait rendre la règle
+  observable en direct, sans désactiver aucune protection. À faire lors d'une prochaine
+  session WAZUH + DC01.
