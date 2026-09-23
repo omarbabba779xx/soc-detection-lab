@@ -24,6 +24,9 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
 - Événements filtrés sur `rule.id:(100110 or 100111)`, agent dc01, 13 correspondances
   (brute force SMB PURPLE→dc01) :
   [`wazuh-dashboard-dc01-bruteforce-events.png`](../../docs/screenshots/wazuh-dashboard-dc01-bruteforce-events.png)
+- Événements filtrés sur `rule.id:(100139 or 100140 or 100186)`, 23/09 14:10–15:20 UTC, 12 correspondances
+  (validation en direct après les corrections du 23/09) :
+  [`wazuh-rules-100139-100140-100186-live.png`](../../docs/screenshots/wazuh-rules-100139-100140-100186-live.png)
 
 ## Sources de logs collectés
 
@@ -52,10 +55,28 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
 - **Faux positifs**: Connexions admin légitimes planifiées.
 
 ### T1546.013 — PowerShell Profile
-- **Source**: FIM (syscheck)
+- **Source**: FIM (syscheck), temps réel
 - **Règle Wazuh**: 100186
-- **Prérequis**: FIM configuré sur `%WINDIR%\System32\WindowsPowerShell` et `%USERPROFILE%\Documents\WindowsPowerShell` (voir `wazuh/agents/agent.conf`) — sans ces directives, syscheck ne surveille jamais le fichier de profil.
-- **Statut**: config déployée et synchronisée sur l'agent ; non re-testé en direct dans cette session de reconstruction (déjà validé lors d'une session antérieure).
+- **La règle était juste, la surveillance FIM ne couvrait pas le fichier.** Quatre défauts de config trouvés
+  le 2026-09-23 (`wazuh/agents/agent.conf`) :
+  1. la config locale par défaut de l'agent déclare déjà `%WINDIR%\System32\WindowsPowerShell\v1.0` avec
+     `restrict="powershell.exe$"`, sans temps réel. Le chemin le plus précis l'emporte : l'entrée `realtime`
+     posée sur le dossier parent ne couvrait donc jamais `profile.ps1` ;
+  2. `%USERPROFILE%` désigne le profil du compte SYSTEM, sous lequel tourne l'agent, pas celui des
+     utilisateurs. Remplacé par `C:\Users\*\Documents\WindowsPowerShell` (étendu à `labuser` et `Public`) ;
+  3. `report_changes` sur `Program Files` remplissait `queue\diff` jusqu'au quota par défaut (exactement
+     1 024 Mo). Le scan FIM s'enlisait (1 s de CPU en 20 s) et le temps réel, qui ne démarre qu'après le
+     premier scan, ne démarrait jamais. Program Files reste surveillé en intégrité, sans `report_changes` :
+     le scan passe à 5 minutes ;
+  4. un `restrict=` redéclaré sur ce même chemin dans `agent.conf` n'est pas pris en compte (test témoin :
+     un fichier dans `drivers\etc` est détecté, le profil non). Chemin `v1.0` surveillé en temps réel,
+     `recursion_level="0"`, sans `restrict` : les profils machine sont à la racine de `v1.0`.
+- **Testé en direct le 2026-09-23** sur WIN01 (profil machine, T1546.013) — 3 alertes, à la seconde près :
+  `added` 15:15:12, `modified` 15:15:46, `deleted` 15:16:14 UTC →
+  `Rule: 100186 (level 8) -> 'Sigma T1546.013: PowerShell profile modified — possible persistence'`.
+  La suppression sert aussi de nettoyage : les `profile.ps1` laissés par les tests d'août sur WIN01
+  (`SocForge-T1546`) et DC01 (`SocForge-T1546-final`) ont été retirés.
+  Capture : [`wazuh-rules-100139-100140-100186-live.png`](../../docs/screenshots/wazuh-rules-100139-100140-100186-live.png)
 
 ### T1046 — Network Service Discovery
 - **Source**: Sysmon EventID 3 (nécessite Sysmon Sysinternals installé — absent par défaut sur ce snapshot, voir ci-dessous)
@@ -128,6 +149,17 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
   reconstruction :
   `Rule: 100140 (level 10) -> 'Sigma T1021.002: Real account accessed an admin share — possible lateral movement — Administrator from 10.10.10.110'`.
   Le même accès a aussi retriggé 100178 (T1078) depuis cette nouvelle source, confirmant la détection croisée.
+  Rejoué le 2026-09-23 : `IPC$` 14:15:35 et `C$` 14:15:36 UTC, même verdict.
+- **Bug trouvé et corrigé sur 100139 (2026-09-23)** : la règle de bruit n'avait **jamais** sonné (aucune
+  occurrence dans l'historique des alertes). Les 5140 des comptes machine (41 en 40 minutes sur DC01) étaient
+  tous pris par la règle officielle **67017** (WEF, niveau 3, fille de 60103), sœur de 100139 au même niveau
+  et chargée avant. Son exclusion `IPC$|NetLogon` ne marche pas non plus : en syntaxe OS_Regex, `IPC$` veut
+  dire « IPC en fin de chaîne », alors que la valeur réelle est `\\*\IPC$`. Corrigé en chaînant 100139 sur
+  `<if_sid>67017</if_sid>`. En direct après rechargement : 7 alertes 100139 (`DESKTOP-75LAKDV$` et
+  `WIN-FJ8RP03U8FK$` sur `IPC$`, dont un accès déclenché exprès via une tâche SYSTEM à 15:17:16 UTC).
+  Les accès des comptes machine à `SYSVOL` restent sur 67017, ce qui est correct : ce n'est pas un partage
+  d'administration.
+  Capture : [`wazuh-rules-100139-100140-100186-live.png`](../../docs/screenshots/wazuh-rules-100139-100140-100186-live.png)
 
 ### T1027 — Obfuscated Files or Information
 - **Source**: Sysmon EventID 1
@@ -182,7 +214,10 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
      antérieurs pendant qu'un scan tournait. Nettoyé (`queue\diff\file\` + `queue\fim\db\fim.db`
      supprimés). **Ce n'était en réalité pas le bon chemin** : 100147 dépend de Sysmon EventID 13, pas du
      FIM/syscheck — tout ce travail a confirmé un vrai bug d'infrastructure séparé, mais n'était pas la
-     cause du non-déclenchement de la règle.
+     cause du non-déclenchement de la règle. Le 2026-09-23, la vraie cause de ce blocage FIM a été
+     trouvée : `report_changes` activé sur tout `Program Files` remplissait `queue\diff` jusqu'au quota
+     de 1 Go, et le scan s'enlisait. Le nettoyage de l'époque n'avait fait que repousser le problème
+     (voir T1546.013 ci-dessus).
   3. **Root cause réelle** : sur ce manager et à ce moment précis, `<if_group>sysmon_event_13</if_group>`
      ne déclenchait pas cette règle custom, alors que le groupe était bien tagué (la règle officielle 92300,
      qui en dépend, matchait). Confirmé par test A/B : une règle de debug chaînée sur

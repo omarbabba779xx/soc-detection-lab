@@ -1,26 +1,28 @@
 # Plan de reconstruction — 12 VMs, 3 max simultanées
 
-> Document de travail (non destiné aux recruteurs) : trace la séquence d'utilisation des
-> 12 VMs prévues dès l'origine du projet, avec leur rôle, et corrige les faiblesses
-> identifiées le 2026-09-17 (preuves visuelles dashboard manquantes, VMs jamais utilisées,
+> Journal de reconstruction : séquence d'utilisation des 12 VM prévues dès l'origine du
+> projet, rôle de chacune, et faiblesses trouvées puis corrigées en chemin. Point de
+> départ : l'audit du 2026-09-17 (preuves visuelles manquantes, VM jamais utilisées,
 > attaques lancées depuis la victime plutôt que depuis Kali).
 
 ## Inventaire et rôles
 
-| VM | IP | Rôle | RAM |
+| VM | IP mgmt | Rôle | RAM |
 |----|----|------|-----|
-| VM01-FW | — (OPNsense) | Pare-feu/segmentation réseau | 1024 |
+| VM01-FW | 10.10.10.1 (+ passerelle des 5 zones) | Pare-feu/segmentation réseau | 1024 |
 | VM02-WAZUH | 10.10.10.10 | Manager SIEM (permanent) | 5120 |
-| VM03-THEHIVE | 10.10.10.20 | Gestion de cas (SOAR) | 2048 |
-| VM04-CORTEX | 10.10.10.21 | Analyseurs automatisés (SOAR) | 1536 |
+| VM03-THEHIVE | 10.10.10.20 | Gestion d'incidents | 2048 |
+| VM04-CORTEX | 10.10.10.21 | Analyseurs automatisés | 1536 |
 | VM05-MISP | 10.10.10.22 | Threat intel / IOCs | 2048 |
-| VM06-SHUFFLE | 10.10.10.30 | Orchestration SOAR | 3072 |
-| VM07-NDR | — | Zeek/Suricata (détection réseau) | 3072 |
-| VM08-DFIR-HUNT | — | Threat hunting / forensics | 3072 |
-| VM09-DC01 | 10.10.10.109 / .50 | Cible Windows Server (victime) | 3072 |
-| VM10-WIN01 | — | Cible Windows 11 (victime) | 4096 |
+| VM06-SHUFFLE | 10.10.10.30 | Orchestration SOAR | 4096 |
+| VM07-NDR | 10.10.10.40 | Zeek/Suricata (détection réseau) | 3072 |
+| VM08-DFIR-HUNT | 10.10.10.61 | Threat hunting / forensics (Velociraptor) | 3072 |
+| VM09-DC01 | 10.10.10.109 | Cible Windows Server (victime) | 3072 |
+| VM10-WIN01 | 10.10.10.110 | Cible Windows 11 (victime) | 4096 |
 | VM11-LINUX01 | 10.10.10.111 | Cible Linux (victime) | 2048 |
-| VM12-PURPLE | — | Kali — **source d'attaque** | 2048 |
+| VM12-PURPLE | 10.10.10.60 (+ zone 10.10.50.10) | Kali — **source d'attaque** | 2048 |
+
+Réseaux de zone, logiciels et flux : `docs/lab-registry.md`.
 
 ## Chronologie du projet
 
@@ -34,7 +36,7 @@ calendrier. Ce ne sont pas des incohérences.
 | 16/08 → 12/09 | Pause (environ 4 semaines) |
 | 13/09 → 19/09 | Reprise : audit de l'existant (17/09), puis reconstruction étape par étape (ce plan) |
 | 20/09 → 21/09 | Courte pause |
-| 22/09 → 23/09 | Étape 8 (MISP + DFIR-HUNT) et intégration native MISP ↔ Velociraptor |
+| 22/09 → 23/09 | Étape 8 (MISP + DFIR-HUNT), intégration native MISP ↔ Velociraptor, puis audit complet : réparation de Wazuh, règles 100139/100186, étape 9 (pare-feu), NDR raccordée au SIEM, déclenchement automatique Wazuh → Shuffle → TheHive |
 
 Conséquences visibles :
 
@@ -101,7 +103,10 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     orphelins dans `queue\diff\file\`, laissés par des redémarrages forcés antérieurs
     pendant qu'un scan tournait, bloquant tout renommage FIM (`ERROR (1124): File
     exists`). Nettoyé (`queue\diff\file\` + `queue\fim\db\fim.db` supprimés). Aggravé
-    par une RAM hôte descendue à ~2 Go libres avec 3 VMs actives.
+    par une RAM hôte descendue à ~2 Go libres avec 3 VMs actives. **Cause réelle trouvée
+    le 2026-09-23** : `report_changes` sur tout `Program Files` remplissait `queue\diff`
+    jusqu'au quota de 1 Go et le scan s'enlisait. Le nettoyage ne faisait que repousser
+    le problème (voir faiblesse 17).
 11. **`wazuh-db` planté sur le manager** (`Unable to connect to socket 'queue/db/wdb'`
     en boucle) — processus zombie malgré `wazuh-control status` l'affichant "running".
     Corrigé par un redémarrage complet du manager (`systemctl restart wazuh-manager`).
@@ -121,6 +126,42 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     répondait `error 1017: daemons not ready` en boucle, empêchant le dashboard de se
     connecter (`Offline` dans API Connections). Supprimé manuellement ; API et
     dashboard de nouveau opérationnels.
+
+### Audit du 2026-09-23
+
+15. **Wazuh à l'arrêt depuis le 19/09 à 12:24.** Le disque racine était plein à 100 %
+    (`database or disk is full`) : 29 Go de fichiers temporaires laissés par le module de
+    vulnérabilités (`queue/vd_updater/tmp`), sur un volume LVM de 49 Go alors que le
+    groupe en offrait 98 (l'installeur Ubuntu n'en alloue que la moitié). Volume étendu
+    (`lvextend -r`, 20 % utilisés), fichiers temporaires supprimés, module de
+    vulnérabilités désactivé (hors périmètre). Indexeur `green`, historique d'alertes
+    intact.
+16. **Règle 100139 jamais déclenchée** : la règle officielle 67017, sœur au même niveau
+    et chargée avant, captait tout le bruit des comptes machine ; son exclusion `IPC$`
+    ne correspond jamais à la valeur `\\*\IPC$`. 100139 est chaînée sur 67017 et
+    validée en direct.
+17. **FIM : quatre défauts qui empêchaient 100186** : chemin `v1.0` masqué par la config
+    locale de l'agent, `%USERPROFILE%` résolu vers le profil SYSTEM, `report_changes` sur
+    Program Files qui saturait le quota et bloquait le scan, `restrict` non pris en
+    compte. Corrigés dans `wazuh/agents/agent.conf`, puis validation en direct.
+18. **Horloges** : DC01 était réglé sur le fuseau Pacifique alors que VirtualBox fournit
+    l'heure locale de l'hôte (+8 h en UTC), et il dérivait ensuite de 15 min par heure.
+    DC01 se synchronise désormais sur `pool.ntp.org` et WIN01 suit le domaine. TheHive
+    retardait de 6 min : `timesyncd` ne vérifie plus qu'au plus toutes les 5 minutes sur
+    les VM Ubuntu.
+19. **Aucune segmentation sur OPNsense** : chaque zone avait « allow any ». Politique de
+    refus par défaut, versionnée et journalisée vers Wazuh (étape 9).
+20. **NDR sans détection** : aucune signature Suricata chargée, IP inversées entre les
+    deux cartes, `HOME_NET` englobant l'attaquant (étape 5).
+21. **PURPLE** : la carte NAT perdait de nouveau son adresse, car le profil n'était pas lié
+    à `eth1` (la correction n°4 n'était pas durable). Corrigé ; routes vers les zones
+    ajoutées.
+22. **Blocage au démarrage des VM Ubuntu** (`Loading essential drivers`), observé sur
+    WAZUH, MISP et SHUFFLE : il survient pendant le test RAID6 AVX2 de l'initramfs quand
+    une autre VM démarre en même temps. Contournement : démarrages à froid, une VM
+    après l'autre, et cache I/O hôte activé sur les contrôleurs SATA.
+23. **Anciens tests non nettoyés** : `profile.ps1` laissés sur WIN01 et DC01 par les tests
+    T1546 d'août, retirés (leur suppression a servi de test 100186).
 
 ## Statut
 
@@ -158,6 +199,13 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     18 correspondances sur le dashboard. Voir
     `purple-team/scenarios/scenario-T1055-process-injection.md` et capture
     `docs/screenshots/wazuh-dashboard-rule-100155-live.png`.
+  - **100139 et 100186, complétées le 2026-09-23** (voir faiblesses 16 et 17) :
+    100139 n'avait jamais sonné, parce que la règle officielle 67017 captait tout le
+    bruit des comptes machine. Elle est chaînée sur 67017 et validée en direct
+    (`DESKTOP-75LAKDV$`, `WIN-FJ8RP03U8FK$` sur `IPC$`). Pour 100186, la règle était
+    juste mais le profil PowerShell n'était jamais surveillé : quatre défauts FIM
+    corrigés, puis validation en direct (`added`, `modified`, `deleted`). 100140 a été
+    rejouée le même jour. Capture `docs/screenshots/wazuh-rules-100139-100140-100186-live.png`.
   - **Incident annexe corrigé** : un fichier `.restart` orphelin dans
     `/var/ossec/var/run/` bloquait l'API Wazuh (port 55000) en état "restarting"
     indéfiniment, empêchant le dashboard de se connecter. Supprimé manuellement ;
@@ -176,7 +224,13 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
      VMs). Corrigé dans `suricata.yaml` et `node.cfg`, mode promiscuous activé côté OS
      (`ip link set enp0s8 promisc on`) et côté hyperviseur (`--nicpromisc2 allow-all`).
   Testé avec un scan nmap depuis PURPLE contre WAZUH : Suricata et Zeek capturent
-  tous les deux exactement les 7 sessions TCP du scan. Voir
+  tous les deux exactement les 7 sessions TCP du scan.
+  **Complété le 2026-09-23** : la NDR capturait mais ne détectait rien, et rien ne
+  remontait au SIEM. Trois défauts corrigés : aucune signature chargée (ET Open installé,
+  52 795 règles), adresses IP inversées entre les deux cartes, `HOME_NET` englobant
+  l'attaquant. Agent Wazuh installé (groupe `ndr`) et règle 100400 ajoutée. Un scan
+  PURPLE → WAZUH donne 6 signatures ET SCAN et 7 alertes 100400 (niveau 10) dans Wazuh.
+  Capture `docs/screenshots/wazuh-ndr-suricata-scan.png`. Voir
   `purple-team/scenarios/scenario-ndr-purple-scan.md`.
 - [x] Étape 6 — TheHive + Cortex : même crash noyau que VM07-NDR corrigé sur
   VM03-THEHIVE (`--paravirtprovider legacy`). Alerte créée avec succès depuis un
@@ -189,59 +243,27 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   concernée et fonctionne normalement. Cortex : un analyseur configuré
   (`MISP_SocForge`) exécuté avec succès sur une IP de test (job soumis, script
   exécuté, rapport renvoyé) — échec attendu car MISP (étape 8) n'est pas encore
-  démarrée. Voir `purple-team/scenarios/scenario-thehive-cortex-100155.md`.
-- [x] Étape 7 — Shuffle : reconstruction complète de VM06-SHUFFLE après une
-  cascade d'incidents (disque plein → corruption FS → boot bloqué → restauration
-  d'un snapshot antérieur à l'installation Docker → réinstallation complète de
-  Docker/Compose/Shuffle). Bugs corrigés en repartant de zéro : mapping de ports
-  frontend (80/443 réels vs 3001/3443 supposés), nom de variable d'env
-  `SHUFFLE_OPENSEARCH_URL` (pas `OPENSEARCH_URL`), heap OpenSearch réduit à 512m,
-  RAM de la VM augmentée de 2 à 4 Go (minimum officiel Shuffle), carte réseau
-  interne reconfigurée en statique (perdue par la restauration de snapshot).
-  Workflow SOAR créé (`Wazuh Alert to TheHive - Cortex Enrichment`), **chaîne
-  unique de bout en bout à 6 nœuds, entièrement dynamique** : Change Me →
-  Get_TheHive_Alert (requête `listAlert` triée par date, récupère toujours la
-  DERNIÈRE alerte réelle, aucun ID figé) → Extract_Alert_ID (execute_python,
-  extrait l'`_id` réel) → Get_TheHive_Observable (POST, récupère l'observable
-  IP réel de cette alerte via l'ID extrait dynamiquement) → Extract_IP
-  (execute_python, extrait dynamiquement l'IP) → Run_Cortex_Analyzer (POST
-  authentifié vers Cortex avec l'IP extraite en direct). Exécution complète en
-  un clic validée : FINISHED, 6/6 nœuds en succès, job Cortex réellement créé
-  avec la donnée dynamique (`data: "10.10.10.110"` provenant du nœud
-  précédent, pas d'une constante). Bugs Cortex corrigés au passage : URL en
-  `https://` alors que le service écoute en HTTP simple (`SSLError`),
-  authentification manquante (`401`), et limitation du moteur de templating
-  Shuffle qui ne résout pas les chemins JSON imbriqués
-  (`$node.body[0].data` ne fonctionne pas — seule la référence de premier
-  niveau au nœud entier est supportée, confirmé via le bouton Autocomplete de
-  l'éditeur), contournée avec des nœuds Python intermédiaires. La connexion
-  des nœuds elle-même a nécessité une édition directe du JSON du workflow via
-  l'API (`PUT /api/v1/workflows/{id}`), l'éditeur canevas ne permettant de
-  connecter que lors du dépôt d'un nouveau nœud sur un nœud existant, jamais
-  entre deux nœuds déjà présents.
-  **Chaîne complète validée sans réserve, MISP inclus** : job Cortex terminé
-  avec `"status": "Success"` (pas seulement soumis) grâce à deux corrections
-  supplémentaires sur VM05-MISP (réseau interne statique reperdu par un
-  redémarrage, clé API invalide régénérée via la CLI `cake`, et clé
-  correspondante mise à jour dans la config de l'analyseur Cortex). Validé
-  aussi hors cache Cortex (job indépendant avec IP inédite).
-  **Deux limitations résiduelles identifiées puis corrigées pour de vrai**
-  (après un examen plus poussé demandé par l'utilisateur) : (1)
-  `Get_TheHive_Alert` pointait vers un ID d'alerte figé tandis que
-  `Get_TheHive_Observable` utilisait un ID différent codé en dur — la donnée
-  n'était donc pas réellement transmise d'un nœud à l'autre malgré les
-  apparences ; corrigé en rendant tout le déclenchement dynamique (voir
-  ci-dessus). (2) MISP ne contenait aucun renseignement de menace réel, donc
-  le `"status": "Success"` ne prouvait qu'une exécution technique correcte,
-  pas une vraie détection ; corrigé en publiant un événement MISP réel
-  (IOC `ip-dst 10.10.10.110`, `to_ids: true`) — le rapport Cortex contient
-  désormais une corrélation authentique
-  (`"level":"suspicious","value":"1 event(s)"`). Dérogation temporaire et
-  explicite de l'utilisateur au budget 3 VM à deux reprises (4 VM : SHUFFLE +
-  THEHIVE + CORTEX + MISP, ≈9,5 Go de RAM) le temps de ces vérifications ;
-  retour à 2 VM (SHUFFLE + THEHIVE) immédiatement après chaque fois. Voir
-  `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
-- [x] Étape 8 — MISP + DFIR-HUNT. Deux défauts corrigés sur VM08-DFIR-HUNT
+  démarrée. **Cause exacte établie le 2026-09-23** : l'instance n'a plus de licence
+  (`/api/v1/license/current` : `plan "No"`, aucune capacité), car la licence d'essai d'août
+  a expiré. Depuis TheHive 5.3, l'édition Community gratuite demande une clé obtenue par
+  inscription chez StrangeBee : c'est au propriétaire du lab de faire cette démarche.
+  Voir `purple-team/scenarios/scenario-thehive-cortex-100155.md`.
+- [x] Étape 7 — Shuffle. VM06-SHUFFLE reconstruite après un disque plein, qui avait
+  corrompu le système de fichiers ; le snapshot restauré était antérieur à Docker. Cinq
+  défauts corrigés : ports du frontend, variable `SHUFFLE_OPENSEARCH_URL`, heap
+  OpenSearch, RAM portée à 4 Go, IP interne statique.
+  Workflow d'enrichissement (19/09) : dernière alerte TheHive → ID → observable → IP →
+  Cortex `MISP_SocForge`, sans aucune valeur codée en dur, avec une vraie corrélation MISP
+  (`"level":"suspicious"`). Pour y arriver, il a fallu corriger l'URL et
+  l'authentification de Cortex, contourner le templating de Shuffle avec des nœuds Python,
+  relier les nœuds par l'API, réparer le réseau et la clé API de MISP, et remplacer deux
+  ID d'alerte figés qui donnaient une fausse impression de dynamisme. Cette validation a
+  demandé 4 VM en même temps (≈ 9,5 Go), une dérogation ponctuelle validée avant le test.
+  **Déclenchement automatique (23/09)** : intégration native Wazuh → webhook Shuffle
+  (alertes de niveau ≥ 10) → alerte TheHive (ID Wazuh en référence, tags MITRE). Test :
+  règle 100210 à 17:06:49, exécution Shuffle `webhook` avec un 201 vers TheHive, alerte
+  TheHive créée à 17:07:03. Au passage, l'horloge de TheHive, en retard de 6 minutes, a
+  été corrigée. Voir `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.- [x] Étape 8 — MISP + DFIR-HUNT. Deux défauts corrigés sur VM08-DFIR-HUNT
   (Velociraptor) : carte réseau mgmt `enp0s8` jamais configurée (maintenant
   `10.10.10.61/24`, persistante) et URL du frontend annoncée aux clients incorrecte
   (`https://10.10.10.61:8889/`). Ajout d'un utilisateur API (`socforge-api`).
@@ -266,4 +288,16 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   la chronologie. Incidents : WIN01 figé une fois (`AHCI port reset`, corrigé par le cache
   I/O hôte), horloges de VM08/WIN01 en retard après la veille de l'hôte (recalées).
   Voir `purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md`.
-- [ ] Étape 9 — FW
+- [x] Étape 9 — FW (2026-09-23). Aucune segmentation au départ : chaque zone avait
+  « allow any ». Politique de moindre privilège appliquée par l'API
+  (`firewall/segmentation-policy.json`, 12 règles, refus par défaut journalisé), anciennes
+  règles désactivées, `filterlog` envoyé en syslog vers Wazuh, règles 100300/100301/100302.
+  Test depuis la zone purple vers les zones srv et dfir : 19 blocages dans Wazuh, dont
+  100302 (niveau 12, scan à travers les zones). Contre-épreuve vers la zone ep, autorisée :
+  aucun blocage. Voir `purple-team/scenarios/scenario-firewall-segmentation.md`.
+
+## Reste à faire
+
+- **Licence TheHive** : obtenir la clé Community gratuite sur le portail StrangeBee
+  (inscription du propriétaire du lab), l'installer, puis valider la promotion
+  alerte → cas depuis une alerte Wazuh arrivée automatiquement.

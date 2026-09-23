@@ -1,0 +1,17 @@
+<!-- SocForge — NDR (Suricata ET Open on VM07-NDR, EVE JSON via the Wazuh agent) -->
+<!-- 86601 is the official "Suricata: Alert" rule (level 3). Scan signatures from the -->
+<!-- attacker are raised so they stand out next to the endpoint detections.          -->
+
+<group name="socforge,ndr,suricata,">
+
+  <rule id="100400" level="10">
+    <if_sid>86601</if_sid>
+    <field name="alert.signature" type="pcre2">^(ET|GPL) SCAN </field>
+    <description>NDR (Suricata): network scan — $(alert.signature) — $(src_ip) -> $(dest_ip):$(dest_port)</description>
+    <group>network_scan,</group>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+  </rule>
+
+</group>

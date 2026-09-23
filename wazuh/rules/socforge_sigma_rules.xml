@@ -145,9 +145,14 @@
   <!-- T1021.002 — Remote Services: SMB/Admin Shares                -->
   <!-- Root cause fixed 2026-09-14/16: exclude machine accounts ($) -->
   <!-- and ANONYMOUS LOGON — both are routine GPO/Netlogon noise    -->
+  <!-- 100139 chained on 67017 (2026-09-23): with if_group it was a -->
+  <!-- sibling of the official WEF rule 67017 at the same level 3,  -->
+  <!-- loaded first, which took every machine-account 5140 (its     -->
+  <!-- "IPC$" exclusion never matches the literal "\\*\IPC$").      -->
+  <!-- 100139 never fired; as a child of 67017 it now does.         -->
   <!-- ============================================================ -->
   <rule id="100139" level="3">
-    <if_group>windows_security</if_group>
+    <if_sid>67017</if_sid>
     <field name="win.system.eventID">^5140$</field>
     <field name="win.eventdata.shareName" type="pcre2">(?i)(ADMIN\$|C\$|IPC\$)</field>
     <field name="win.eventdata.subjectUserName" type="pcre2">(?i)(\$$|^ANONYMOUS LOGON$)</field>

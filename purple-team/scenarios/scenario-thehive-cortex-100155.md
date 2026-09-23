@@ -40,7 +40,19 @@ toutes les opérations d'écriture de gestion de cas.
 /api/v1/alert`), utilisée par l'intégration SIEM externe (Wazuh → TheHive), n'est PAS
 soumise à cette restriction — testé avec succès (`201 Created`).
 
+**Cause exacte, établie le 2026-09-23** : `GET /api/v1/license/current` renvoie
+`"id": "no-license", "plan": "No", "capabilities": []`. La licence d'essai installée en
+août (phase 1 du projet) a expiré, et l'instance n'a plus aucune capacité de gestion de
+cas. Depuis TheHive 5.3, même l'édition Community gratuite demande une clé, obtenue en
+s'inscrivant sur le portail StrangeBee. Cette inscription est une démarche du
+propriétaire du lab, pas une configuration technique. Une fois la clé installée, la
+promotion alerte → cas pourra être validée.
+
 ## Alerte créée depuis Wazuh (rule 100155)
+
+> Test manuel du 18/09, qui vérifie le format de l'alerte. Depuis le 23/09, les alertes
+> Wazuh de niveau ≥ 10 arrivent **automatiquement** dans TheHive (intégration native
+> Wazuh → webhook Shuffle → `POST /api/v1/alert`), voir SC-14.
 
 ```
 POST /api/v1/alert (auth: soar-bot@socforge.local bearer key)
@@ -79,9 +91,9 @@ bout — la panne est une dépendance externe attendue, pas un défaut de Cortex
 |------------------------------------|-------------------------------------------------|
 | VM03-THEHIVE démarre                | ✅ OUI (après fix paravirt provider)            |
 | Alerte créée depuis Wazuh           | ✅ OUI (201, via API bot SOAR)                  |
-| Cas créé depuis l'alerte            | ❌ NON — bloqué par la licence TheHive (limitation logicielle réelle, pas une erreur de config) |
+| Cas créé depuis l'alerte            | ❌ NON — instance sans licence (`plan "No"`), clé Community à obtenir auprès de StrangeBee |
 | Analyseur Cortex exécuté            | ✅ OUI (job soumis et traité)                    |
-| Résultat de l'analyseur             | Échec attendu (MISP hors ligne, prévu étape 8)   |
+| Résultat de l'analyseur             | Échec attendu ici (MISP hors ligne) ; succès avec corrélation MISP réelle à l'étape 7 (SC-14) |
 
 ## Nettoyage
 

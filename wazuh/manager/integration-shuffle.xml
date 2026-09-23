@@ -1,0 +1,19 @@
+<!-- Added to /var/ossec/etc/ossec.conf on the Wazuh manager (2026-09-23).
+     Native Wazuh -> Shuffle integration (/var/ossec/integrations/shuffle.py).
+     Every alert of level 10 or more is posted to the Shuffle webhook of the workflow
+     "Wazuh alert to TheHive (webhook)" (soar/create_wazuh_webhook_workflow.py).
+     The webhook id works as a shared secret: it is kept out of the repository. -->
+<integration>
+  <name>shuffle</name>
+  <hook_url>http://10.10.10.30:3001/api/v1/hooks/webhook_REPLACE_WITH_WEBHOOK_ID</hook_url>
+  <level>10</level>
+  <alert_format>json</alert_format>
+</integration>
+
+<!-- Syslog listener for OPNsense filterlog (step 9), same file -->
+<remote>
+  <connection>syslog</connection>
+  <port>514</port>
+  <protocol>udp</protocol>
+  <allowed-ips>10.10.10.1</allowed-ips>
+</remote>

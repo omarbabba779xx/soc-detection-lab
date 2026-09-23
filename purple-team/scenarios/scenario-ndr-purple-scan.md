@@ -1,6 +1,6 @@
-# SC-12 — Étape 5 : Capture NDR (Zeek/Suricata) d'un scan PURPLE
+# SC-12 — Étape 5 : NDR (Suricata/Zeek) — capture et détection d'un scan PURPLE
 
-**Session** : Reconstruction, étape 5 — 2026-09-18
+**Sessions** : Reconstruction, étape 5 — 2026-09-18 (capture), 2026-09-23 (détection et intégration SIEM)
 **Attaquant** : PURPLE (Kali, 10.10.10.60)
 **Cible** : WAZUH manager (10.10.10.10)
 **MITRE** : T1046 — Network Service Discovery
@@ -69,6 +69,51 @@ exacte avec les 7 ports scannés :
 10.10.10.60 -> 10.10.10.10:1514  RSTO
 ```
 
+## Détection réelle et intégration au SIEM (2026-09-23)
+
+Le 18/09, la NDR **capturait** le trafic mais ne pouvait rien **détecter**, et rien ne
+remontait dans Wazuh. Trois défauts expliquaient cet état :
+
+1. **Aucune signature de détection** : `default-rule-path` pointait vers
+   `/etc/suricata/rules`, qui ne contenait que les règles d'événements de protocole
+   (`decoder-events`, `dns-events`…). Le fichier `suricata.rules` n'existait pas.
+   Corrigé avec `suricata-update` (ET Open) et
+   `default-rule-path: /var/lib/suricata/rules` : **52 795 règles chargées, 0 en échec**.
+2. **Adresses IP inversées** : la carte du réseau mgmt (`enp0s8`, NIC2) portait
+   l'adresse de la zone ndr (`10.10.40.10`), et la carte de la zone ndr (`enp0s3`, NIC1)
+   portait l'adresse mgmt (`10.10.10.40`). La sonde ne pouvait donc pas joindre Wazuh.
+   Corrigé dans `/etc/netplan/01-socforge-zones.yaml` : `enp0s8` = 10.10.10.40,
+   `enp0s3` = 10.10.40.10.
+3. **`HOME_NET` englobait l'attaquant** (`10.0.0.0/8` par défaut). Les signatures
+   « ET SCAN » (`$EXTERNAL_NET → $HOME_NET`) ne pouvaient pas se déclencher.
+   `HOME_NET` = `[10.10.0.0/16,!10.10.50.0/24,!10.10.10.60]` : la zone purple et
+   l'adresse mgmt de PURPLE sont considérées comme externes.
+
+**Raccordement à Wazuh** : agent Wazuh 4.9.2 (même version que le manager, paquet
+bloqué en version), ID 009, dans un groupe dédié `ndr`
+([`wazuh/agents/agent-ndr.conf`](../../wazuh/agents/agent-ndr.conf) : `eve.json` au
+format JSON). Règle SocForge **100400** (niveau 10, T1046), fille de la règle officielle
+86601, pour les signatures `ET SCAN` / `GPL SCAN`
+([`wazuh/rules/socforge_ndr_rules.xml`](../../wazuh/rules/socforge_ndr_rules.xml)).
+
+**Test, 16:12:31 UTC** : `nmap -sS -O` depuis PURPLE (10.10.10.60) vers le manager Wazuh.
+
+| Signature Suricata (ET Open) | SID |
+|---|---|
+| ET SCAN Suspicious inbound to mySQL port 3306 | 2010937 |
+| ET SCAN Suspicious inbound to Oracle SQL port 1521 | 2010936 |
+| ET SCAN Suspicious inbound to MSSQL port 1433 | 2010935 |
+| ET SCAN Suspicious inbound to PostgreSQL port 5432 | 2010939 |
+| ET SCAN Potential SSH Scan | 2001219 |
+| ET SCAN NMAP OS Detection Probe | 2018489 |
+
+Dans Wazuh : **7 alertes 100400** (niveau 10) à 16:12:33–34 UTC, agent `ndr`, source
+10.10.10.60, plus 2 alertes 86601 (ICMP). L'administration de la sonde elle-même a été
+vue : installation du paquet (2902/2904) et `sudo` (100200). C'est l'activité
+d'administration attendue.
+
+Capture : [`docs/screenshots/wazuh-ndr-suricata-scan.png`](../../docs/screenshots/wazuh-ndr-suricata-scan.png)
+
 ## Résultats
 
 | Critère              | Valeur                                  |
@@ -76,7 +121,8 @@ exacte avec les 7 ports scannés :
 | VM07-NDR démarre      | ✅ OUI (après fix paravirt provider)     |
 | Capture Suricata      | ✅ OUI (24 paquets, 7 sessions TCP)       |
 | Capture Zeek          | ✅ OUI (7 lignes conn.log, correspondance exacte) |
-| Détection Wazuh liée  | Hors périmètre de cette étape (NDR non encore intégré au pipeline d'alertes Wazuh) |
+| Détection Suricata (signatures) | ✅ OUI (52 795 règles ET Open, 6 signatures de scan déclenchées) |
+| Alerte dans Wazuh     | ✅ OUI (100400 niveau 10, agent `ndr`, 7 alertes) |
 
 ## Nettoyage
 

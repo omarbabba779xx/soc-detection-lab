@@ -1,0 +1,34 @@
+<!-- SocForge — OPNsense segmentation events (filterlog over syslog, decoder "pf") -->
+<!-- The official drop rule 87701 has <options>no_log</options>: single blocks are  -->
+<!-- never written. These child rules surface inter-zone blocks and flag the        -->
+<!-- attacker zone (10.10.50.0/24) hitting the segmentation boundary.               -->
+
+<group name="socforge,firewall,opnsense,">
+
+  <rule id="100300" level="5">
+    <if_sid>87701</if_sid>
+    <description>OPNsense segmentation: blocked inter-zone connection $(srcip) -> $(dstip):$(dstport)</description>
+    <group>firewall_drop,</group>
+  </rule>
+
+  <rule id="100301" level="8">
+    <if_sid>100300</if_sid>
+    <srcip>10.10.50.0/24</srcip>
+    <description>OPNsense segmentation: attacker zone blocked toward $(dstip):$(dstport) (from $(srcip))</description>
+    <group>firewall_drop,segmentation_violation,</group>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+  </rule>
+
+  <rule id="100302" level="12" frequency="10" timeframe="60" ignore="120">
+    <if_matched_sid>100301</if_matched_sid>
+    <same_source_ip />
+    <description>OPNsense segmentation: repeated blocked connections from the attacker zone — network scan across zones ($(srcip))</description>
+    <group>firewall_drop,segmentation_violation,attack,</group>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+  </rule>
+
+</group>

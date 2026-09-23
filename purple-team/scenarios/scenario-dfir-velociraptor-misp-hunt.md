@@ -160,7 +160,7 @@ dédoublonnage fonctionne.
 - **`System.Flow.Completion` ne voit pas les flows clients** sur ce serveur : seuls les
   flows serveur y apparaissent. Un premier monitoring fondé sur ce flux ne s'est jamais
   déclenché. Il a été remplacé par une interrogation périodique des chasses `misp`.
-- **Un flow de chasse porte le nom de l'utilisateur comme créateur** (`admin`) et un ID de
+- **Un flow de chasse porte comme créateur le compte qui a lancé la chasse** (`admin`) et un ID de
   forme `F.<chasse>.H`, pas l'ID de la chasse.
 - **`source()` lit `HuntId`/`FlowId` dans la portée de la ligne** quand on ne les passe
   pas. La relecture des résultats déjà envoyés partait donc sur `hunt_results()` (log :

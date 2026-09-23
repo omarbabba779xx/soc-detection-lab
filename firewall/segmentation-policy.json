@@ -1,0 +1,38 @@
+{
+  "_comment": "SocForge inter-zone policy for OPNsense 24.7 (Firewall > Automation > Filter). Applied by apply_policy.py. First match wins; every zone ends with a logged block.",
+  "zones": {
+    "lan":  "mgmt   10.10.10.0/24  SOC tools (Wazuh, TheHive, Cortex, MISP, Shuffle, NDR/Velociraptor mgmt legs)",
+    "opt1": "srv    10.10.20.0/24  DC01",
+    "opt2": "ep     10.10.30.0/24  WIN01, LINUX01",
+    "opt3": "ndr    10.10.40.0/24  NDR sensor",
+    "opt4": "purple 10.10.50.0/24  Kali attacker",
+    "opt5": "dfir   10.10.60.0/24  Velociraptor"
+  },
+  "aliases": [
+    {"name": "SOC_AGENT_PORTS", "type": "port", "content": ["1514", "1515", "8889"],
+     "description": "Wazuh agent (1514/1515) and Velociraptor client (8889)"},
+    {"name": "AD_PORTS", "type": "port",
+     "content": ["53", "88", "123", "135", "389", "445", "464", "636", "3268", "3269", "49152:65535"],
+     "description": "Active Directory: DNS, Kerberos, NTP, RPC, LDAP(S), SMB, GC, dynamic RPC"}
+  ],
+  "rules": [
+    {"seq": 100, "if": "opt1", "action": "pass",  "proto": "TCP",     "dst": "10.10.10.0/24", "port": "SOC_AGENT_PORTS", "log": 0, "desc": "srv -> SOC agents"},
+    {"seq": 190, "if": "opt1", "action": "block", "proto": "any",     "dst": "any",           "port": "",                "log": 1, "desc": "srv default deny"},
+
+    {"seq": 200, "if": "opt2", "action": "pass",  "proto": "TCP",     "dst": "10.10.20.0/24", "port": "AD_PORTS",        "log": 0, "desc": "ep -> AD services (tcp)"},
+    {"seq": 201, "if": "opt2", "action": "pass",  "proto": "UDP",     "dst": "10.10.20.0/24", "port": "AD_PORTS",        "log": 0, "desc": "ep -> AD services (udp)"},
+    {"seq": 210, "if": "opt2", "action": "pass",  "proto": "TCP",     "dst": "10.10.10.0/24", "port": "SOC_AGENT_PORTS", "log": 0, "desc": "ep -> SOC agents"},
+    {"seq": 290, "if": "opt2", "action": "block", "proto": "any",     "dst": "any",           "port": "",                "log": 1, "desc": "ep default deny"},
+
+    {"seq": 300, "if": "opt3", "action": "pass",  "proto": "TCP",     "dst": "10.10.10.0/24", "port": "SOC_AGENT_PORTS", "log": 0, "desc": "ndr -> SOC agents"},
+    {"seq": 390, "if": "opt3", "action": "block", "proto": "any",     "dst": "any",           "port": "",                "log": 1, "desc": "ndr default deny"},
+
+    {"seq": 400, "if": "opt4", "action": "pass",  "proto": "any",     "dst": "10.10.30.0/24", "port": "",                "log": 0, "desc": "purple -> ep (test targets)"},
+    {"seq": 490, "if": "opt4", "action": "block", "proto": "any",     "dst": "any",           "port": "",                "log": 1, "desc": "purple default deny (srv, mgmt, dfir, ndr)"},
+
+    {"seq": 500, "if": "opt5", "action": "pass",  "proto": "TCP",     "dst": "10.10.10.0/24", "port": "SOC_AGENT_PORTS", "log": 0, "desc": "dfir -> SOC agents"},
+    {"seq": 590, "if": "opt5", "action": "block", "proto": "any",     "dst": "any",           "port": "",                "log": 1, "desc": "dfir default deny"}
+  ],
+  "syslog": {"hostname": "10.10.10.10", "port": "514", "transport": "udp4", "program": "filterlog",
+             "description": "filterlog to Wazuh manager"}
+}

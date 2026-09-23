@@ -1,6 +1,6 @@
 # SC-03 — T1021.002 : Remote Services — SMB/Admin Shares
 
-**Session** : Reconstruction, root cause hérité d'une investigation antérieure (2026-09-14/16)
+**Session** : Reconstruction — correction initiale 2026-09-14/16, re-validation en direct 2026-09-23
 **MITRE** : T1021.002 — Remote Services: SMB/Windows Admin Shares
 **Tactique** : Lateral Movement
 
@@ -33,10 +33,27 @@ normal, pas une attaque.
 | 100139 | 3  | Bruit filtré (compte machine / ANONYMOUS LOGON) |
 | 100140 | 10 | Alerte réelle (compte réel accédant à un partage admin) |
 
-## Statut de re-validation (reconstruction 2026-09-17)
+## Re-validation en direct (2026-09-23) — et un bug trouvé sur 100139
 
-Règles redéployées à l'identique sur le manager propre — logique de filtrage inchangée
-depuis la correction originale. Non re-testé en direct dans cette session (le mécanisme
-de filtrage par regex ne dépend d'aucun état VM susceptible d'avoir changé lors du
-reset), mais reste à re-valider en direct lors du prochain cycle de test purple-team
-avant d'être présenté comme "re-confirmé" plutôt que "hérité".
+**100140** : accès de `Administrator` depuis WIN01 (10.10.10.110) à `IPC$` puis `C$` de DC01,
+14:15:35 et 14:15:36 UTC → deux alertes niveau 10 (détail du test dans SC-08).
+
+**100139 n'avait jamais sonné.** Le bruit existait bien (41 événements 5140 de comptes machine en
+40 minutes sur DC01), mais il était entièrement pris par la règle officielle **67017** (WEF,
+« A network share was accessed », niveau 3). Elle est sœur de 100139 sous la même règle parente,
+au même niveau, et chargée avant. Son exclusion `IPC$|NetLogon` ne fonctionne pas : en syntaxe
+OS_Regex, `IPC$` signifie « IPC en fin de chaîne », alors que la valeur réelle est `\\*\IPC$`.
+
+Correction : 100139 est chaînée sur `<if_sid>67017</if_sid>` (voir
+`wazuh/rules/socforge_sigma_rules.xml`). Résultat en direct après rechargement :
+
+| Heure (UTC) | Compte | Partage | Règle |
+|---|---|---|---|
+| 14:52:17 (×2), 15:05:59 | `WIN-FJ8RP03U8FK$` (DC01) | `IPC$` | 100139 |
+| 15:07:17 (×2), 15:08:14 | `DESKTOP-75LAKDV$` (WIN01) | `IPC$` | 100139 |
+| 15:17:16 | `DESKTOP-75LAKDV$`, accès déclenché exprès (tâche SYSTEM `net view`) | `IPC$` | 100139 |
+
+Les accès des comptes machine à `SYSVOL` restent sur 67017, ce qui est correct : `SYSVOL` n'est pas
+un partage d'administration.
+
+Capture : [`docs/screenshots/wazuh-rules-100139-100140-100186-live.png`](../../docs/screenshots/wazuh-rules-100139-100140-100186-live.png)

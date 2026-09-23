@@ -41,6 +41,10 @@ Les deux règles se sont déclenchées simultanément sur le même événement s
 détection croisée (mouvement latéral + compte privilégié) renforce le verdict par
 rapport à une alerte isolée.
 
+**Rejoué le 2026-09-23** avec le compte du domaine (`SOCFORGE\Administrator`), après la
+correction des horloges du lab : 100140 à 14:15:35 (`IPC$`) et 14:15:36 (`C$`) UTC, source
+10.10.10.110. Capture : [`wazuh-rules-100139-100140-100186-live.png`](../../docs/screenshots/wazuh-rules-100139-100140-100186-live.png)
+
 ## Résultats
 
 | Critère    | Valeur                       |

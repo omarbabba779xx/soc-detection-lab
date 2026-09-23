@@ -1,6 +1,5 @@
-# Identifiants et inventaire du lab — ne doivent jamais quitter la machine locale
+# Identifiants du lab — ne doivent jamais quitter la machine locale
 secrets/
-docs/lab-registry.md
 
 # Artefacts lourds : modèles et fichiers temporaires (~1 Go, hors périmètre du dépôt)
 ollama-models/
