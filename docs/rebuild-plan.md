@@ -168,6 +168,13 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     `/etc/systemd/system/wazuh-indexer.service.d/socforge-timeout.conf`
     (`TimeoutStartSec=600`), conforme à la recommandation Wazuh pour les machines lentes.
     Après ce correctif, cluster `green`, tous les services actifs.
+25. **Service Velociraptor de WIN01 sans connexion** : l'`ImagePath` du service hérité
+    d'août (`Velociraptor.exe service run`) ne passait pas de `--config`. Une comparaison
+    A/B sur le même binaire le montre : sans `--config`, il charge sa config par défaut
+    (`server_urls: https://localhost:8000/`) et contacte WIN01 elle-même ; avec
+    `--config`, il charge celle du lab (`https://10.10.10.61:8889/`). `ImagePath` corrigé,
+    démarrage automatique, redémarrage sur échec. Reconnexion seule après un redémarrage
+    sans session ; la tâche planifiée qui servait de contournement a été supprimée.
 
 ## Statut
 
@@ -280,11 +287,10 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   `10.10.10.61/24`, persistante) et URL du frontend annoncée aux clients incorrecte
   (`https://10.10.10.61:8889/`). Ajout d'un utilisateur API (`socforge-api`).
   Agent déployé sur WIN01 après le passage de sa souris en tablette USB (sans Guest
-  Additions, la souris PS/2 empêchait l'intégration). Il tourne via une tâche planifiée
-  SYSTEM au démarrage, et sa persistance a été vérifiée par un redémarrage sans ouverture
-  de session. Le service Windows hérité d'août démarre mais ne se connecte jamais. Un test
-  contrôlé le 23/09 (même binaire, même config) situe le défaut dans le mode service, pas
-  dans la config. Chasse 1 : 3 événements 4104 du test T1059 (SC-04), un par exécution de
+  Additions, la souris PS/2 empêchait l'intégration). Le service Windows hérité d'août
+  démarrait mais ne se connectait jamais ; l'agent a d'abord tourné via une tâche
+  planifiée SYSTEM. Cause trouvée et corrigée le 23/09 (faiblesse 25) : l'agent tourne
+  désormais en service Windows, persistance prouvée par un redémarrage sans session. Chasse 1 : 3 événements 4104 du test T1059 (SC-04), un par exécution de
   la charge ce jour-là, retrouvés dans le `.evtx` de WIN01. Import MISP : événement #2
   publié avec 5 IOC de la campagne. Chasse 2 pilotée par ces IOC : 11 événements, dont la
   chronologie complète de la persistance Run key SC-09 (création puis suppression par le

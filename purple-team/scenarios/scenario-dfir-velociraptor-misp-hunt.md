@@ -41,32 +41,61 @@ Ajout :
 - Binaire et config servis depuis l'hôte (`python -m http.server`, joignable depuis la VM
   via la passerelle NAT `10.0.3.2`), puis téléchargés dans une console admin
   (`C:\V\v.exe`, `C:\V\c.yaml`).
-- **Persistance** : tâche planifiée `VelociraptorAgent` (déclencheur au démarrage, compte
-  SYSTEM, `C:\V\v.exe --config C:\V\c.yaml client`). Vérifiée par redémarrage sans
-  ouverture de session : le client se reconnecte seul.
+- **Persistance** : service Windows `Velociraptor` (démarrage automatique, compte SYSTEM,
+  redémarrage automatique en cas d'échec). Vérifiée par redémarrage sans ouverture de
+  session (voir ci-dessous).
 
 Client : `C.07dab9364f98e1aa` — `DESKTOP-75LAKDV.socforge.lab` — `10.10.10.110`.
 
-### Pourquoi une tâche planifiée et pas le service Windows
+### Le service qui ne se connectait jamais : cause et correction
 
-`service install` a réutilisé le service `Velociraptor` créé lors de la première
+`service install` avait réutilisé le service `Velociraptor` créé lors de la première
 réalisation du projet (04/08, voir la chronologie dans `docs/rebuild-plan.md`). Ce
-service démarre mais ne se connecte jamais. Le 23/09, le problème a été reproduit en test
-contrôlé, sans ouvrir de session sur WIN01, par des collectes Velociraptor :
+service démarrait mais ne se connectait jamais. En attendant la cause, l'agent a d'abord
+tourné via une tâche planifiée SYSTEM (`C:\V\v.exe --config C:\V\c.yaml client`).
 
-- binaire et config du service **identiques** à ceux de l'agent qui fonctionne : même
-  taille (70 375 416 et 2 661 octets), même `server_urls` (`https://10.10.10.61:8889/`),
-  même fichier writeback ;
-- agent de la tâche planifiée arrêté, service passé en démarrage manuel puis lancé :
-  `STATE: RUNNING`, PID 4228, événement Application 1 « Starting service Velociraptor » ;
-- **aucune connexion au serveur en 4 minutes**, alors que le même binaire avec la même
-  config, lancé par la tâche planifiée, se connecte en quelques secondes.
+Un premier test contrôlé, dans l'après-midi du 23/09, avait écarté le fichier de config :
+binaire et config de même taille que ceux de l'agent qui fonctionnait (70 375 416 et
+2 661 octets ; empreinte SHA-256 des deux configs identique, vérifiée le soir), service `RUNNING`, mais
+aucune connexion en 4 minutes. Seule différence : le `ImagePath` du
+service (`Velociraptor.exe service run`) ne passe pas de `--config`.
 
-La config n'est donc pas en cause. Le défaut se trouve dans le mode `service run` de cette
-installation. Seule différence visible : le `ImagePath` (`Velociraptor.exe service run`)
-ne passe pas de `--config`. La cause exacte à l'intérieur du mode service n'est pas
-démontrée. Après le test, le service a été remis en `DISABLED`, la tâche de test et ses
-fichiers ont été supprimés, et l'agent planifié est revenu après redémarrage.
+**Cause démontrée le soir du 23/09**, par une comparaison A/B sur le même binaire :
+
+| Lancement | Config chargée | `server_urls` |
+|---|---|---|
+| sans `--config` (comme le service) | config **par défaut** du binaire | `https://localhost:8000/` |
+| avec `--config ...\Velociraptor.config.yaml` | config du lab | `https://10.10.10.61:8889/` |
+
+Sans `--config`, le service ne lit jamais le fichier posé à côté de lui : il utilise la
+config par défaut et contacte `localhost:8000`, c'est-à-dire WIN01 elle-même. Il tourne
+donc normalement, mais ne peut jamais atteindre le serveur.
+
+**Correction** : `ImagePath` =
+`"C:\Program Files\Velociraptor\Velociraptor.exe" --config "C:\Program Files\Velociraptor\Velociraptor.config.yaml" service run`,
+démarrage `Automatic`, redémarrage automatique sur échec (`sc failure`, 3 × 60 s). Au
+lancement, connexion TCP établie vers `10.10.10.61:8889` et même client
+(`C.07dab9364f98e1aa`, même fichier writeback) vu par le serveur à 22:22:55.
+
+**Preuve de persistance** (tâche planifiée désactivée, redémarrage ordonné à 22:23:33),
+collectée par le service lui-même :
+
+| Point vérifié | Valeur |
+|---|---|
+| Démarrage de WIN01 | 22:25:13 UTC |
+| Session interactive | aucune (`No User exists`) |
+| Service | `Running` / `Auto`, PID 3724, lancé à 22:27:38 |
+| Tâche planifiée | `Disabled` |
+| Connexion au serveur | port local 49673 → `10.10.10.61`, ouverte par le PID 3724 ; le serveur voit le client depuis `10.10.10.110:49673` à 22:28:18 |
+
+La tâche planifiée et son dossier `C:\V` ont ensuite été supprimés : il ne reste aucune
+trace du contournement.
+
+Une première tentative de correction par `sc.exe config ... binPath=` lancée à distance
+n'avait rien modifié. Le redémarrage qui la suivait avait coupé la sortie de la commande,
+et WIN01 s'était retrouvée sans agent. La correction a été refaite par
+`Set-ItemProperty` sur `ImagePath` et `Set-Service`, avec vérification de l'état **avant**
+de redémarrer.
 
 ## Chasse 1 — trace du test T1059 (SC-04)
 
@@ -230,15 +259,13 @@ conclure « l'événement n'a pas eu lieu » sans vérifier la rétention.
 - Le secret `misp_api` a `skip_verify` : le certificat MISP est auto-signé.
 - La chasse est lancée à la main depuis le GUI. Il n'y a pas de déclenchement automatique
   à la publication d'un événement MISP.
-- Le service Windows Velociraptor d'origine reste désactivé (cause circonscrite au mode
-  service, voir plus haut). L'agent tourne via une tâche planifiée SYSTEM.
 
 ## Résultats
 
 | Critère | Valeur |
 |---|---|
 | Serveur Velociraptor joignable par les endpoints | ✅ (`10.10.10.61:8889`) |
-| Agent WIN01 connecté et persistant après redémarrage | ✅ |
+| Agent WIN01 connecté et persistant après redémarrage | ✅ (service Windows, sans session ouverte) |
 | Artefact laissé par un test précédent retrouvé | ✅ (4104 de SC-04, chronologie SC-09) |
 | IOC de campagne importés et publiés dans MISP | ✅ (événement #2, 5 IOC) |
 | Chasse pilotée par les IOC MISP, depuis Velociraptor | ✅ (`Custom.Server.MISP.IOCHunt`, secret serveur) |
@@ -248,6 +275,6 @@ conclure « l'événement n'a pas eu lieu » sans vérifier la rétention.
 
 Aucun pour l'intégration : les artefacts `Custom.Server.MISP.*` restent installés et le
 monitoring `Custom.Server.MISP.Sightings` reste actif. Les artefacts de diagnostic
-`Custom.Diag.*` ont été supprimés du serveur. Sur WIN01, le service de test a été remis
-en `DISABLED`, la tâche `SvcTest` et ses fichiers ont été supprimés. Les événements MISP
-#1 et #2 restent comme référence.
+`Custom.Diag.*` ont été supprimés du serveur. Sur WIN01, la tâche de test `SvcTest`, puis
+la tâche `VelociraptorAgent` et son dossier `C:\V`, ont été supprimées ; seul le service
+reste. Les événements MISP #1 et #2 restent comme référence.
