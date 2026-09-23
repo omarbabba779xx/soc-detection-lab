@@ -48,7 +48,7 @@ Inventaire complet (adresses, versions, flux) : [`docs/lab-registry.md`](docs/la
 
 | Domaine | Résultat | Preuve |
 |---|---|---|
-| Détection Windows | 16 règles Sigma → Wazuh, dont 15 validées en direct (PowerShell encodé, tâche planifiée, clé Run, injection, mouvement latéral, profil PowerShell…) ; la 16ᵉ (LSASS) est bloquée en amont par la protection LSA | [`detection-sheet-windows.md`](detections/windows/detection-sheet-windows.md) |
+| Détection Windows | 16 règles Sigma → Wazuh, toutes validées en direct (PowerShell encodé, tâche planifiée, clé Run, injection, mouvement latéral, profil PowerShell, accès LSASS…) | [`detection-sheet-windows.md`](detections/windows/detection-sheet-windows.md) |
 | Détection Linux | sudo, persistance cron | [`detection-sheet-linux.md`](detections/linux/detection-sheet-linux.md) |
 | Réseau | Suricata (52 795 signatures ET Open) détecte un scan, alerte niveau 10 dans Wazuh | [SC-12](purple-team/scenarios/scenario-ndr-purple-scan.md) |
 | Segmentation | politique de refus par défaut entre 6 zones, blocages de l'attaquant visibles dans Wazuh | [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
@@ -70,7 +70,7 @@ Inventaire complet (adresses, versions, flux) : [`docs/lab-registry.md`](docs/la
 | SC-08 | T1021.002 + T1078 Mouvement latéral WIN01 → DC01 | [scenario-T1021-win01-to-dc01.md](purple-team/scenarios/scenario-T1021-win01-to-dc01.md) |
 | SC-09 | T1547.001 Clé Run | [scenario-T1547-registry-run-key.md](purple-team/scenarios/scenario-T1547-registry-run-key.md) |
 | SC-10 | T1055 Injection de processus | [scenario-T1055-process-injection.md](purple-team/scenarios/scenario-T1055-process-injection.md) |
-| SC-11 | T1003 Accès LSASS, bloqué par la protection LSA | [scenario-T1003-lsass-access.md](purple-team/scenarios/scenario-T1003-lsass-access.md) |
+| SC-11 | T1003 Accès LSASS — bloqué sur WIN01 (protection LSA), validé en direct sur DC01 | [scenario-T1003-lsass-access.md](purple-team/scenarios/scenario-T1003-lsass-access.md) |
 | SC-12 | NDR : capture et détection d'un scan | [scenario-ndr-purple-scan.md](purple-team/scenarios/scenario-ndr-purple-scan.md) |
 | SC-13 | TheHive + Cortex | [scenario-thehive-cortex-100155.md](purple-team/scenarios/scenario-thehive-cortex-100155.md) |
 | SC-14 | SOAR Wazuh → Shuffle → TheHive → Cortex → MISP | [scenario-shuffle-soar-workflow.md](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
@@ -115,8 +115,6 @@ Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-p
   → TheHive → Cortex → MISP est donc validée en deux exécutions, pas en une seule.
 - **Réseau mgmt** non filtré : c'est le réseau d'administration hors bande du lab.
   La segmentation s'applique aux réseaux de zone.
-- **LSASS (SC-11)** : la protection LSA de Windows bloque l'accès avant que Sysmon ne le
-  voie. La règle est validée sur sa logique, pas par une alerte en direct.
 
 ## Chronologie
 

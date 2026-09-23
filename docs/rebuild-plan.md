@@ -181,7 +181,7 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
 - [x] Étape 3 — LINUX01 depuis PURPLE : 100200/100210 validées en direct (voir
   `scenario-T1548-T1053-linux.md`). Agent recréé dans un groupe `linux` dédié (était dans
   `default`, config Windows sans effet) ; NIC mgmt et redirection SSH réparés/persistés.
-- [x] Étape 4 — DC01/WIN01 : 100140/100147/100178 validées en direct depuis WIN01 (voir
+- [x] Étape 4 — DC01/WIN01 : 100103/100140/100147/100178 validées en direct (voir
   `scenario-T1021-win01-to-dc01.md` et `detection-sheet-windows.md`). 100147 a nécessité
   trois corrections successives (groupe mal nommé, blocage FIM réel dû à des fichiers
   orphelins, puis la vraie root cause : `if_group` ne déclenchait pas cette règle custom
@@ -194,10 +194,15 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     refusé). **Découverte réelle** : `RunAsPPL = 0x2` (LSA Protection) est actif sur
     WIN01, bloquant l'accès à un stade du noyau antérieur au callback Sysmon — aucun
     EventID 10 n'est généré pour cette tentative, ni pour aucun outil de dump réel
-    dans les mêmes conditions. La règle reste logiquement correcte (structure
-    identique à 92900, validée en Phase 2 `wazuh-logtest`) ; la valider en direct
-    nécessiterait de désactiver une vraie protection OS, jugé non souhaitable. Voir
-    `purple-team/scenarios/scenario-T1003-lsass-access.md`.
+    dans les mêmes conditions.
+    **Validée en direct le 2026-09-23, sur DC01** (protection LSA absente par défaut sur
+    Windows Server, vérifié avant tout test). Défaut trouvé en chemin : la config Sysmon
+    de DC01 n'avait aucune règle `ProcessAccess` — corrigée. Le masque de droits `0x0410`
+    donne un `grantedAccess` réel de `0x1410` (Windows ajoute
+    `QUERY_LIMITED_INFORMATION`), que la règle 92900 ne reconnaît pas ; le masque
+    `0x1010` (celui d'un vrai outil de dump) donne exactement la valeur attendue →
+    `Rule: 100103 (level 14)`, `powershell.exe → lsass.exe`, `grantedAccess=0x1010`,
+    2 s après le test. Voir `purple-team/scenarios/scenario-T1003-lsass-access.md`.
   - **100155** : même correction appliquée (chaînage sur `<if_sid>185006</if_sid>`, la
     règle de base EventID8 dans `0330-sysmon_rules.xml`). **Testé en direct et
     validé** : injection de thread bénigne (`CreateRemoteThread` → `kernel32!Sleep`)
@@ -308,8 +313,3 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
 - **Licence TheHive** : obtenir la clé Community gratuite sur le portail StrangeBee
   (inscription du propriétaire du lab), l'installer, puis valider la promotion
   alerte → cas depuis une alerte Wazuh arrivée automatiquement.
-- **Règle 100103 (LSASS) sur DC01, non tentée.** WIN01 bloque la lecture de LSASS via
-  `RunAsPPL`, avant que Sysmon ne la voie (voir Étape 4). Windows Server n'active pas
-  toujours cette protection par défaut : un test sur DC01 pourrait rendre la règle
-  observable en direct, sans désactiver aucune protection. À faire lors d'une prochaine
-  session WAZUH + DC01.

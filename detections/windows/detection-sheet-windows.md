@@ -197,10 +197,20 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
   `ObRegisterCallbacks` que Sysmon utilise pour générer l'EventID 10 — la tentative n'est donc jamais visible
   par Sysmon, quel que soit le compte appelant (même testé en Administrator). C'est le comportement attendu
   d'un vrai outil de credential dumping (Mimikatz, etc.) contre cette protection : elle bloque l'attaque
-  avant même que la télémétrie puisse l'observer. La règle 100103 est logiquement correcte (structure
-  identique à la règle officielle 92900, validée par `wazuh-logtest` en Phase 2) ; la valider en direct sur
-  ce lab nécessiterait de désactiver temporairement une vraie protection OS (non souhaitable) ou une
-  technique de contournement PPL (hors périmètre d'un test bénin).
+  avant même que la télémétrie puisse l'observer.
+- **Validée en direct le 2026-09-23, sur DC01** (Windows Server n'active pas `RunAsPPL` par défaut — vérifié
+  avant tout test : les trois clés `RunAsPPL`/`RunAsPPLBoot`/`LsaCfgFlags` sont absentes). Défaut trouvé en
+  chemin : la config Sysmon de DC01, installée pour le scénario réseau, n'avait **aucune règle
+  `ProcessAccess`** — corrigé en ajoutant un groupe ciblant `lsass.exe`. Premier essai avec le masque
+  `0x0410` (`QUERY_INFORMATION|VM_READ`) : Windows y ajoute automatiquement `QUERY_LIMITED_INFORMATION`,
+  Sysmon journalise `0x1410`, que la règle officielle 92900 ne reconnaît pas (elle attend `0x1010` ou
+  `0x40`). Corrigé en utilisant le masque `0x1010` (`QUERY_LIMITED_INFORMATION|VM_READ`), celui réellement
+  utilisé par les outils de dump type Mimikatz →
+  `Rule: 100103 (level 14) -> sourceImage=powershell.exe, targetImage=lsass.exe, grantedAccess=0x1010`,
+  2 s après la tentative. Les journaux montrent aussi Windows Defender (`MsMpEng.exe`) accéder à `lsass.exe`
+  avec `0x101000`, capté par la même règle — un vrai comportement d'antivirus, pas une menace, qui confirme
+  sa sensibilité. Capture : [`wazuh-dashboard-rule-100103-live.png`](../../docs/screenshots/wazuh-dashboard-rule-100103-live.png).
+  Voir `purple-team/scenarios/scenario-T1003-lsass-access.md` pour le détail complet des deux tentatives.
 
 ### T1547.001 — Registry Run Keys
 - **Source**: Sysmon EventID 13/14
