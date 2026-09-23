@@ -263,7 +263,8 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   (alertes de niveau ≥ 10) → alerte TheHive (ID Wazuh en référence, tags MITRE). Test :
   règle 100210 à 17:06:49, exécution Shuffle `webhook` avec un 201 vers TheHive, alerte
   TheHive créée à 17:07:03. Au passage, l'horloge de TheHive, en retard de 6 minutes, a
-  été corrigée. Voir `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.- [x] Étape 8 — MISP + DFIR-HUNT. Deux défauts corrigés sur VM08-DFIR-HUNT
+  été corrigée. Voir `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
+- [x] Étape 8 — MISP + DFIR-HUNT. Deux défauts corrigés sur VM08-DFIR-HUNT
   (Velociraptor) : carte réseau mgmt `enp0s8` jamais configurée (maintenant
   `10.10.10.61/24`, persistante) et URL du frontend annoncée aux clients incorrecte
   (`https://10.10.10.61:8889/`). Ajout d'un utilisateur API (`socforge-api`).
