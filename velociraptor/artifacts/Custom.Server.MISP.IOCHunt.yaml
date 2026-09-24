@@ -22,7 +22,7 @@ parameters:
     default: "2"
   - name: IocTypes
     type: json_array
-    default: '["text", "regkey|value"]'
+    default: '["text", "regkey|value", "filename", "hash"]'
 
 sources:
   - query: |

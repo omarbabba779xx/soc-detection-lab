@@ -37,7 +37,7 @@ calendrier. Ce ne sont pas des incohérences.
 | 13/09 → 19/09 | Reprise : audit de l'existant (17/09), puis reconstruction étape par étape (ce plan) |
 | 20/09 → 21/09 | Courte pause |
 | 22/09 → 23/09 | Étape 8 (MISP + DFIR-HUNT), intégration native MISP ↔ Velociraptor, puis audit complet : réparation de Wazuh, règles 100139/100186, étape 9 (pare-feu), NDR raccordée au SIEM, déclenchement automatique Wazuh → Shuffle → TheHive |
-| 24/09 | Levée des limites restantes : cause de fond de l'instabilité des VM (hyperviseur Windows), TLS vérifié partout (CA du lab), chasse et sightings automatiques, agent DC01, journaux Windows, licence TheHive et cas, chaîne SOAR complète en une exécution |
+| 24/09 | Levée des limites restantes : cause de fond de l'instabilité des VM (hyperviseur Windows), TLS vérifié partout (CA du lab), chasse et sightings automatiques, agent DC01, journaux Windows, licence TheHive et cas, chaîne SOAR complète en une exécution, puis deux limites de process (confinement automatique, boucle SOAR → DFIR) |
 
 Conséquences visibles :
 
@@ -371,6 +371,30 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   Test depuis la zone purple vers les zones srv et dfir : 19 blocages dans Wazuh, dont
   100302 (niveau 12, scan à travers les zones). Contre-épreuve vers la zone ep, autorisée :
   aucun blocage. Voir `purple-team/scenarios/scenario-firewall-segmentation.md`.
+- [x] Étape 10 — réponse automatique et boucle SOAR → DFIR (2026-09-24). La chaîne
+  détectait, alertait, enrichissait et corrélait avec MISP, mais n'agissait jamais contre
+  l'attaquant, et un `misp:match` ne déclenchait rien côté Velociraptor : deux limites de
+  process, pas des bugs isolés. Deux nœuds Shuffle supplémentaires
+  (`Contain_Attacker`, `Trigger_DFIR_Hunt`, code dans `soar/nodes/`, déployés par
+  `soar/create_wazuh_webhook_workflow.py`) ferment la boucle. Confinement : alias
+  dynamique `BLOCKED_ATTACKERS` sur OPNsense (`firewall/contain_attacker.py` /
+  `uncontain_attacker.py`, `firewall/opnsense_client.py` partagé avec `apply_policy.py`),
+  réversible, déclenché seulement sur alerte confirmée (sévérité ≥ 3 et `misp:match`) —
+  validé avec du trafic réel (blocage/rétablissement) puis revalidé en nœud Shuffle
+  (`198.51.100.77`, GUI OPNsense). Boucle DFIR : republication de l'événement MISP déjà
+  identifié par Cortex, ce qui relance `Custom.Server.MISP.AutoHunt`, puis sondage des
+  sightings pendant 150 s. **Défaut trouvé en la construisant** : `IocTypes` par défaut
+  des trois artefacts MISP de Velociraptor (`text`, `regkey|value`) était plus étroit que
+  ce que l'analyseur Cortex matche déjà — un `misp:match` sur un `filename` ne déclenchait
+  aucune chasse. Élargi à `["text", "regkey|value", "filename", "hash"]`, redéployé,
+  chasse `H.DAQO7NJA0I35E` obtenue sur l'événement qui échouait. Chaîne à 5 nœuds testée
+  en conditions réelles sur une alerte Wazuh authentique (`~204804176`, règle 100210) :
+  `Contain_Attacker` s'abstient correctement (sévérité 2 < 3), `Trigger_DFIR_Hunt` pose
+  `dfir:hunt-triggered`. **Incident pendant ce test** : le backend Shuffle a été tué par
+  manque de RAM en cours d'exécution ; à son redémarrage automatique, le worker a rejoué
+  les premiers nœuds sans dupliquer l'alerte TheHive (dédoublonnage par `sourceRef`) ;
+  conteneurs orphelins nettoyés après coup. Voir
+  `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
 
 ## Reste à faire
 

@@ -1,18 +1,39 @@
-"""Create the Shuffle workflow "Wazuh alert -> TheHive alert" with a webhook trigger.
+"""Create or update the Shuffle workflow "Wazuh alert -> TheHive alert" with a webhook trigger.
 
-Usage: SHUFFLE_URL=http://10.10.10.30:3001 SHUFFLE_KEY=... THEHIVE_KEY=... python create_wazuh_webhook_workflow.py
-Prints the webhook URL to put in the Wazuh <integration> block (see wazuh/manager/integration-shuffle.xml).
+Usage: SHUFFLE_URL=http://10.10.10.30:3001 SHUFFLE_KEY=... THEHIVE_KEY=... MISP_KEY=...
+       OPN_KEY=... OPN_SECRET=... python create_wazuh_webhook_workflow.py
+Prints the webhook URL to put in the Wazuh <integration> block (see
+wazuh/manager/integration-shuffle.xml). MISP_KEY, OPN_KEY and OPN_SECRET are only needed
+to (re)deploy Contain_Attacker / Trigger_DFIR_Hunt; the rest of the chain works without
+them.
 
-With SHUFFLE_WORKFLOW_ID=<id>, only the code of the Build_TheHive_Alert node of that
-existing workflow is replaced: the webhook, and so the Wazuh integration, stay as they are.
+With SHUFFLE_WORKFLOW_ID=<id>, the existing workflow is updated in place: every node
+below is created if missing, or has its code refreshed if already present. The webhook,
+and so the Wazuh integration, is left untouched either way.
+
+Chain: Wazuh_Webhook -> Build_TheHive_Alert -> Create_TheHive_Alert -> Enrich_With_Cortex
+       -> Contain_Attacker -> Trigger_DFIR_Hunt
+See soar/nodes/*.py for what Contain_Attacker and Trigger_DFIR_Hunt do and why.
 """
-import json, os, uuid, requests
+import json, os, pathlib, uuid, requests
 
+HERE = pathlib.Path(__file__).resolve().parent
 BASE = os.environ.get("SHUFFLE_URL", "http://10.10.10.30:3001").rstrip("/") + "/api/v1"
 H = {"Authorization": "Bearer " + os.environ["SHUFFLE_KEY"]}
 THEHIVE = os.environ.get("THEHIVE_URL", "http://10.10.10.20:9000")
+MISP = os.environ.get("MISP_URL", "https://10.10.10.22")
+OPNSENSE = os.environ.get("OPN_URL", "https://10.10.10.1")
+LAB_CA = (HERE.parent / "pki" / "socforge-lab-ca.crt").read_text()
 TOOLS = ("Shuffle Tools", "1.2.0", "41f94d2b-eee9-466b-97ef-1b7348961e84")
 HTTP = ("http", "1.4.0", "60bcf2f6-aafb-43bc-b9f2-63ae340fb296")
+
+
+def load_node_code(filename):
+    """Load the CODE = r'''...''' string from a soar/nodes/*.py file."""
+    ns = {}
+    exec(compile((HERE / "nodes" / filename).read_text(encoding="utf-8"), filename, "exec"), ns)
+    return ns["CODE"]
+
 
 # Wazuh's shuffle.py posts {"severity", "title", "rule_id", "all_fields": <alert>, ...}
 BUILD_ALERT = r'''import json
@@ -82,8 +103,11 @@ for j in out["jobs"]:
         s = requests.get(THEHIVE + "/api/connector/cortex/job/" + j["job"], headers=H, timeout=30).json()
         j["status"] = s.get("status")
         if j["status"] in ("Success", "Failure"):
+            # full.results[].result[] are the MISP events the value was found in
             full = (s.get("report") or {}).get("full") or {}
-            j["misp_hits"] = sum(len(r.get("result", [])) for r in full.get("results", []))
+            events = [e for r in full.get("results", []) for e in r.get("result", [])]
+            j["misp_hits"] = len(events)
+            j["misp_events"] = sorted({str(e.get("id")) for e in events})
             break
         time.sleep(5)
 out["misp_match"] = any(j.get("misp_hits") for j in out["jobs"])
@@ -94,6 +118,18 @@ if out["misp_match"]:
 print(json.dumps(out))
 '''
 
+ENRICH = ENRICH.replace("__THEHIVE__", THEHIVE).replace("__THEHIVE_KEY__", os.environ["THEHIVE_KEY"])
+
+CONTAIN = load_node_code("contain_attacker.py")
+CONTAIN = (CONTAIN.replace("__THEHIVE__", THEHIVE).replace("__THEHIVE_KEY__", os.environ["THEHIVE_KEY"])
+                  .replace("__OPN_URL__", OPNSENSE).replace("__OPN_KEY__", os.environ.get("OPN_KEY", ""))
+                  .replace("__OPN_SECRET__", os.environ.get("OPN_SECRET", "")).replace("__LAB_CA__", LAB_CA))
+
+TRIGGER_HUNT = load_node_code("trigger_dfir_hunt.py")
+TRIGGER_HUNT = (TRIGGER_HUNT.replace("__THEHIVE__", THEHIVE).replace("__THEHIVE_KEY__", os.environ["THEHIVE_KEY"])
+                            .replace("__MISP_URL__", MISP).replace("__MISP_KEY__", os.environ.get("MISP_KEY", ""))
+                            .replace("__LAB_CA__", LAB_CA))
+
 
 def action(label, app, fn, params, x, y):
     return {"id": str(uuid.uuid4()), "label": label, "app_name": app[0], "app_version": app[1],
@@ -103,52 +139,75 @@ def action(label, app, fn, params, x, y):
                            for k, v in params.items()]}
 
 
-ENRICH = ENRICH.replace("__THEHIVE__", THEHIVE).replace("__THEHIVE_KEY__", os.environ["THEHIVE_KEY"])
+# The chain, in order. Each entry beyond the first names the node it follows.
+CHAIN = [
+    ("Build_TheHive_Alert", TOOLS, "execute_python", {"code": BUILD_ALERT}, 300, None),
+    ("Create_TheHive_Alert", HTTP, "POST", {
+        "url": THEHIVE + "/api/v1/alert", "body": "$build_thehive_alert.message",
+        "headers": "Content-Type: application/json\nAuthorization: Bearer " + os.environ["THEHIVE_KEY"],
+        "username": "", "password": "", "verify": "", "http_proxy": "", "https_proxy": "", "timeout": ""},
+     600, "Build_TheHive_Alert"),
+    ("Enrich_With_Cortex", TOOLS, "execute_python", {"code": ENRICH}, 900, "Create_TheHive_Alert"),
+    ("Contain_Attacker", TOOLS, "execute_python", {"code": CONTAIN}, 1200, "Enrich_With_Cortex"),
+    ("Trigger_DFIR_Hunt", TOOLS, "execute_python", {"code": TRIGGER_HUNT}, 1500, "Contain_Attacker"),
+]
+
+
+def ensure_chain(wf, hook_id=None, hook_x=0):
+    """Create or refresh every node in CHAIN, and every branch between consecutive ones
+    (including from the webhook to the first node, when hook_id is given). Existing code
+    is replaced in place; existing branches are left as they are."""
+    by_label = {n["label"]: n for n in wf.get("actions", [])}
+    for label, app, fn, params, x, after in CHAIN:
+        node = by_label.get(label)
+        if node is None:
+            node = action(label, app, fn, params, x, 0)
+            wf.setdefault("actions", []).append(node)
+            by_label[label] = node
+        else:
+            for k, v in params.items():
+                p = next((p for p in node["parameters"] if p["name"] == k), None)
+                if p:
+                    p["value"] = v
+                else:
+                    node["parameters"].append({"name": k, "value": v, "required": False,
+                                               "multiline": "\n" in str(v)})
+        src_id = hook_id if after is None else by_label[after]["id"]
+        if src_id and not any(b["source_id"] == src_id and b["destination_id"] == node["id"]
+                              for b in wf.get("branches", [])):
+            wf.setdefault("branches", []).append({"id": str(uuid.uuid4()), "source_id": src_id,
+                                                   "destination_id": node["id"]})
+    return by_label["Build_TheHive_Alert"]["id"]
+
 
 if os.environ.get("SHUFFLE_WORKFLOW_ID"):
     wf = requests.get(BASE + "/workflows/" + os.environ["SHUFFLE_WORKFLOW_ID"], headers=H, timeout=30).json()
-    node = next(n for n in wf["actions"] if n["label"] == "Build_TheHive_Alert")
-    next(p for p in node["parameters"] if p["name"] == "code")["value"] = BUILD_ALERT
-    enrich = next((n for n in wf["actions"] if n["label"] == "Enrich_With_Cortex"), None)
-    if enrich:
-        next(p for p in enrich["parameters"] if p["name"] == "code")["value"] = ENRICH
-    else:
-        create = next(n for n in wf["actions"] if n["label"] == "Create_TheHive_Alert")
-        enrich = action("Enrich_With_Cortex", TOOLS, "execute_python", {"code": ENRICH}, 900, 0)
-        wf["actions"].append(enrich)
-        wf["branches"].append({"id": str(uuid.uuid4()), "source_id": create["id"], "destination_id": enrich["id"]})
+    hook = next((t for t in wf.get("triggers", []) if t.get("name") == "Webhook"), None)
+    ensure_chain(wf, hook_id=hook["id"] if hook else None)
     r = requests.put(BASE + "/workflows/" + wf["id"], headers=H, json=wf, timeout=30)
-    print("workflow", wf["id"], "updated (Build_TheHive_Alert, Enrich_With_Cortex):", r.status_code)
+    print("workflow", wf["id"], "updated:", r.status_code, [l for l, *_ in CHAIN])
     raise SystemExit(0 if r.ok else 1)
 
 wf = requests.post(BASE + "/workflows", headers=H, timeout=30, json={
     "name": "Wazuh alert to TheHive (webhook)",
-    "description": "Triggered by the Wazuh shuffle integration (alerts level >= 10). "
-                   "Turns the Wazuh alert into a TheHive alert with MITRE tags and observables, "
-                   "then has TheHive run the Cortex MISP analyzer on them."}).json()
+    "description": "Triggered by the Wazuh shuffle integration (alerts level >= 10). Turns "
+                   "the Wazuh alert into a TheHive alert with MITRE tags and observables, "
+                   "runs the Cortex MISP analyzer on them, contains a confirmed high-severity "
+                   "source IP on OPNsense, and triggers the matching Velociraptor hunt."}).json()
 
-build = action("Build_TheHive_Alert", TOOLS, "execute_python", {"code": BUILD_ALERT}, 300, 0)
-create = action("Create_TheHive_Alert", HTTP, "POST", {
-    "url": THEHIVE + "/api/v1/alert",
-    "body": "$build_thehive_alert.message",
-    "headers": "Content-Type: application/json\nAuthorization: Bearer " + os.environ["THEHIVE_KEY"],
-    "username": "", "password": "", "verify": "", "http_proxy": "", "https_proxy": "", "timeout": ""}, 600, 0)
 hook_id = str(uuid.uuid4())
 trigger = {"id": hook_id, "label": "Wazuh_Webhook", "name": "Webhook", "trigger_type": "WEBHOOK",
            "app_name": "Webhook", "status": "uninitialized", "environment": "Shuffle",
            "position": {"x": 0, "y": 0}, "parameters": [
                {"name": "url", "value": ""}, {"name": "tmp", "value": ""}, {"name": "auth_headers", "value": ""}]}
-
-enrich = action("Enrich_With_Cortex", TOOLS, "execute_python", {"code": ENRICH}, 900, 0)
-wf.update({"actions": [build, create, enrich], "triggers": [trigger], "start": build["id"],
-           "branches": [{"id": str(uuid.uuid4()), "source_id": hook_id, "destination_id": build["id"]},
-                        {"id": str(uuid.uuid4()), "source_id": build["id"], "destination_id": create["id"]},
-                        {"id": str(uuid.uuid4()), "source_id": create["id"], "destination_id": enrich["id"]}]})
+wf["triggers"], wf["actions"], wf["branches"] = [trigger], [], []
+start_id = ensure_chain(wf, hook_id=hook_id)
+wf["start"] = start_id
 r = requests.put(BASE + f"/workflows/{wf['id']}", headers=H, json=wf, timeout=30)
-print("workflow", wf["id"], r.status_code)
+print("workflow", wf["id"], r.status_code, [l for l, *_ in CHAIN])
 
 r = requests.post(BASE + "/hooks/new", headers=H, timeout=30, json={
     "name": "Wazuh_Webhook", "type": "webhook", "id": hook_id, "workflow": wf["id"],
-    "start": build["id"], "environment": "Shuffle", "auth": "", "custom_response": "", "version": ""})
+    "start": start_id, "environment": "Shuffle", "auth": "", "custom_response": "", "version": ""})
 print("hook", r.status_code, r.text[:200])
 print("webhook url:", BASE.replace("/api/v1", "") + f"/api/v1/hooks/webhook_{hook_id}")

@@ -26,7 +26,7 @@ parameters:
     default: misp_api
   - name: IocTypes
     type: json_array
-    default: '["text", "regkey|value"]'
+    default: '["text", "regkey|value", "filename", "hash"]'
   - name: PollSeconds
     type: int
     default: 60

@@ -13,7 +13,9 @@
      "description": "Wazuh agent (1514/1515) and Velociraptor client (8889)"},
     {"name": "AD_PORTS", "type": "port",
      "content": ["53", "88", "123", "135", "389", "445", "464", "636", "3268", "3269", "49152:65535"],
-     "description": "Active Directory: DNS, Kerberos, NTP, RPC, LDAP(S), SMB, GC, dynamic RPC"}
+     "description": "Active Directory: DNS, Kerberos, NTP, RPC, LDAP(S), SMB, GC, dynamic RPC"},
+    {"name": "BLOCKED_ATTACKERS", "type": "host", "content": [], "dynamic": true,
+     "description": "SOAR containment (firewall/contain_attacker.py): IPs added here on a confirmed, high-severity alert. Content is managed live, outside this file — apply_policy.py creates it once and never overwrites it."}
   ],
   "rules": [
     {"seq": 100, "if": "opt1", "action": "pass",  "proto": "TCP",     "dst": "10.10.10.0/24", "port": "SOC_AGENT_PORTS", "log": 0, "desc": "srv -> SOC agents"},
@@ -27,6 +29,8 @@
     {"seq": 300, "if": "opt3", "action": "pass",  "proto": "TCP",     "dst": "10.10.10.0/24", "port": "SOC_AGENT_PORTS", "log": 0, "desc": "ndr -> SOC agents"},
     {"seq": 390, "if": "opt3", "action": "block", "proto": "any",     "dst": "any",           "port": "",                "log": 1, "desc": "ndr default deny"},
 
+    {"seq": 395, "if": "opt4", "action": "block", "proto": "any", "src": "BLOCKED_ATTACKERS",
+     "dst": "any",           "port": "",                "log": 1, "desc": "purple -> blocked (SOAR containment)"},
     {"seq": 400, "if": "opt4", "action": "pass",  "proto": "any",     "dst": "10.10.30.0/24", "port": "",                "log": 0, "desc": "purple -> ep (test targets)"},
     {"seq": 490, "if": "opt4", "action": "block", "proto": "any",     "dst": "any",           "port": "",                "log": 1, "desc": "purple default deny (srv, mgmt, dfir, ndr)"},
 

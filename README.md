@@ -37,6 +37,8 @@ flowchart LR
     SHUFFLE -- "alerte + observables" --> THEHIVE
     THEHIVE -- analyse --> CORTEX
     CORTEX -- corrélation --> MISP
+    SHUFFLE -- "confinement IP (misp:match)" --> FW
+    SHUFFLE -- "republie l'IOC" --> MISP
     MISP -- "publication (IOC)" --> VELO
     VELO -- sightings --> MISP
     VELO -- chasse --> DC01 & WIN01
@@ -55,6 +57,8 @@ Inventaire complet (adresses, versions, flux) : [`docs/lab-registry.md`](docs/la
 | SIEM → SOAR → CTI | alerte Wazuh → Shuffle → TheHive (avec observables) → Cortex → MISP en **une seule exécution, 33 s**, sans action humaine ; tag `misp:match` sur l'alerte | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | Gestion d'incident | alertes Wazuh promues en cas TheHive (licence StrangeBee), observables repris | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | DFIR | publication d'un événement MISP → chasse Velociraptor lancée **automatiquement** sur les postes Windows → sightings renvoyés à MISP dès la fin de la chasse ; persistance retrouvée alors que la clé était supprimée | [SC-15](purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md) |
+| Réponse automatique | une alerte confirmée (sévérité ≥ 3, `misp:match`) fait bloquer son IP sur OPNsense par Shuffle lui-même, sans analyste — réversible par script | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
+| Boucle SOAR → DFIR | un `misp:match` posé par la chaîne SOAR republie l'IOC dans MISP et déclenche la chasse Velociraptor correspondante, sans intervention | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | Chiffrement | TLS vérifié entre les outils (CA interne du lab), aucune vérification désactivée | [SC-15](purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md), [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
 
 ## Scénarios
@@ -107,10 +111,10 @@ Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-p
 | `wazuh/rules/` | règles SocForge (Windows/Sigma, Linux, pare-feu, NDR) |
 | `wazuh/agents/` | configurations centralisées des agents (Windows, Linux, NDR) |
 | `wazuh/manager/` | intégration Shuffle et écoute syslog du manager |
-| `firewall/` | politique de segmentation OPNsense et script d'application par API |
+| `firewall/` | politique de segmentation OPNsense, script d'application par API, confinement/déconfinement d'un attaquant |
 | `ndr/` | configuration de la sonde : interfaces écoutées, Suricata, cluster Zeek |
 | `pki/` | CA interne du lab (certificat public) et script d'émission des certificats |
-| `soar/` | création du workflow Shuffle déclenché par Wazuh |
+| `soar/` | création du workflow Shuffle déclenché par Wazuh (`nodes/` : code des nœuds de confinement et de déclenchement de chasse DFIR) |
 | `velociraptor/` | artefacts serveur MISP ↔ Velociraptor |
 | `detections/` | fiches de détection Windows et Linux |
 | `purple-team/scenarios/` | une fiche par scénario (SC-01 à SC-16) |
