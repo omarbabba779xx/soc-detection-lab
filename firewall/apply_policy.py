@@ -3,13 +3,38 @@
 Usage:  OPN_URL=https://10.10.10.1 OPN_KEY=... OPN_SECRET=... python apply_policy.py
 The API key is created in System > Access > Users > root > API keys and never stored here.
 Idempotent: aliases, rules and the syslog destination are matched by name/description.
-"""
-import json, os, pathlib, requests, urllib3
 
-urllib3.disable_warnings()
+TLS is always verified against the lab CA (pki/socforge-lab-ca.crt, or OPN_CA). When the
+firewall is reached through a port forward (OPN_URL=https://127.0.0.1:28443), set
+OPN_TLS_NAME=10.10.10.1: the certificate is then checked against the firewall's own name
+instead of the forwarded address.
+"""
+import json, os, pathlib, requests
+from requests.adapters import HTTPAdapter
+
+HERE = pathlib.Path(__file__).resolve().parent
 BASE = os.environ.get("OPN_URL", "https://10.10.10.1").rstrip("/") + "/api"
 AUTH = (os.environ["OPN_KEY"], os.environ["OPN_SECRET"])
-POLICY = json.loads((pathlib.Path(__file__).parent / "segmentation-policy.json").read_text())
+CA = os.environ.get("OPN_CA", str(HERE.parent / "pki" / "socforge-lab-ca.crt"))
+POLICY = json.loads((HERE / "segmentation-policy.json").read_text())
+
+
+class ExpectedName(HTTPAdapter):
+    """Verify the server certificate against a fixed name (SNI and hostname check)."""
+
+    def __init__(self, name):
+        self.name = name
+        super().__init__()
+
+    def init_poolmanager(self, *args, **kwargs):
+        kwargs.update(server_hostname=self.name, assert_hostname=self.name)
+        super().init_poolmanager(*args, **kwargs)
+
+
+SESSION = requests.Session()
+SESSION.verify = CA
+if os.environ.get("OPN_TLS_NAME"):
+    SESSION.mount("https://", ExpectedName(os.environ["OPN_TLS_NAME"]))
 
 
 def form(body, prefix=""):
@@ -27,8 +52,8 @@ def form(body, prefix=""):
 
 
 def api(method, path, body=None):
-    r = requests.request(method, BASE + path, auth=AUTH, data=form(body) if body else None,
-                         verify=False, timeout=60)
+    r = SESSION.request(method, BASE + path, auth=AUTH, data=form(body) if body else None,
+                        timeout=60)
     r.raise_for_status()
     out = r.json()
     if isinstance(out, dict) and out.get("result") == "failed":

@@ -47,6 +47,27 @@ Deux particularités de l'API rencontrées :
 - `TCP/UDP` n'est pas une valeur de protocole valide : les règles AD sont scindées en
   une règle TCP et une règle UDP.
 
+### API appelée en TLS vérifié (24/09)
+
+La première version du script désactivait la vérification TLS (`verify=False`), car
+OPNsense présentait un certificat auto-signé pour `OPNsense.localdomain`. Désormais :
+
+- la CA du lab (`pki/socforge-lab-ca.crt`) et un certificat `opnsense.socforge.lab`
+  (SAN `IP:10.10.10.1`) sont importés par l'API *Trust* d'OPNsense
+  (`/api/trust/ca/add/`, `/api/trust/cert/add/`, champs `crt_payload` / `prv_payload`),
+  et l'interface web utilise ce certificat ;
+- le script vérifie toujours la chaîne avec la CA du lab. Quand le pare-feu est joint par
+  une redirection de port (`OPN_URL=https://127.0.0.1:28443`), `OPN_TLS_NAME=10.10.10.1`
+  fait contrôler le certificat contre le nom du pare-feu, et non contre l'adresse
+  redirigée.
+
+| Test | Résultat |
+|---|---|
+| `openssl s_client -verify_ip 10.10.10.1` avec la CA | `Verification: OK` |
+| même test sans la CA | code 21, refus |
+| `apply_policy.py` sans `OPN_TLS_NAME` | `CERTIFICATE_VERIFY_FAILED`, avant toute modification |
+| `apply_policy.py` complet | 12 règles `saved`, `filter apply: OK`, `syslog reconfigure: ok` |
+
 ## Journaux vers Wazuh
 
 - **OPNsense** : destination syslog `10.10.10.10:514/udp`, programme `filterlog`, format BSD.
