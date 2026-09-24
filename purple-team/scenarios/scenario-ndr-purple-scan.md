@@ -154,6 +154,7 @@ Refait à 15:20:19, Suricata capturé : 3 alertes `2100366` sur `enp0s10`.
 `ndr`, `eve.json`) : règle **86601** à 15:21:34, `in_iface enp0s10`,
 `10.10.50.10 → 10.10.10.10`, `GPL ICMP_INFO PING *NIX`. Le manager était éteint au moment
 du trafic : l'agent a conservé les événements et les a transmis à la reconnexion.
+Capture : [`docs/screenshots/wazuh-ndr-purple-tap-alerts.png`](../../docs/screenshots/wazuh-ndr-purple-tap-alerts.png)
 
 ## Résultats
 
