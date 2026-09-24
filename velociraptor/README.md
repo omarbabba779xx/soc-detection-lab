@@ -18,7 +18,8 @@ Serveur : VM08-DFIR-HUNT, Velociraptor 0.77.1. Détail et preuves : SC-15
    | Champ | Valeur |
    |---|---|
    | `url_regex` | `^https://10[.]10[.]10[.]22/` |
-   | `skip_verify` | `TRUE` (certificat MISP auto-signé) |
+   | `root_ca` | contenu de [`pki/socforge-lab-ca.crt`](../pki/socforge-lab-ca.crt) |
+   | `skip_verify` | `FALSE` (MISP présente un certificat signé par la CA du lab) |
    | `extra_headers` (YAML) | `Authorization: <clé API MISP>`<br>`Accept: application/json`<br>`Content-Type: application/json` |
 
 2. Le partager avec les comptes qui lancent les artefacts **et** avec le principal du

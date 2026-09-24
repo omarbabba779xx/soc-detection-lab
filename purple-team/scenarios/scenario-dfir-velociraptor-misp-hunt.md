@@ -256,7 +256,6 @@ conclure « l'événement n'a pas eu lieu » sans vérifier la rétention.
   (voir plus haut).
 - Seuls les types `text` et `regkey|value` sont chassés sur l'endpoint. L'IOC réseau
   `10.10.10.60` relève de NDR et de Wazuh.
-- Le secret `misp_api` a `skip_verify` : le certificat MISP est auto-signé.
 - La chasse est lancée à la main depuis le GUI. Il n'y a pas de déclenchement automatique
   à la publication d'un événement MISP.
 
@@ -270,6 +269,26 @@ conclure « l'événement n'a pas eu lieu » sans vérifier la rétention.
 | IOC de campagne importés et publiés dans MISP | ✅ (événement #2, 5 IOC) |
 | Chasse pilotée par les IOC MISP, depuis Velociraptor | ✅ (`Custom.Server.MISP.IOCHunt`, secret serveur) |
 | Retour Velociraptor → MISP | ✅ (4 sightings, sans doublon) |
+
+## TLS vérifié entre Velociraptor et MISP (24/09)
+
+Le secret `misp_api` avait `skip_verify` : MISP présentait un certificat auto-signé
+(émetteur = sujet = `10.10.10.22`). Une CA interne a été créée (`pki/make_certs.py`,
+certificat public `pki/socforge-lab-ca.crt`, clés privées hors dépôt). MISP présente
+désormais `CN=misp.socforge.lab`, SAN `DNS:misp.socforge.lab, IP:10.10.10.22`, signé par
+`SocForge Lab CA`. Le certificat est installé dans le conteneur par
+`/home/socadmin/misp/ssl/install-cert.sh` (à rejouer si le conteneur est recréé), et
+l'ancien est gardé en `.selfsigned-20260807`.
+
+Le secret a été recréé avec `root_ca` (la CA du lab) et `skip_verify: FALSE`. Vérifié
+depuis VM08 :
+
+| Test | Résultat |
+|---|---|
+| `curl --cacert socforge-lab-ca.crt https://10.10.10.22/` | `HTTP 200`, `ssl_verify_result=0` |
+| `curl` sans la CA | refus : `self-signed certificate in certificate chain` |
+| `http_client(secret='misp_api')` | `200` ; `Custom.Server.MISP.Iocs` lit les 3 IOC de l'événement #2 |
+| même appel avec un secret de test **sans** `root_ca` | `500` : `x509: certificate signed by unknown authority` (secret supprimé ensuite) |
 
 ## Nettoyage
 
