@@ -4,19 +4,18 @@ description: |
   Server monitoring artifact: closes the loop from Velociraptor back to
   MISP.
 
-  Every PollSeconds it looks at the hunts tagged "misp" (created by
-  Custom.Server.MISP.IOCHunt). For each client flow of those hunts that
-  has finished and was not reported yet, it matches the EvtxHunter rows
-  against the IOCs of the MISP event named in the hunt tag
+  It reacts to System.Flow.Completion. When a client flow of a hunt tagged
+  "misp" (created by Custom.Server.MISP.IOCHunt) finishes, it matches the
+  EvtxHunter rows against the IOCs of the MISP event named in the hunt tag
   ("misp-event-<id>") and adds one MISP sighting per IOC seen on the
   endpoint. The sighting source names the host, the client and the hunt.
 
-  Why polling and not System.Flow.Completion: on this server (0.77.1)
-  that event queue only carries server-side flows; client flows of a
-  hunt never show up in it, so a watcher on it never fires.
+  A hunt's client flow is named after the hunt: flow "F.<x>.H" belongs to
+  hunt "H.<x>".
 
-  A flow is reported once: the artifact reads its own previous results
-  and skips any FlowId already present.
+  At startup it first catches up: flows of recent misp hunts that finished
+  while the server (or this monitoring) was down, and that it never
+  reported, are reported once. It then only waits for completion events.
 
   The server runs this query as its own principal (VelociraptorServer),
   so the "misp_api" secret must be shared with that user.
@@ -28,9 +27,6 @@ parameters:
     default: https://10.10.10.22
   - name: MispSecret
     default: misp_api
-  - name: PollSeconds
-    type: int
-    default: 60
   - name: LookbackDays
     type: int
     default: 7
@@ -41,18 +37,11 @@ sources:
       -- takes those from the row scope when they are not passed explicitly,
       -- which silently turned the "already reported" lookup into a
       -- hunt_results() call.
-      LET MispHunts = SELECT hunt_id AS Hunt,
+      LET MispEvent(Hunt) = SELECT
              regex_replace(source=filter(list=tags, regex='^misp-event-')[0],
                            re='^misp-event-', replace='') AS Event
-        FROM hunts()
+        FROM hunts(hunt_id=Hunt)
         WHERE 'misp' IN tags
-          AND create_time > (now() - LookbackDays * 86400) * 1000000
-
-      LET FinishedFlows = SELECT * FROM foreach(row=MispHunts, query={
-          SELECT Hunt, Event, ClientId AS Client, FlowId AS FId
-          FROM hunt_flows(hunt_id=Hunt)
-          WHERE Flow.state = 'FINISHED'
-        })
 
       LET Matches(Client, FId, Event) = SELECT * FROM foreach(
           row={
@@ -67,29 +56,57 @@ sources:
             GROUP BY AttributeId
           })
 
-      LET Report(Flows) = SELECT * FROM foreach(row=Flows, query={
-          SELECT * FROM foreach(
-            row=Matches(Client=Client, FId=FId, Event=Event),
-            query={
-              SELECT Hunt AS HuntId, Event AS EventId, Client AS ClientId,
-                     FId AS FlowId, Computer, AttributeId, Value, Hits,
-                     Response AS MispStatus
-              FROM http_client(secret=MispSecret, method='POST',
-                   url=MispUrl + '/sightings/add/' + AttributeId,
-                   data=serialize(format='json', item=dict(
-                     source=format(format='Velociraptor %v (%v) %v',
-                                   args=[Computer, Client, Hunt]))))
-            })
-        })
+      LET Report(Hunt, Client, FId) = SELECT * FROM foreach(
+          row=MispEvent(Hunt=Hunt),
+          query={
+            SELECT * FROM foreach(
+              row=Matches(Client=Client, FId=FId, Event=Event),
+              query={
+                SELECT Hunt AS HuntId, Event AS EventId, Client AS ClientId,
+                       FId AS FlowId, Computer, AttributeId, Value, Hits,
+                       Response AS MispStatus
+                FROM http_client(secret=MispSecret, method='POST',
+                     url=MispUrl + '/sightings/add/' + AttributeId,
+                     data=serialize(format='json', item=dict(
+                       source=format(format='Velociraptor %v (%v) %v',
+                                     args=[Computer, Client, Hunt]))))
+              })
+          })
 
-      -- Flows already reported, read back from this artifact's own results.
-      -- Stored queries defined with "=" are re-evaluated on every use, so
-      -- each tick sees what the previous ticks wrote.
-      LET Done = SELECT FlowId FROM source(
+      -- Catch-up, run once at startup: finished flows of recent misp hunts
+      -- that this artifact never reported (read back from its own results).
+      LET Done <= SELECT FlowId FROM source(
           artifact='Custom.Server.MISP.Sightings', client_id='server',
           start_time=now() - LookbackDays * 86400, end_time=now())
 
-      LET ToReport = SELECT * FROM FinishedFlows WHERE NOT FId IN Done.FlowId
+      LET Missed = SELECT * FROM foreach(
+          row={
+            SELECT hunt_id AS Hunt FROM hunts()
+            WHERE 'misp' IN tags
+              AND create_time > (now() - LookbackDays * 86400) * 1000000
+          },
+          query={
+            SELECT Hunt, ClientId AS Client, FlowId AS FId
+            FROM hunt_flows(hunt_id=Hunt)
+            WHERE Flow.state = 'FINISHED' AND NOT FlowId IN Done.FlowId
+          })
 
-      SELECT * FROM foreach(row={ SELECT * FROM clock(period=PollSeconds) },
-                            query={ SELECT * FROM Report(Flows=ToReport) })
+      -- Live: one completion event per finished client flow of a hunt. The
+      -- event's Flow carries no request (Flow.request is null), so the flow is
+      -- selected on the artifacts that returned rows: a hunt flow without
+      -- EvtxHunter hits has nothing to report anyway.
+      LET Completed = SELECT ClientId AS Client, FlowId AS FId,
+             'H.' + regex_replace(source=FlowId, re='''^F\.(.+)\.H$''', replace='$1') AS Hunt
+        FROM watch_monitoring(artifact='System.Flow.Completion')
+        WHERE FlowId =~ '''\.H$'''
+          AND 'Windows.EventLogs.EvtxHunter' IN Flow.artifacts_with_results
+
+      SELECT * FROM chain(
+        catchup={
+          SELECT * FROM foreach(row=Missed,
+            query={ SELECT * FROM Report(Hunt=Hunt, Client=Client, FId=FId) })
+        },
+        live={
+          SELECT * FROM foreach(row=Completed,
+            query={ SELECT * FROM Report(Hunt=Hunt, Client=Client, FId=FId) })
+        })

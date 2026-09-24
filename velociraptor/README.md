@@ -7,8 +7,9 @@ Serveur : VM08-DFIR-HUNT, Velociraptor 0.77.1. Détail et preuves : SC-15
 |---|---|---|
 | `Custom.Server.MISP.Iocs` | SERVER | Lit les IOC chassables d'un événement MISP (API REST, secret serveur) |
 | `Custom.Server.MISP.IOCHunt` | SERVER | Crée une chasse EvtxHunter à partir de ces IOC, taguée `misp` / `misp-event-<id>` |
-| `Custom.Server.MISP.Sightings` | SERVER_EVENT | Renvoie à MISP un sighting par IOC vu sur un endpoint |
-| `Custom.Windows.EventLogs.Retention` | CLIENT | Taille et plus ancien événement de chaque journal Windows |
+| `Custom.Server.MISP.Sightings` | SERVER_EVENT | À la fin de chaque flow d'une chasse `misp`, renvoie à MISP un sighting par IOC vu sur l'endpoint |
+| `Custom.Server.MISP.AutoHunt` | SERVER_EVENT | Lance `IOCHunt` tout seul à chaque publication d'un événement MISP |
+| `Custom.Windows.EventLogs.Retention` | CLIENT | Taille maximale, taille actuelle et plus ancien événement de chaque journal Windows |
 
 ## Installation
 
@@ -34,11 +35,17 @@ Serveur : VM08-DFIR-HUNT, Velociraptor 0.77.1. Détail et preuves : SC-15
    activer le monitoring :
 
    ```sql
-   SELECT add_server_monitoring(artifact='Custom.Server.MISP.Sightings') FROM scope()
+   SELECT add_server_monitoring(artifact='Custom.Server.MISP.Sightings'),
+          add_server_monitoring(artifact='Custom.Server.MISP.AutoHunt') FROM scope()
    ```
+
+   Après une mise à jour d'un de ces artefacts, le retirer (`rm_server_monitoring`) puis le
+   rajouter : le monitoring garde sinon l'ancienne définition.
 
 ## Utilisation
 
-*Server Artifacts* → *New Collection* → `Custom.Server.MISP.IOCHunt` (paramètre
-`EventId`). Les sightings arrivent dans MISP moins d'une minute après la fin du flow de
-chaque client.
+Publier un événement dans MISP suffit : `AutoHunt` crée la chasse (créateur
+`VelociraptorServer`, tags `misp` / `misp-event-<id>`) à sa vérification suivante, et
+`Sightings` envoie les sightings à la fin du flow de chaque client. La chasse peut
+toujours être lancée à la main : *Server Artifacts* → *New Collection* →
+`Custom.Server.MISP.IOCHunt` (paramètre `EventId`).

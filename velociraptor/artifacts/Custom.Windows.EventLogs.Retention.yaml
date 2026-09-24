@@ -1,9 +1,10 @@
 name: Custom.Windows.EventLogs.Retention
 author: SocForge
 description: |
-  For each event log, gives its size and the date of the oldest event
-  still present. Tells the analyst how far back a hunt in the logs can
-  look before concluding that an event "never happened".
+  For each event log, gives its configured maximum size, its current size
+  and the date of the oldest event still present. Tells the analyst how
+  far back a hunt in the logs can look before concluding that an event
+  "never happened", and shows whether the log is sized for it.
 
 parameters:
   - name: EvtxGlob
@@ -12,12 +13,32 @@ parameters:
 sources:
   - precondition: SELECT OS FROM info() WHERE OS = 'windows'
     query: |
-      SELECT * FROM foreach(
-        row={ SELECT OSPath, Size FROM glob(globs=EvtxGlob) },
-        query={
+      -- Configured maximum size. Classic logs (Security, System) keep it under
+      -- the EventLog service key, the other channels under WINEVT\Channels;
+      -- the service key wins when both exist.
+      LET MaxSizes = SELECT OSPath.Components[-2] AS Channel, Data.value AS MaxSize,
+                            if(condition=OSPath =~ 'Services', then=0, else=1) AS Rank
+        FROM glob(accessor='registry', globs=[
+          'HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Services/EventLog/*/MaxSize',
+          'HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/CurrentVersion/WINEVT/Channels/*/MaxSize'])
+
+      -- Channel -> MaxSize. Rows are sorted so that the service key comes last
+      -- and overwrites the WINEVT value in the dict.
+      LET MaxByChannel <= to_dict(item={
+          SELECT Channel AS _key, MaxSize AS _value FROM MaxSizes ORDER BY Rank DESC })
+
+      -- "Microsoft-Windows-Sysmon%4Operational.evtx" -> "Microsoft-Windows-Sysmon/Operational"
+      LET Logs = SELECT OSPath, Size,
+             regex_replace(source=regex_replace(source=OSPath.Basename, re='''\.evtx$''', replace=''),
+                           re='%4', replace='/') AS LogName
+        FROM glob(globs=EvtxGlob)
+
+      SELECT * FROM foreach(row=Logs, query={
           -- .evtx files are circular: the first record in the file is not
           -- the oldest one once the log has wrapped, so take the minimum.
-          SELECT OSPath.Basename AS Log, Size, count() AS Events,
+          SELECT LogName AS Log,
+                 get(item=MaxByChannel, field=LogName) AS MaxSize,
+                 Size, count() AS Events,
                  timestamp(epoch=min(item=System.TimeCreated.SystemTime)) AS OldestEvent
           FROM parse_evtx(filename=OSPath)
           GROUP BY Log

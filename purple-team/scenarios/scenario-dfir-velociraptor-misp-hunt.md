@@ -166,7 +166,8 @@ MISP n'apparaît dans aucun artefact. Les définitions sont versionnées dans
 | Secret serveur `misp_api` (type *HTTP Secrets*) | URL autorisée `^https://10[.]10[.]10[.]22/`, en-tête `Authorization` MISP. Partagé avec `admin`, `socforge-api` et `VelociraptorServer`. |
 | `Custom.Server.MISP.Iocs` (SERVER) | `http_client(secret='misp_api')` → `/attributes/restSearch`. Rend un motif par IOC (nom de valeur pour `regkey\|value`, caractères spéciaux échappés). |
 | `Custom.Server.MISP.IOCHunt` (SERVER) | Construit l'`IocRegex` et crée une **vraie chasse** `hunt()` EvtxHunter sur les clients Windows, taguée `misp` et `misp-event-<id>`. |
-| `Custom.Server.MISP.Sightings` (SERVER_EVENT, monitoring serveur) | Toutes les 60 s, pour chaque flow terminé d'une chasse `misp` pas encore traité : rapproche les lignes des IOC et ajoute **un sighting MISP par IOC vu**, avec la source `Velociraptor <hôte> (<client>) <chasse>`. |
+| `Custom.Server.MISP.Sightings` (SERVER_EVENT, monitoring serveur) | Réagit à chaque fin de flow d'une chasse `misp` (`System.Flow.Completion`) : rapproche les lignes des IOC et ajoute **un sighting MISP par IOC vu**, avec la source `Velociraptor <hôte> (<client>) <chasse>`. Au démarrage, rattrape les flows terminés pendant une coupure. (Version du 23/09 : interrogation toutes les 60 s.) |
+| `Custom.Server.MISP.AutoHunt` (SERVER_EVENT, monitoring serveur, 24/09) | Détecte chaque publication d'événement MISP et lance `IOCHunt` sans analyste. Une publication = une clé (id, `publish_timestamp`) : pas de doublon, et une republication relance la chasse. |
 
 ### Déroulé réel
 
@@ -186,9 +187,14 @@ dédoublonnage fonctionne.
 
 ### Défauts rencontrés en construisant l'intégration
 
-- **`System.Flow.Completion` ne voit pas les flows clients** sur ce serveur : seuls les
-  flows serveur y apparaissent. Un premier monitoring fondé sur ce flux ne s'est jamais
-  déclenché. Il a été remplacé par une interrogation périodique des chasses `misp`.
+- **Un premier monitoring fondé sur `System.Flow.Completion` ne s'est jamais déclenché.**
+  Conclusion tirée le 23/09 : ce flux ne verrait pas les flows clients. Elle était
+  **fausse**, et a été corrigée le 24/09 par un observateur branché sur ce flux : une
+  collecte directe (`F.DAQFSBIPA9DCM`) et un flow de chasse (`F.DAQFTI2NLAAMC.H`) y
+  apparaissent, 2 s après leur fin. En revanche, dans ces événements, `Flow.request` est
+  **vide** : un filtre sur les artefacts demandés ne correspond donc jamais. C'est
+  exactement le défaut retrouvé le 24/09 dans la nouvelle version, et très probablement
+  celui du 23/09. Le filtre utilise désormais `Flow.artifacts_with_results`.
 - **Un flow de chasse porte comme créateur le compte qui a lancé la chasse** (`admin`) et un ID de
   forme `F.<chasse>.H`, pas l'ID de la chasse.
 - **`source()` lit `HuntId`/`FlowId` dans la portée de la ligne** quand on ne les passe
@@ -222,11 +228,18 @@ La chronologie SC-09 reste complète grâce à Sysmon (1, 12, 13), dont le journ
 grand. C'est une vraie leçon DFIR : **dimensionner le journal Security**, et ne jamais
 conclure « l'événement n'a pas eu lieu » sans vérifier la rétention.
 
+**Appliqué le 24/09**, sur WIN01 et sur DC01 (voir plus bas).
+
 ## Incidents
 
 - **22/09 19:02 UTC** — WIN01 figé, `AHCI#0: Port 0 reset` dans le journal VirtualBox,
   sous pression mémoire de l'hôte (3 VM). Corrigé ensuite par `storagectl --hostiocache on`
   sur les contrôleurs SATA de WIN01 et de MISP (MISP avait aussi figé pendant un démarrage).
+  Cause de fond trouvée le 24/09 : VirtualBox tournait par-dessus l'hyperviseur Windows
+  (mode de repli NEM, faiblesse 26 du plan de reconstruction), corrigée depuis.
+- **23/09 23:54 UTC** — l'agent de WIN01 a disparu pendant une collecte. Ce n'était pas
+  l'agent, mais un écran bleu de WIN01 (0xA, même cause de fond). Le même artefact rejoué
+  deux fois le 24/09 n'a rien provoqué.
 - **23/09, reprise après la pause de la nuit** — les VM étaient restées allumées pendant
   la veille de l'hôte. Les horloges de VM08 et WIN01 avaient donc environ 14 h de retard
   (celle de MISP, synchronisée par NTP, était juste). Ce n'est pas un défaut du lab, mais
@@ -249,15 +262,63 @@ conclure « l'événement n'a pas eu lieu » sans vérifier la rétention.
 - [`docs/screenshots/velociraptor-misp-native-hunt-created.png`](../../docs/screenshots/velociraptor-misp-native-hunt-created.png) — chasse `H.DAPS4NATSTMN0` créée par l'artefact serveur (créateur `admin`, tags `misp`, `IocRegex` venu de MISP)
 - [`docs/screenshots/velociraptor-misp-sightings-monitor.png`](../../docs/screenshots/velociraptor-misp-sightings-monitor.png) — monitoring serveur `Custom.Server.MISP.Sightings` : 4 envois, `MispStatus 200`
 - [`docs/screenshots/misp-event2-sightings-from-velociraptor.png`](../../docs/screenshots/misp-event2-sightings-from-velociraptor.png) — côté MISP : sightings (2/0/0) sur les deux IOC trouvés sur WIN01
+- [`docs/screenshots/velociraptor-autohunt-hunts.png`](../../docs/screenshots/velociraptor-autohunt-hunts.png) — chasses du 24/09 créées par `VelociraptorServer` (automatiques), à côté de celles du 23/09 créées par `admin`
+- [`docs/screenshots/misp-event3-autohunt-sightings.png`](../../docs/screenshots/misp-event3-autohunt-sightings.png) — événement MISP #3 publié, 2 sightings renvoyés par les chasses automatiques
 
-## Limites
+## Chasse et sightings automatiques (24/09)
 
-- La remontée des sightings se fait par interrogation toutes les 60 s, pas sur événement
-  (voir plus haut).
+Les deux limites du 23/09 sont levées : la chasse était lancée à la main, et les sightings
+remontaient par interrogation toutes les 60 s.
+
+Test de bout en bout, sans aucune action manuelle dans la chaîne. Trace bénigne et unique
+générée sur WIN01 : `cmd.exe /c echo SocForge-AutoHunt-241046-9CF558`, enregistrée en
+Security 4688 à 10:46:42. Puis événement MISP #3 avec ce marqueur comme IOC `text`.
+
+| Heure (UTC) | Maillon |
+|---|---|
+| 10:47:35 | MISP : événement #3 publié |
+| 10:48:15 | `AutoHunt` crée la chasse **`H.DAQFVRQUQLMJ2`**, créateur **`VelociraptorServer`**, tags `misp`, `misp-event-3` |
+| 10:48:26 → 10:50:25 | WIN01 exécute la chasse : 3 lignes |
+| 11:04:08 | sighting MISP (au redémarrage corrigé de `Sightings`, par le rattrapage) |
+| 11:05:06 | événement #3 republié → nouvelle chasse **`H.DAQG7PIM1PVAQ`** 4 s plus tard |
+| 11:07:14 | fin du flow de chasse **et** sighting MISP dans la même seconde (déclenchement par événement) |
+
+Deux publications, exactement deux chasses, alors qu'`AutoHunt` a interrogé MISP chaque
+minute : pas de doublon, y compris après un redémarrage d'`AutoHunt`. Le rattrapage a
+aussi été vérifié : la version d'abord déployée de `Sightings` filtrait sur
+`Flow.request` (vide) et n'a rien envoyé pour la première chasse ; au redémarrage de la
+version corrigée, elle a été reprise et signalée.
+
+**DC01 de retour dans Velociraptor.** Son agent était hors ligne depuis le 10/08 : sa
+config visait l'ancienne adresse du serveur (`10.10.10.60`). Config du serveur déployée
+(même SHA-256 que WIN01), `--config` ajouté au service ; client `C.c6b3dab429088216`
+reconnecté à 11:50:15 et collectes acceptées. Les chasses MISP couvrent désormais les deux
+postes Windows, dont DC01, où a été exécuté SC-01.
+
+**Journaux dimensionnés** (mesurés par `Custom.Windows.EventLogs.Retention`, qui affiche
+désormais la taille maximale) :
+
+| Journal | WIN01 avant → après | DC01 avant → après |
+|---|---|---|
+| Security | 20 Mo, plein, moins de 30 h d'historique → **512 Mo** | 128 Mo, plein → **1 Go** |
+| Sysmon/Operational | taille d'origine non relevée → **256 Mo** | 64 Mo → **256 Mo** |
+| PowerShell/Operational | fichier de 15 Mo (plein) → **256 Mo** | 15 Mo, plein, **quelques minutes** d'historique → **256 Mo** |
+| System | taille d'origine non relevée → **128 Mo** | 20 Mo → **128 Mo** |
+
+Sur WIN01, le nombre d'événements Security est passé de 22 961 à 23 634 alors que le plus
+ancien est resté le même : le journal ne s'écrase plus.
+
+**Délai de récupération des tâches** : le 23/09, juste après le démarrage de WIN01,
+l'agent (alors lancé par la tâche planifiée) a mis environ 10 min à prendre ses premières
+collectes. Non reproduit avec le service : collecte prise en 1 à 2 s, que ce soit juste
+après le démarrage ou 10 min plus tard. La configuration concernée n'existe plus.
+
+## Périmètre
+
 - Seuls les types `text` et `regkey|value` sont chassés sur l'endpoint. L'IOC réseau
   `10.10.10.60` relève de NDR et de Wazuh.
-- La chasse est lancée à la main depuis le GUI. Il n'y a pas de déclenchement automatique
-  à la publication d'un événement MISP.
+- `AutoHunt` apprend les publications en interrogeant MISP toutes les 60 s : MISP ne
+  peut pas appeler Velociraptor. Aucune action humaine n'est nécessaire.
 
 ## Résultats
 
@@ -269,6 +330,10 @@ conclure « l'événement n'a pas eu lieu » sans vérifier la rétention.
 | IOC de campagne importés et publiés dans MISP | ✅ (événement #2, 5 IOC) |
 | Chasse pilotée par les IOC MISP, depuis Velociraptor | ✅ (`Custom.Server.MISP.IOCHunt`, secret serveur) |
 | Retour Velociraptor → MISP | ✅ (4 sightings, sans doublon) |
+| Chasse lancée automatiquement à la publication MISP | ✅ (créateur `VelociraptorServer`, sans doublon) |
+| Sightings déclenchés par la fin de la chasse | ✅ (même seconde que la fin du flow) |
+| Agent DC01 connecté | ✅ (hors ligne depuis le 10/08, corrigé) |
+| Journaux Windows dimensionnés pour la DFIR | ✅ (WIN01 et DC01) |
 
 ## TLS vérifié entre Velociraptor et MISP (24/09)
 

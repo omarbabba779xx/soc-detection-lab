@@ -1,0 +1,89 @@
+name: Custom.Server.MISP.AutoHunt
+author: SocForge
+description: |
+  Server monitoring artifact: launches Custom.Server.MISP.IOCHunt by itself
+  when an event is published in MISP, so no analyst has to start the hunt.
+
+  MISP cannot call into Velociraptor, so the artifact asks MISP every
+  PollSeconds for its published events. An event is handled once per
+  publication: the key is (event id, publish_timestamp), so republishing
+  an updated event hunts again, and nothing is re-hunted on a restart.
+  Handled keys are read back from this artifact's own results.
+
+  Only publications newer than LookbackHours before the monitoring started
+  are considered: enabling the artifact does not re-hunt the whole MISP
+  history.
+
+  Each handled publication gives one row: the hunt created, or none when
+  the event has no hunt-able IOC (types listed in IocTypes).
+
+type: SERVER_EVENT
+
+parameters:
+  - name: MispUrl
+    default: https://10.10.10.22
+  - name: MispSecret
+    default: misp_api
+  - name: IocTypes
+    type: json_array
+    default: '["text", "regkey|value"]'
+  - name: PollSeconds
+    type: int
+    default: 60
+  - name: LookbackHours
+    type: int
+    default: 1
+  - name: LookbackDays
+    type: int
+    default: 30
+
+sources:
+  - query: |
+      LET Since <= now() - LookbackHours * 3600
+
+      LET Published = SELECT * FROM foreach(
+          row={
+            SELECT parse_json_array(data=Content) AS Events
+            FROM http_client(secret=MispSecret, method='GET',
+                             url=MispUrl + '/events/index')
+            WHERE Response = 200
+          },
+          query={
+            SELECT str(str=id) AS EventId, int(int=publish_timestamp) AS Pub, info AS Info
+            FROM foreach(row=Events)
+            WHERE published AND int(int=publish_timestamp) > Since
+          })
+
+      -- Publications already handled, read back from this artifact's own
+      -- results. Defined with "=" so every tick sees the previous ticks.
+      LET Handled = SELECT Key FROM source(
+          artifact='Custom.Server.MISP.AutoHunt', client_id='server',
+          start_time=now() - LookbackDays * 86400, end_time=now())
+
+      LET ToHunt = SELECT *, format(format='%v@%v', args=[EventId, Pub]) AS Key
+        FROM Published
+        WHERE NOT format(format='%v@%v', args=[EventId, Pub]) IN Handled.Key
+
+      LET HuntFor(EventId) = SELECT HuntId, NbIocs, IocRegex
+        FROM Artifact.Custom.Server.MISP.IOCHunt(
+            MispUrl=MispUrl, MispSecret=MispSecret, EventId=EventId,
+            IocTypes=IocTypes)
+
+      -- to_dict() runs the hunt query once and keeps its row, so the hunt id
+      -- ends up in this artifact's results (a subquery used as a column is
+      -- never evaluated and would give null). No row -> no hunt-able IOC.
+      LET Launch = SELECT * FROM foreach(row=ToHunt, query={
+          SELECT Key, EventId, timestamp(epoch=Pub) AS Published, Info,
+                 Hunt.HuntId AS HuntId, Hunt.NbIocs AS NbIocs, Hunt.IocRegex AS IocRegex
+          FROM foreach(row={
+            SELECT to_dict(item={
+                SELECT 'h' AS _key,
+                       dict(HuntId=HuntId, NbIocs=NbIocs, IocRegex=IocRegex) AS _value
+                FROM HuntFor(EventId=EventId)
+              }).h AS Hunt
+            FROM scope()
+          })
+        })
+
+      SELECT * FROM foreach(row={ SELECT * FROM clock(period=PollSeconds, start=0) },
+                            query=Launch)
