@@ -2,6 +2,11 @@
 
 **Sessions** : Reconstruction, étape 5 — 2026-09-18 (capture), 2026-09-23 (détection et intégration SIEM)
 **Attaquant** : PURPLE (Kali, 10.10.10.60)
+
+> **Adresse de l'attaquant** : ce test date d'avant le 24/09/2026, quand PURPLE avait encore une
+> patte sur le réseau mgmt (`10.10.10.60`). Depuis, PURPLE n'existe plus que dans sa zone
+> filtrée (`10.10.50.10`) : voir SC-16, « Isolement de l'attaquant ».
+
 **Cible** : WAZUH manager (10.10.10.10)
 **MITRE** : T1046 — Network Service Discovery
 **Objectif** : Prouver que VM07-NDR (Zeek + Suricata) capture réellement le trafic
@@ -114,6 +119,42 @@ d'administration attendue.
 
 Capture : [`docs/screenshots/wazuh-ndr-suricata-scan.png`](../../docs/screenshots/wazuh-ndr-suricata-scan.png)
 
+## Prise d'écoute de la zone attaquante (24/09)
+
+La sonde écoutait seulement le réseau mgmt, là où PURPLE avait une carte. PURPLE a été
+isolé du réseau mgmt (SC-16, « Isolement de l'attaquant ») : son trafic passe désormais
+par sa zone `socforge-purple`, que la sonde ne voyait pas. La sonde a reçu une prise
+d'écoute passive sur cette zone :
+
+- 4ᵉ carte VirtualBox `socforge-purple`, politique promiscuous `allow-all`, **sans
+  adresse IP** (`enp0s10`, lien actif, rien de joignable) ;
+- Suricata écoute les deux interfaces (`--af-packet`, deux entrées, `cluster-id` 98 et 99) ;
+- Zeek passe d'un nœud unique à un cluster (logger, manager, proxy) avec deux capteurs,
+  `worker-mgmt` (enp0s8) et `worker-purple` (enp0s10).
+
+Configuration versionnée dans [`ndr/`](../../ndr/). Pendant la bascule, l'ancien processus
+Zeek standalone restait actif et tenait le port de métriques 9991 : le manager du cluster
+plantait au démarrage (« Failed to setup Prometheus endpoint … 0.0.0.0:9991 »). Arrêté,
+puis cluster redéployé.
+
+Vérification avec du trafic ordinaire depuis PURPLE (`ping`, ouverture TCP) :
+
+| Outil | Vu sur `enp0s10` |
+|---|---|
+| Suricata | flux ICMP `10.10.50.10 → 10.10.50.1` ; 3 alertes `2100366 GPL ICMP_INFO PING *NIX` vers `10.10.10.10` |
+| Zeek (`worker-purple`) | `10.10.50.10 → 10.10.50.1 icmp`, `10.10.50.10 → 10.10.20.10 tcp S0` (bloqué par OPNsense, sans réponse) |
+
+Après un redémarrage de la sonde (15:07:45), prise d'écoute, Suricata et les cinq
+processus Zeek reviennent seuls (`/etc/cron.d/zeek-start`). Suricata met environ 80 s à
+charger ses 52 795 signatures avant de capturer (« All AFP capture threads are running »
+à 15:09:46) : un premier trafic de test, envoyé à 15:09:21, n'a été vu que par Zeek.
+Refait à 15:20:19, Suricata capturé : 3 alertes `2100366` sur `enp0s10`.
+
+**Jusqu'à Wazuh** : ces alertes arrivent au manager par l'agent de la sonde (groupe
+`ndr`, `eve.json`) : règle **86601** à 15:21:34, `in_iface enp0s10`,
+`10.10.50.10 → 10.10.10.10`, `GPL ICMP_INFO PING *NIX`. Le manager était éteint au moment
+du trafic : l'agent a conservé les événements et les a transmis à la reconnexion.
+
 ## Résultats
 
 | Critère              | Valeur                                  |
@@ -123,6 +164,7 @@ Capture : [`docs/screenshots/wazuh-ndr-suricata-scan.png`](../../docs/screenshot
 | Capture Zeek          | ✅ OUI (7 lignes conn.log, correspondance exacte) |
 | Détection Suricata (signatures) | ✅ OUI (52 795 règles ET Open, 6 signatures de scan déclenchées) |
 | Alerte dans Wazuh     | ✅ OUI (100400 niveau 10, agent `ndr`, 7 alertes) |
+| Zone attaquante couverte après son isolement | ✅ OUI (prise d'écoute passive, Suricata + Zeek, persistante) |
 
 ## Nettoyage
 

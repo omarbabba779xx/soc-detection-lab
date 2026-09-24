@@ -16,7 +16,8 @@
 
 Entre les zones, le trafic passe par OPNsense et suit la politique de
 `firewall/segmentation-policy.json` (SC-16). Le réseau mgmt n'est pas filtré : c'est le
-réseau d'administration du lab.
+réseau d'administration du lab, et l'attaquant (PURPLE) n'y a pas de carte. Ses tentatives
+vers ce réseau passent par OPNsense, qui les bloque et les journalise.
 
 ## Machines
 
@@ -33,7 +34,7 @@ réseau d'administration du lab.
 | VM09-DC01 | contrôleur de domaine `socforge.lab` | Windows Server 2022, Sysmon | 10.10.10.109 | 10.10.20.10 | 3 Go |
 | VM10-WIN01 | poste membre du domaine | Windows 11, Sysmon | 10.10.10.110 | 10.10.30.10 | 4 Go |
 | VM11-LINUX01 | serveur Linux | Ubuntu | 10.10.10.111 | 10.10.30.20 | 2 Go |
-| VM12-PURPLE | attaquant | Kali Linux | 10.10.10.60 | 10.10.50.10 | 2 Go |
+| VM12-PURPLE | attaquant | Kali Linux | — (aucune carte mgmt ; administration par NAT) | 10.10.50.10 | 2 Go |
 
 Hôte : 16 Go de RAM, d'où un maximum de 3 VM allumées en même temps (voir
 `docs/rebuild-plan.md`).
@@ -44,7 +45,7 @@ Hôte : 16 Go de RAM, d'où un maximum de 3 VM allumées en même temps (voir
 |---|---|---|
 | DC01, WIN01 (groupe `default`) | Security, Sysmon, PowerShell/Operational, Defender, FIM temps réel | Wazuh |
 | LINUX01 (groupe `linux`) | journaux système (sudo), FIM temps réel sur les répertoires cron | Wazuh |
-| NDR (groupe `ndr`) | Suricata `eve.json` | Wazuh |
+| NDR (groupe `ndr`) | Suricata `eve.json` ; écoute du réseau mgmt et de la zone purple (prise d'écoute passive) | Wazuh |
 | OPNsense | syslog `filterlog` (UDP 514) | Wazuh |
 | Wazuh (alertes de niveau ≥ 10) | intégration native `shuffle` (webhook) | Shuffle → alerte TheHive avec observables → Cortex (via TheHive, compte de service `thehive`) → MISP, dans la même exécution |
 | MISP (publication d'un événement) | artefacts serveur Velociraptor (`AutoHunt`, `Sightings`) | chasse automatique sur DC01 et WIN01, sightings renvoyés à MISP |

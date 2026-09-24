@@ -20,7 +20,7 @@
 | VM09-DC01 | 10.10.10.109 | Cible Windows Server (victime) | 3072 |
 | VM10-WIN01 | 10.10.10.110 | Cible Windows 11 (victime) | 4096 |
 | VM11-LINUX01 | 10.10.10.111 | Cible Linux (victime) | 2048 |
-| VM12-PURPLE | 10.10.10.60 (+ zone 10.10.50.10) | Kali — **source d'attaque** | 2048 |
+| VM12-PURPLE | — (zone 10.10.50.10 ; 10.10.10.60 retirée le 24/09) | Kali — **source d'attaque** | 2048 |
 
 Réseaux de zone, logiciels et flux : `docs/lab-registry.md`.
 
@@ -224,6 +224,15 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
 32. **Alertes TheHive sans observable** (24/09) : le workflow Shuffle ne joignait que l'IP
     source ; une alerte FIM ou Sysmon arrivait vide, sans rien à analyser. Il extrait
     désormais fichier, SHA-256, hôte, processus, registre et compte.
+33. **L'attaquant avait un accès direct au réseau d'administration** (24/09) : PURPLE avait
+    une carte sur le réseau mgmt, non filtré (10.10.10.60). Carte retirée ; dans Kali, config
+    mgmt supprimée et profils NetworkManager liés à l'adresse MAC (sinon la renumérotation
+    `eth1` → `eth0` croise les configs). `10.10.10.0/24` routé par OPNsense : tentatives
+    bloquées et journalisées (100301, puis 100302 niveau 12 en 8 s). Voir SC-16.
+    Conséquence traitée : la sonde NDR n'écoutait que le réseau mgmt et aurait perdu de vue
+    l'attaquant. Prise d'écoute passive ajoutée sur la zone purple (4ᵉ carte sans adresse,
+    Suricata sur deux interfaces, Zeek en cluster à deux capteurs), persistante au
+    redémarrage, alertes jusqu'à Wazuh (86601). Voir SC-12 et `ndr/`.
 
 ## Statut
 

@@ -110,18 +110,45 @@ prouverait donc rien. La preuve est dans les journaux du pare-feu :
 pour PURPLE, ne produit **aucun** blocage. Le pare-feu laisse passer ce qui est permis et
 ne bloque que le reste.
 
-## Limite d'architecture
+## Isolement de l'attaquant (24/09)
 
-Toutes les VM ont aussi une patte sur le réseau **mgmt** (10.10.10.0/24), qui sert à
-l'administration hors bande. Ce réseau n'est pas filtré par le pare-feu, et PURPLE y a
-une adresse (10.10.10.60). Les scénarios SC-05, SC-06 et SC-12 (scan, brute force, NDR)
-ont utilisé ce réseau mgmt. La segmentation décrite ici s'applique aux **réseaux de
-zone**, là où le test place l'attaquant.
+Les VM du SOC et les cibles ont une patte sur le réseau **mgmt** (10.10.10.0/24), le
+réseau d'administration hors bande, qui n'est pas filtré par le pare-feu. Jusqu'au 23/09,
+PURPLE y avait aussi une adresse (10.10.10.60) : la machine attaquante atteignait
+directement le réseau d'administration, sans passer par aucun contrôle. Les scénarios
+SC-05, SC-06, SC-07 et SC-12 ont été réalisés ainsi ; chaque fiche le précise.
+
+Correction : PURPLE n'a plus de carte sur le réseau mgmt. Il lui reste deux cartes :
+
+| Carte | Réseau | Rôle |
+|---|---|---|
+| NAT (SSH `127.0.0.1:19023` sur l'hôte) | hors lab | administration de la VM depuis l'hôte |
+| `socforge-purple` | 10.10.50.10/24 | zone de l'attaquant, derrière OPNsense |
+
+Dans Kali, la config du réseau mgmt a été supprimée (`/etc/network/interfaces` et profil
+NetworkManager, sauvegardés), et les deux profils restants sont liés à l'**adresse MAC** de
+leur carte et non plus à son nom : retirer la carte avait décalé la numérotation
+(`eth1` → `eth0`) et donné à chaque carte la config d'une autre. Le réseau
+`10.10.10.0/24` est routé par le pare-feu (`via 10.10.50.1`) : une tentative vers le
+réseau d'administration n'est plus perdue, elle est bloquée **et journalisée**.
+
+Test (24/09, 14:57 UTC), depuis PURPLE : `ping` puis ouverture de connexion TCP vers le
+manager Wazuh `10.10.10.10:1514`.
+
+| Heure | Wazuh | Détail |
+|---|---|---|
+| 14:57:02-03 | 100301, niveau 8 | ICMP `10.10.50.10 → 10.10.10.10`, `block` |
+| 14:57:05-09 | 100301, niveau 8 | TCP `→ 10.10.10.10:1514`, `block` (une alerte par tentative) |
+| 14:57:10 | **100302, niveau 12** | tentatives répétées de la zone attaquante |
+
+Côté PURPLE : 0 réponse au `ping`, connexion TCP refusée ; route
+`10.10.10.10 via 10.10.50.1 dev eth1`.
 
 ## Captures
 
 - [`docs/screenshots/opnsense-segmentation-policy.png`](../../docs/screenshots/opnsense-segmentation-policy.png) — les 12 règles de la politique dans OPNsense
 - [`docs/screenshots/wazuh-opnsense-segmentation-blocks.png`](../../docs/screenshots/wazuh-opnsense-segmentation-blocks.png) — les blocages dans Wazuh, dont 100302 (niveau 12)
+- [`docs/screenshots/wazuh-purple-to-mgmt-blocked.png`](../../docs/screenshots/wazuh-purple-to-mgmt-blocked.png) — PURPLE isolé : ses tentatives vers le réseau mgmt bloquées par OPNsense et vues par Wazuh (8 alertes, dont 100302)
 
 ## Résultats
 
@@ -131,3 +158,4 @@ zone**, là où le test place l'attaquant.
 | Blocages envoyés à Wazuh | ✅ (syslog `filterlog`, décodeur `pf`) |
 | Tentative de l'attaquant vers une zone interdite détectée | ✅ (100301 par port, 100302 niveau 12) |
 | Trafic autorisé non bloqué | ✅ (contre-épreuve zone ep : 0 blocage) |
+| Attaquant sans accès au réseau d'administration | ✅ (plus de carte mgmt ; tentatives bloquées et journalisées, 100302) |

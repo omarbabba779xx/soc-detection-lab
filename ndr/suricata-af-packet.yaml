@@ -1,0 +1,11 @@
+# Excerpt of /etc/suricata/suricata.yaml on VM07-NDR (Suricata 6.0.4, ET Open).
+# The service runs "suricata --af-packet" without -i: it listens on every entry below.
+af-packet:
+  - interface: enp0s10      # socforge-purple, passive tap
+    cluster-id: 98
+    cluster-type: cluster_flow
+    defrag: yes
+  - interface: enp0s8       # socforge-mgmt
+    cluster-id: 99
+    cluster-type: cluster_flow
+    defrag: yes

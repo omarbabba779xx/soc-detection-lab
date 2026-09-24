@@ -2,6 +2,11 @@
 
 **Session** : Reconstruction — 2026-09-17
 **Attaquant** : PURPLE (Kali 2026.2, 10.10.10.60) — pivot SSH vers linux01
+
+> **Adresse de l'attaquant** : ce test date d'avant le 24/09/2026, quand PURPLE avait encore une
+> patte sur le réseau mgmt (`10.10.10.60`). Depuis, PURPLE n'existe plus que dans sa zone
+> filtrée (`10.10.50.10`) : voir SC-16, « Isolement de l'attaquant ».
+
 **Cible** : linux01 (agent Wazuh ID 008, 10.10.10.111)
 **MITRE** : T1548.003 (Sudo and Sudo Caching), T1053.003 (Cron)
 **Tactiques** : Privilege Escalation / Persistence

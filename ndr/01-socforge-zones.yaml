@@ -1,0 +1,20 @@
+# Netplan on VM07-NDR (/etc/netplan/01-socforge-zones.yaml).
+# enp0s3  = VirtualBox NIC1 = socforge-ndr (NDR zone behind OPNsense)
+# enp0s8  = VirtualBox NIC2 = socforge-mgmt (SOC network, sniffed)
+# enp0s10 = VirtualBox NIC4 = socforge-purple (attacker zone, passive tap: no address)
+# NIC2 and NIC4 have the VirtualBox promiscuous policy "allow-all"; Suricata (af-packet)
+# and Zeek put the interfaces in promiscuous mode themselves.
+network:
+  version: 2
+  ethernets:
+    enp0s3:
+      addresses: [10.10.40.10/24]
+    enp0s8:
+      addresses: [10.10.10.40/24]
+    enp0s9:
+      dhcp4: true
+    enp0s10:
+      dhcp4: false
+      dhcp6: false
+      link-local: []
+      optional: true

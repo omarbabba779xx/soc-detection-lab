@@ -3,6 +3,11 @@
 **Session** : Reconstruction — 2026-09-17
 **Attaquant** : PURPLE (Kali 2026.2, 10.10.10.60) — **premier test de la reconstruction lancé
 depuis la machine d'attaque dédiée plutôt que depuis la console de la victime**
+
+> **Adresse de l'attaquant** : ce test date d'avant le 24/09/2026, quand PURPLE avait encore une
+> patte sur le réseau mgmt (`10.10.10.60`). Depuis, PURPLE n'existe plus que dans sa zone
+> filtrée (`10.10.50.10`) : voir SC-16, « Isolement de l'attaquant ».
+
 **Cible** : dc01 (agent Wazuh ID 007, 10.10.10.109)
 **MITRE** : T1046 — Network Service Discovery
 **Tactique** : Discovery

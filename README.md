@@ -34,12 +34,12 @@ flowchart LR
     FW -- syslog filterlog --> WAZUH
     NDR -- eve.json --> WAZUH
     WAZUH -- "webhook (niveau ≥ 10)" --> SHUFFLE
-    SHUFFLE -- alerte --> THEHIVE
-    SHUFFLE -- enrichissement --> CORTEX
+    SHUFFLE -- "alerte + observables" --> THEHIVE
+    THEHIVE -- analyse --> CORTEX
     CORTEX -- corrélation --> MISP
-    MISP -- IOC --> VELO
+    MISP -- "publication (IOC)" --> VELO
     VELO -- sightings --> MISP
-    VELO -- chasse --> WIN01
+    VELO -- chasse --> DC01 & WIN01
 ```
 
 Inventaire complet (adresses, versions, flux) : [`docs/lab-registry.md`](docs/lab-registry.md).
@@ -51,7 +51,7 @@ Inventaire complet (adresses, versions, flux) : [`docs/lab-registry.md`](docs/la
 | Détection Windows | 16 règles Sigma → Wazuh, toutes validées en direct (PowerShell encodé, tâche planifiée, clé Run, injection, mouvement latéral, profil PowerShell, accès LSASS…) | [`detection-sheet-windows.md`](detections/windows/detection-sheet-windows.md) |
 | Détection Linux | sudo, persistance cron | [`detection-sheet-linux.md`](detections/linux/detection-sheet-linux.md) |
 | Réseau | Suricata (52 795 signatures ET Open) détecte un scan, alerte niveau 10 dans Wazuh | [SC-12](purple-team/scenarios/scenario-ndr-purple-scan.md) |
-| Segmentation | politique de refus par défaut entre 6 zones, blocages de l'attaquant visibles dans Wazuh | [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
+| Segmentation | politique de refus par défaut entre 6 zones, attaquant sans accès au réseau d'administration, blocages visibles dans Wazuh | [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
 | SIEM → SOAR → CTI | alerte Wazuh → Shuffle → TheHive (avec observables) → Cortex → MISP en **une seule exécution, 33 s**, sans action humaine ; tag `misp:match` sur l'alerte | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | Gestion d'incident | alertes Wazuh promues en cas TheHive (licence StrangeBee), observables repris | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | DFIR | publication d'un événement MISP → chasse Velociraptor lancée **automatiquement** sur les postes Windows → sightings renvoyés à MISP dès la fin de la chasse ; persistance retrouvée alors que la clé était supprimée | [SC-15](purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md) |
@@ -108,6 +108,7 @@ Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-p
 | `wazuh/agents/` | configurations centralisées des agents (Windows, Linux, NDR) |
 | `wazuh/manager/` | intégration Shuffle et écoute syslog du manager |
 | `firewall/` | politique de segmentation OPNsense et script d'application par API |
+| `ndr/` | configuration de la sonde : interfaces écoutées, Suricata, cluster Zeek |
 | `pki/` | CA interne du lab (certificat public) et script d'émission des certificats |
 | `soar/` | création du workflow Shuffle déclenché par Wazuh |
 | `velociraptor/` | artefacts serveur MISP ↔ Velociraptor |
@@ -122,7 +123,8 @@ Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-p
 - **Budget matériel** : 3 VM au maximum en usage courant (16 Go). La chaîne SOAR complète
   a été validée avec les 5 VM nécessaires, en réduisant temporairement leur mémoire.
 - **Réseau mgmt** non filtré : c'est le réseau d'administration hors bande du lab.
-  La segmentation s'applique aux réseaux de zone.
+  L'attaquant n'y a pas de carte ; ses tentatives vers ce réseau traversent le pare-feu,
+  qui les bloque et les journalise (SC-16).
 
 ## Chronologie
 
