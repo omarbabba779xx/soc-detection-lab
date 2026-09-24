@@ -52,9 +52,10 @@ Inventaire complet (adresses, versions, flux) : [`docs/lab-registry.md`](docs/la
 | Détection Linux | sudo, persistance cron | [`detection-sheet-linux.md`](detections/linux/detection-sheet-linux.md) |
 | Réseau | Suricata (52 795 signatures ET Open) détecte un scan, alerte niveau 10 dans Wazuh | [SC-12](purple-team/scenarios/scenario-ndr-purple-scan.md) |
 | Segmentation | politique de refus par défaut entre 6 zones, blocages de l'attaquant visibles dans Wazuh | [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
-| SIEM → SOAR | alerte Wazuh → Shuffle → TheHive sans action humaine (14 s) | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
-| Enrichissement | TheHive → Cortex → MISP, corrélation réelle (`suspicious`) | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
-| DFIR | IOC MISP → chasse Velociraptor native → sightings renvoyés à MISP ; persistance retrouvée alors que la clé était supprimée | [SC-15](purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md) |
+| SIEM → SOAR → CTI | alerte Wazuh → Shuffle → TheHive (avec observables) → Cortex → MISP en **une seule exécution, 33 s**, sans action humaine ; tag `misp:match` sur l'alerte | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
+| Gestion d'incident | alertes Wazuh promues en cas TheHive (licence StrangeBee), observables repris | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
+| DFIR | publication d'un événement MISP → chasse Velociraptor lancée **automatiquement** sur les postes Windows → sightings renvoyés à MISP dès la fin de la chasse ; persistance retrouvée alors que la clé était supprimée | [SC-15](purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md) |
+| Chiffrement | TLS vérifié entre les outils (CA interne du lab), aucune vérification désactivée | [SC-15](purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md), [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
 
 ## Scénarios
 
@@ -88,8 +89,14 @@ Inventaire complet (adresses, versions, flux) : [`docs/lab-registry.md`](docs/la
   locale de l'agent), et `report_changes` sur Program Files saturait le quota et bloquait
   le scan.
 - **Infrastructure** : SIEM arrêté quatre jours par un disque plein, horloges faussées de
-  plusieurs heures (fuseau horaire, dérive sans Guest Additions), NDR sans signatures,
-  pare-feu sans aucune règle entre zones.
+  plusieurs heures, NDR sans signatures, pare-feu sans aucune règle entre zones.
+- **Une cause racine derrière plusieurs symptômes** : un écran bleu de WIN01, analysé avec
+  WinDbg, a mené au journal VirtualBox : l'hyperviseur Windows (Intégrité de la mémoire)
+  occupait AMD-V, et VirtualBox tournait en mode de repli. C'était la cause commune de la
+  dérive des horloges, des gels de disque et des blocages au démarrage des VM.
+- **Rôles** : TheHive se connectait à Cortex avec un compte `superadmin`, qui ne peut pas
+  lancer d'analyseur ; l'administrateur de l'organisation TheHive n'avait aucun droit sur
+  les incidents. Comptes corrigés selon le moindre privilège.
 
 Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-plan.md).
 
@@ -101,6 +108,7 @@ Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-p
 | `wazuh/agents/` | configurations centralisées des agents (Windows, Linux, NDR) |
 | `wazuh/manager/` | intégration Shuffle et écoute syslog du manager |
 | `firewall/` | politique de segmentation OPNsense et script d'application par API |
+| `pki/` | CA interne du lab (certificat public) et script d'émission des certificats |
 | `soar/` | création du workflow Shuffle déclenché par Wazuh |
 | `velociraptor/` | artefacts serveur MISP ↔ Velociraptor |
 | `detections/` | fiches de détection Windows et Linux |
@@ -109,14 +117,14 @@ Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-p
 
 ## Limites connues
 
-- **Cas TheHive** : l'instance n'a pas de licence. Les alertes arrivent automatiquement,
-  mais la création de cas attend la clé Community gratuite de StrangeBee.
-- **Budget matériel** : 3 VM au maximum en même temps. La chaîne complète Wazuh → Shuffle
-  → TheHive → Cortex → MISP est donc validée en deux exécutions, pas en une seule.
+- **Licence TheHive** : essai `Platinum` valable jusqu'au 08/10/2026 ; une licence
+  Community la remplacera pour que le lab reste utilisable ensuite.
+- **Budget matériel** : 3 VM au maximum en usage courant (16 Go). La chaîne SOAR complète
+  a été validée avec les 5 VM nécessaires, en réduisant temporairement leur mémoire.
 - **Réseau mgmt** non filtré : c'est le réseau d'administration hors bande du lab.
   La segmentation s'applique aux réseaux de zone.
 
 ## Chronologie
 
 Première réalisation du 2 au 15 août 2026, pause, puis reconstruction et audit du 13 au
-23 septembre 2026 (détail dans [`docs/rebuild-plan.md`](docs/rebuild-plan.md)).
+24 septembre 2026 (détail dans [`docs/rebuild-plan.md`](docs/rebuild-plan.md)).

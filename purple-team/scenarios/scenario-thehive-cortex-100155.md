@@ -44,9 +44,8 @@ soumise à cette restriction — testé avec succès (`201 Created`).
 `"id": "no-license", "plan": "No", "capabilities": []`. La licence d'essai installée en
 août (phase 1 du projet) a expiré, et l'instance n'a plus aucune capacité de gestion de
 cas. Depuis TheHive 5.3, même l'édition Community gratuite demande une clé, obtenue en
-s'inscrivant sur le portail StrangeBee. Cette inscription est une démarche du
-propriétaire du lab, pas une configuration technique. Une fois la clé installée, la
-promotion alerte → cas pourra être validée.
+s'inscrivant sur le portail StrangeBee. Licence obtenue et activée le 24/09 : la
+promotion alerte → cas est validée (cas #8 et #9, voir SC-14).
 
 ## Alerte créée depuis Wazuh (rule 100155)
 
@@ -91,7 +90,7 @@ bout — la panne est une dépendance externe attendue, pas un défaut de Cortex
 |------------------------------------|-------------------------------------------------|
 | VM03-THEHIVE démarre                | ✅ OUI (après fix paravirt provider)            |
 | Alerte créée depuis Wazuh           | ✅ OUI (201, via API bot SOAR)                  |
-| Cas créé depuis l'alerte            | ❌ NON — instance sans licence (`plan "No"`), clé Community à obtenir auprès de StrangeBee |
+| Cas créé depuis l'alerte            | ✅ OUI le 24/09, après activation d'une licence StrangeBee : cas #8 et #9 depuis des alertes Wazuh automatiques (voir SC-14) |
 | Analyseur Cortex exécuté            | ✅ OUI (job soumis et traité)                    |
 | Résultat de l'analyseur             | Échec attendu ici (MISP hors ligne) ; succès avec corrélation MISP réelle à l'étape 7 (SC-14) |
 
