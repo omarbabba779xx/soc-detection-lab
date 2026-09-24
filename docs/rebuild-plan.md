@@ -37,6 +37,7 @@ calendrier. Ce ne sont pas des incohérences.
 | 13/09 → 19/09 | Reprise : audit de l'existant (17/09), puis reconstruction étape par étape (ce plan) |
 | 20/09 → 21/09 | Courte pause |
 | 22/09 → 23/09 | Étape 8 (MISP + DFIR-HUNT), intégration native MISP ↔ Velociraptor, puis audit complet : réparation de Wazuh, règles 100139/100186, étape 9 (pare-feu), NDR raccordée au SIEM, déclenchement automatique Wazuh → Shuffle → TheHive |
+| 24/09 | Levée des limites restantes : cause de fond de l'instabilité des VM (hyperviseur Windows), TLS vérifié partout (CA du lab), chasse et sightings automatiques, agent DC01, journaux Windows, licence TheHive et cas, chaîne SOAR complète en une exécution |
 
 Conséquences visibles :
 
@@ -148,7 +149,7 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     l'heure locale de l'hôte (+8 h en UTC), et il dérivait ensuite de 15 min par heure.
     DC01 se synchronise désormais sur `pool.ntp.org` et WIN01 suit le domaine. TheHive
     retardait de 6 min : `timesyncd` ne vérifie plus qu'au plus toutes les 5 minutes sur
-    les VM Ubuntu.
+    les VM Ubuntu. La cause de fond de la dérive a été trouvée le 24/09 (faiblesse 26).
 19. **Aucune segmentation sur OPNsense** : chaque zone avait « allow any ». Politique de
     refus par défaut, versionnée et journalisée vers Wazuh (étape 9).
 20. **NDR sans détection** : aucune signature Suricata chargée, IP inversées entre les
@@ -159,7 +160,8 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
 22. **Blocage au démarrage des VM Ubuntu** (`Loading essential drivers`), observé sur
     WAZUH, MISP et SHUFFLE : il survient pendant le test RAID6 AVX2 de l'initramfs quand
     une autre VM démarre en même temps. Contournement : démarrages à froid, une VM
-    après l'autre, et cache I/O hôte activé sur les contrôleurs SATA.
+    après l'autre, et cache I/O hôte activé sur les contrôleurs SATA. Cause de fond
+    trouvée et corrigée le 24/09 (faiblesse 26) : le contournement n'est plus nécessaire.
 23. **Anciens tests non nettoyés** : `profile.ps1` laissés sur WIN01 et DC01 par les tests
     T1546 d'août, retirés (leur suppression a servi de test 100186).
 24. **`wazuh-indexer` en échec après un redémarrage à froid de la VM** (`start operation
@@ -175,6 +177,53 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     `--config`, il charge celle du lab (`https://10.10.10.61:8889/`). `ImagePath` corrigé,
     démarrage automatique, redémarrage sur échec. Reconnexion seule après un redémarrage
     sans session ; la tâche planifiée qui servait de contournement a été supprimée.
+26. **VirtualBox tournait par-dessus l'hyperviseur Windows** (24/09). Un « plantage » de
+    l'agent Velociraptor de WIN01, le 23/09 à 23:54, était en réalité un **écran bleu** de
+    WIN01 : Kernel-Power 41, `BugcheckCode 10` (0xA `IRQL_NOT_LESS_OR_EQUAL`). Le minidump
+    (récupéré par Velociraptor, SHA-256 vérifié, analysé avec WinDbg) situe l'arrêt dans le
+    code d'interruption du noyau (`nt!KiIsrThunk`, IRQL `0xFF`), sans aucun pilote tiers
+    dans la pile ; WinDbg indique `VIRTUAL_MACHINE: VirtualBox`. Le journal VirtualBox
+    donne la cause : `HM: HMR3Init: Attempting fall back to NEM: AMD-V is not available`.
+    L'**Intégrité de la mémoire** (HVCI, sécurité basée sur la virtualisation) était
+    active sur l'hôte : l'hyperviseur Windows occupait AMD-V, et VirtualBox tournait en
+    mode de repli NEM, connu pour ses défauts d'interruptions et d'horloge. C'est la cause
+    commune de l'écran bleu, du gel `AHCI port reset` de WIN01, de la dérive des horloges
+    (faiblesse 18) et des blocages au démarrage des VM Ubuntu (faiblesse 22).
+    HVCI désactivée sur l'hôte (Sécurité Windows → Isolation du noyau). Après
+    redémarrage : `HypervisorPresent: False`, chaque VM en `HM: HMR3Init: AMD-V w/ nested
+    paging`. Vérifications : DFIR-HUNT et MISP démarrées ensemble sans blocage (test RAID6
+    AVX2 passé en 30 s), puis WAZUH et SHUFFLE ensemble ; horloge de DFIR-HUNT à 1,7 ms
+    de la référence NTP après 1 h 27, intervalle de vérification de `timesyncd` à son
+    maximum (34 min), aucun saut d'horloge.
+27. **Journaux Windows trop petits pour la DFIR** (24/09). WIN01 : Security plafonné à
+    20 Mo, plein, plus ancien événement de moins de 30 h. DC01 : PowerShell/Operational à
+    15 Mo, plein, avec **quelques minutes** d'historique (chaque script PowerShell
+    y est journalisé en entier), Security à 128 Mo plein. Tailles portées à Security 512 Mo
+    (1 Go sur DC01, contrôleur de domaine), Sysmon et PowerShell 256 Mo, System 128 Mo.
+    L'artefact `Custom.Windows.EventLogs.Retention` affiche désormais la taille maximale :
+    sur WIN01, le nombre d'événements Security augmente alors que le plus ancien reste le
+    même, le journal ne s'écrase plus.
+28. **Agent Velociraptor de DC01 hors ligne depuis le 10/08** (24/09). Sa config visait
+    encore `https://10.10.10.60:8889/`, l'ancienne adresse du serveur (aujourd'hui celle de
+    PURPLE) ; seule celle de WIN01 avait été corrigée à l'étape 8. Config du serveur
+    déployée (même SHA-256 que WIN01), `--config` ajouté au service comme sur WIN01. Même
+    client `C.c6b3dab429088216`, reconnecté à 11:50:15, collectes acceptées.
+29. **Rôles TheHive et Cortex mal attribués** (24/09), trouvés en créant le premier cas :
+    `admin@socforge.local` avait le profil `admin` de plateforme (aucun droit sur les
+    incidents), et TheHive se connectait à Cortex avec le compte `superadmin` de Cortex,
+    qui ne peut pas lancer d'analyseur (connecteur en `AUTH_ERROR`). Profil passé en
+    `org-admin` ; compte de service Cortex dédié `thehive` (`read`, `analyze`). Voir SC-14.
+30. **`wazuh-manager` en échec au démarrage** (24/09, `start operation timed out` après
+    1 min 30 s) : même défaut que la faiblesse 24, corrigé à l'époque pour l'indexeur
+    seulement. Même override `TimeoutStartSec=600` pour le manager.
+31. **Table MITRE non chargée au démarrage de Wazuh** (24/09, une fois) : sous forte charge,
+    `wazuh-analysisd` n'a pas joint `wazuh-db` à temps (« Unable to connect to Wazuh-DB for
+    Mitre matrix information ») et ne réessaie pas ; les alertes de la session n'avaient
+    pas de champ MITRE. Rechargée par un redémarrage du manager. À surveiller après un
+    démarrage à froid : présence de ce message dans `ossec.log`.
+32. **Alertes TheHive sans observable** (24/09) : le workflow Shuffle ne joignait que l'IP
+    source ; une alerte FIM ou Sysmon arrivait vide, sans rien à analyser. Il extrait
+    désormais fichier, SHA-256, hôte, processus, registre et compte.
 
 ## Statut
 
@@ -264,7 +313,7 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   démarrée. **Cause exacte établie le 2026-09-23** : l'instance n'a plus de licence
   (`/api/v1/license/current` : `plan "No"`, aucune capacité), car la licence d'essai d'août
   a expiré. Depuis TheHive 5.3, l'édition Community gratuite demande une clé obtenue par
-  inscription chez StrangeBee : c'est au propriétaire du lab de faire cette démarche.
+  inscription chez StrangeBee (licence obtenue et activée le 24/09, voir SC-14).
   Voir `purple-team/scenarios/scenario-thehive-cortex-100155.md`.
 - [x] Étape 7 — Shuffle. VM06-SHUFFLE reconstruite après un disque plein, qui avait
   corrompu le système de fichiers ; le snapshot restauré était antérieur à Docker. Cinq
@@ -276,7 +325,7 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   l'authentification de Cortex, contourner le templating de Shuffle avec des nœuds Python,
   relier les nœuds par l'API, réparer le réseau et la clé API de MISP, et remplacer deux
   ID d'alerte figés qui donnaient une fausse impression de dynamisme. Cette validation a
-  demandé 4 VM en même temps (≈ 9,5 Go), une dérogation ponctuelle validée avant le test.
+  demandé 4 VM en même temps (≈ 9,5 Go), une dérogation ponctuelle, décidée avant le test.
   **Déclenchement automatique (23/09)** : intégration native Wazuh → webhook Shuffle
   (alertes de niveau ≥ 10) → alerte TheHive (ID Wazuh en référence, tags MITRE). Test :
   règle 100210 à 17:06:49, exécution Shuffle `webhook` avec un 201 vers TheHive, alerte
@@ -316,6 +365,7 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
 
 ## Reste à faire
 
-- **Licence TheHive** : obtenir la clé Community gratuite sur le portail StrangeBee
-  (inscription du propriétaire du lab), l'installer, puis valider la promotion
-  alerte → cas depuis une alerte Wazuh arrivée automatiquement.
+- **Licence TheHive** : la licence active est un essai `Platinum` qui expire le
+  08/10/2026. La promotion alerte → cas est validée (cas #8 et #9, SC-14) ; pour que le
+  lab reste utilisable ensuite, installer une licence Community (portail StrangeBee,
+  même procédure par challenge).

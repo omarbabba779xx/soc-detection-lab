@@ -46,13 +46,14 @@ Hôte : 16 Go de RAM, d'où un maximum de 3 VM allumées en même temps (voir
 | LINUX01 (groupe `linux`) | journaux système (sudo), FIM temps réel sur les répertoires cron | Wazuh |
 | NDR (groupe `ndr`) | Suricata `eve.json` | Wazuh |
 | OPNsense | syslog `filterlog` (UDP 514) | Wazuh |
-| Wazuh (alertes de niveau ≥ 10) | intégration native `shuffle` (webhook) | Shuffle → TheHive |
-| TheHive (dernière alerte) | workflow d'enrichissement | Cortex → MISP |
-| MISP (événement IOC) | artefacts serveur Velociraptor | chasse sur WIN01, sightings renvoyés à MISP |
+| Wazuh (alertes de niveau ≥ 10) | intégration native `shuffle` (webhook) | Shuffle → alerte TheHive avec observables → Cortex (via TheHive, compte de service `thehive`) → MISP, dans la même exécution |
+| MISP (publication d'un événement) | artefacts serveur Velociraptor (`AutoHunt`, `Sightings`) | chasse automatique sur DC01 et WIN01, sightings renvoyés à MISP |
+| Velociraptor, OPNsense (API) | HTTPS vérifié par la CA du lab (`pki/socforge-lab-ca.crt`) | MISP, OPNsense |
 
 ## Heure
 
 Les heures citées dans la documentation sont en UTC. DC01 se synchronise sur `pool.ntp.org` et sert
-l'heure au domaine ; les VM Ubuntu utilisent `systemd-timesyncd` avec un intervalle
-maximal de 5 minutes. Sans ces réglages, les VM dérivaient de plusieurs minutes par heure
-(pas de Guest Additions, hôte chargé).
+l'heure au domaine ; les VM Ubuntu utilisent `systemd-timesyncd` (intervalle maximal de
+5 minutes sur THEHIVE, SHUFFLE et WAZUH). Les dérives de plusieurs minutes par heure
+observées jusqu'au 23/09 venaient de VirtualBox en mode de repli sur l'hyperviseur Windows
+(faiblesse 26 du plan de reconstruction) ; depuis, les VM tournent en AMD-V natif.
