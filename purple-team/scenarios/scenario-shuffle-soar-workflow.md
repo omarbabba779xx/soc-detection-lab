@@ -323,6 +323,25 @@ redémarrage) a été nettoyé après coup (`docker rm -f`) sans avoir rien écr
 TheHive. Résultat final : une seule alerte, un seul jeu de tags cohérent, aucune trace
 double.
 
+## Processus d'investigation formalisé (25/09)
+
+Jusque-là, une alerte promue en cas restait un cas vide : pas de tâches, pas de trace
+structurée de l'investigation. Un modèle de cas réutilisable
+(`caseTemplate` TheHive, 5 tâches : Triage, Confinement, Éradication, Récupération,
+Retour d'expérience) a été créé par API, puis appliqué à un cas réel construit à partir
+de l'alerte `~204804176` (voir
+[`docs/incident-report-2026-09-24-cron-persistence.md`](../../docs/incident-report-2026-09-24-cron-persistence.md)
+pour le récit complet). Les 5 tâches ont été renseignées avec les faits réels de
+l'incident (décision de sévérité, abstention justifiée de `Contain_Attacker`, nature
+bénigne de la source, absence d'impact, incident d'infrastructure du backend Shuffle),
+puis closes. **Cas #10** (`~245764176`), clos en **`TruePositive`**.
+
+TheHive calcule lui-même ses métriques de délai sur ce cas : détection < 1 s,
+qualification et accusé de réception à 15 h 58 (délai entre l'incident du 24/09 et son
+traitement formel le 25/09 — le cas a été construit le lendemain, pas en direct), et
+surtout **résolution en 55 secondes** une fois les 5 tâches ouvertes — cohérent avec un
+processus structuré mais rapide sur un incident déjà bien compris.
+
 ## Captures
 
 - [`docs/screenshots/shuffle-wazuh-webhook-execution.png`](../../docs/screenshots/shuffle-wazuh-webhook-execution.png) — exécution déclenchée par Wazuh : charge utile reçue (règle 100210, ID d'alerte, horodatage), `Build_TheHive_Alert` en succès, `Create_TheHive_Alert` → 201
@@ -334,6 +353,7 @@ double.
 
 - [`docs/screenshots/opnsense-blocked-attackers-alias.png`](../../docs/screenshots/opnsense-blocked-attackers-alias.png) — `Contain_Attacker` : IP bloquée en direct dans l'alias `BLOCKED_ATTACKERS`, GUI OPNsense
 - [`docs/screenshots/thehive-alert-dfir-hunt-triggered.png`](../../docs/screenshots/thehive-alert-dfir-hunt-triggered.png) — alerte `~204804176` à l'issue de la chaîne à 5 nœuds : tags `misp:match` + `dfir:hunt-triggered`, note d'audit avec l'ID d'événement MISP republié
+- [`docs/screenshots/thehive-case10-ir-playbook-closed.png`](../../docs/screenshots/thehive-case10-ir-playbook-closed.png) — cas #10 : 5 tâches du modèle IR closes, statut `True Positive`, résolution en 55 s
 
 ## Nettoyage
 

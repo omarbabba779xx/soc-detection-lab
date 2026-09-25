@@ -45,6 +45,8 @@ flowchart LR
 ```
 
 Inventaire complet (adresses, versions, flux) : [`docs/lab-registry.md`](docs/lab-registry.md).
+Métriques MTTD/MTTA/MTTR calculées sur les tests réels : [`docs/metrics-mttd-mtta-mttr.md`](docs/metrics-mttd-mtta-mttr.md).
+Exemple de rapport d'incident de bout en bout : [`docs/incident-report-2026-09-24-cron-persistence.md`](docs/incident-report-2026-09-24-cron-persistence.md).
 
 ## Ce qui est démontré
 
