@@ -1,19 +1,20 @@
 """Create or update the Shuffle workflow "Wazuh alert -> TheHive alert" with a webhook trigger.
 
 Usage: SHUFFLE_URL=http://10.10.10.30:3001 SHUFFLE_KEY=... THEHIVE_KEY=... MISP_KEY=...
-       OPN_KEY=... OPN_SECRET=... python create_wazuh_webhook_workflow.py
+       OPN_KEY=... OPN_SECRET=... VELO_SSH_PASSWORD=... python create_wazuh_webhook_workflow.py
 Prints the webhook URL to put in the Wazuh <integration> block (see
-wazuh/manager/integration-shuffle.xml). MISP_KEY, OPN_KEY and OPN_SECRET are only needed
-to (re)deploy Contain_Attacker / Trigger_DFIR_Hunt; the rest of the chain works without
-them.
+wazuh/manager/integration-shuffle.xml). MISP_KEY, OPN_KEY/OPN_SECRET and
+VELO_SSH_PASSWORD are only needed to (re)deploy Contain_Attacker / Quarantine_Host /
+Trigger_DFIR_Hunt; the rest of the chain works without them.
 
 With SHUFFLE_WORKFLOW_ID=<id>, the existing workflow is updated in place: every node
 below is created if missing, or has its code refreshed if already present. The webhook,
 and so the Wazuh integration, is left untouched either way.
 
 Chain: Wazuh_Webhook -> Build_TheHive_Alert -> Create_TheHive_Alert -> Enrich_With_Cortex
-       -> Contain_Attacker -> Trigger_DFIR_Hunt
-See soar/nodes/*.py for what Contain_Attacker and Trigger_DFIR_Hunt do and why.
+       -> Contain_Attacker -> Quarantine_Host -> Trigger_DFIR_Hunt
+See soar/nodes/*.py for what Contain_Attacker, Quarantine_Host and Trigger_DFIR_Hunt do
+and why.
 """
 import json, os, pathlib, uuid, requests
 
@@ -130,6 +131,13 @@ TRIGGER_HUNT = (TRIGGER_HUNT.replace("__THEHIVE__", THEHIVE).replace("__THEHIVE_
                             .replace("__MISP_URL__", MISP).replace("__MISP_KEY__", os.environ.get("MISP_KEY", ""))
                             .replace("__LAB_CA__", LAB_CA))
 
+QUARANTINE = load_node_code("quarantine_host.py")
+QUARANTINE = (QUARANTINE.replace("__THEHIVE__", THEHIVE).replace("__THEHIVE_KEY__", os.environ["THEHIVE_KEY"])
+                        .replace("__VELO_SSH_HOST__", os.environ.get("VELO_SSH_HOST", "10.10.10.61"))
+                        .replace("__VELO_SSH_PORT__", os.environ.get("VELO_SSH_PORT", "22"))
+                        .replace("__VELO_SSH_USER__", os.environ.get("VELO_SSH_USER", "socadmin"))
+                        .replace("__VELO_SSH_PASSWORD__", os.environ.get("VELO_SSH_PASSWORD", "")))
+
 
 def action(label, app, fn, params, x, y):
     return {"id": str(uuid.uuid4()), "label": label, "app_name": app[0], "app_version": app[1],
@@ -149,14 +157,19 @@ CHAIN = [
      600, "Build_TheHive_Alert"),
     ("Enrich_With_Cortex", TOOLS, "execute_python", {"code": ENRICH}, 900, "Create_TheHive_Alert"),
     ("Contain_Attacker", TOOLS, "execute_python", {"code": CONTAIN}, 1200, "Enrich_With_Cortex"),
-    ("Trigger_DFIR_Hunt", TOOLS, "execute_python", {"code": TRIGGER_HUNT}, 1500, "Contain_Attacker"),
+    ("Quarantine_Host", TOOLS, "execute_python", {"code": QUARANTINE}, 1500, "Contain_Attacker"),
+    ("Trigger_DFIR_Hunt", TOOLS, "execute_python", {"code": TRIGGER_HUNT}, 1800, "Quarantine_Host"),
 ]
 
 
 def ensure_chain(wf, hook_id=None, hook_x=0):
     """Create or refresh every node in CHAIN, and every branch between consecutive ones
     (including from the webhook to the first node, when hook_id is given). Existing code
-    is replaced in place; existing branches are left as they are."""
+    is replaced in place. Every CHAIN node has exactly one predecessor by design (it's a
+    linear chain, not a DAG): any existing branch that lands on a CHAIN node from
+    somewhere other than its current "after" is removed first, so that re-running this
+    after CHAIN's order changes (as when Quarantine_Host was inserted before
+    Trigger_DFIR_Hunt) can't leave a stale second path into that node and fire it twice."""
     by_label = {n["label"]: n for n in wf.get("actions", [])}
     for label, app, fn, params, x, after in CHAIN:
         node = by_label.get(label)
@@ -173,6 +186,8 @@ def ensure_chain(wf, hook_id=None, hook_x=0):
                     node["parameters"].append({"name": k, "value": v, "required": False,
                                                "multiline": "\n" in str(v)})
         src_id = hook_id if after is None else by_label[after]["id"]
+        wf["branches"] = [b for b in wf.get("branches", [])
+                          if not (b["destination_id"] == node["id"] and b["source_id"] != src_id)]
         if src_id and not any(b["source_id"] == src_id and b["destination_id"] == node["id"]
                               for b in wf.get("branches", [])):
             wf.setdefault("branches", []).append({"id": str(uuid.uuid4()), "source_id": src_id,

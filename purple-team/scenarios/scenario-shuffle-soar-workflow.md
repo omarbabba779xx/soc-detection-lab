@@ -323,6 +323,64 @@ redémarrage) a été nettoyé après coup (`docker rm -f`) sans avoir rien écr
 TheHive. Résultat final : une seule alerte, un seul jeu de tags cohérent, aucune trace
 double.
 
+## Isolation de l'hôte (25/09)
+
+`Contain_Attacker` répond au niveau réseau (une IP bloquée sur OPNsense), mais l'hôte
+compromis lui-même reste connecté. `Quarantine_Host` ferme ce manque, en s'appuyant sur
+l'artefact intégré de Velociraptor `Windows.Remediation.Quarantine` (déjà déployé pour le
+DFIR, aucun nouvel agent à installer) :
+
+```
+Wazuh_Webhook → Build_TheHive_Alert → Create_TheHive_Alert → Enrich_With_Cortex
+              → Contain_Attacker → Quarantine_Host → Trigger_DFIR_Hunt
+```
+
+- [`dfir/velociraptor_client.py`](../../dfir/velociraptor_client.py) : client VQL
+  partagé — l'API serveur de Velociraptor est en gRPC + mTLS (pas de REST simple), donc
+  le mécanisme passe par la CLI `velociraptor query` en SSH sur le serveur lui-même,
+  avec la config API déjà provisionnée (`socforge-api`). Même rôle que
+  `firewall/opnsense_client.py` pour OPNsense.
+- [`dfir/quarantine_host.py`](../../dfir/quarantine_host.py) /
+  [`unquarantine_host.py`](../../dfir/unquarantine_host.py) : CLI indépendante, même
+  mécanisme que le nœud Shuffle. La politique bloque tout le trafic sauf DNS/DHCP et la
+  connexion vers le frontend Velociraptor : l'hôte isolé reste pilotable par l'équipe de
+  réponse, ce n'est pas une coupure à l'aveugle.
+- [`soar/nodes/quarantine_host.py`](../../soar/nodes/quarantine_host.py) : nœud
+  `execute_python`, gated **en plus** de `Contain_Attacker` — il n'agit que si le tag
+  `auto-contained` est déjà posé (défense en profondeur : l'hôte n'est isolé que si la
+  chaîne a déjà eu confiance en cette alerte au point de bloquer sa sortie réseau) et si
+  l'alerte porte un observable `hostname` résolu à un client Velociraptor connu.
+
+**Preuve (25/09, mécanisme testé en direct sur WIN01 avec les scripts réellement
+livrés, pas un brouillon)** :
+
+| Étape | Résultat |
+|---|---|
+| Baseline | `ping 10.10.10.110` depuis DFIR-HUNT : 0 % de perte |
+| `python quarantine_host.py C.07dab9364f98e1aa` | flow `F.DAR7GRSD4OGN8` → `FINISHED` |
+| `ping 10.10.10.110` pendant la quarantaine | **100 % de perte** |
+| Canal Velociraptor pendant la quarantaine | `collect_client` (`Generic.Client.Info`) → `FINISHED` — le C2 survit, seul le reste du trafic est coupé |
+| `python unquarantine_host.py C.07dab9364f98e1aa` | flow `F.DAR7H0GGK7ADK` → `FINISHED` |
+| `ping 10.10.10.110` après retrait | 0 % de perte, restauré |
+
+**Défaut trouvé en déployant le nœud dans la chaîne** : `ensure_chain()` ajoutait les
+nouvelles branches sans jamais retirer les anciennes. En insérant `Quarantine_Host` entre
+`Contain_Attacker` et `Trigger_DFIR_Hunt`, l'ancienne branche directe
+`Contain_Attacker → Trigger_DFIR_Hunt` est restée en plus de la nouvelle route : sans
+correction, `Trigger_DFIR_Hunt` se serait exécuté **deux fois** par alerte (double
+republication MISP, note d'audit en double). Repéré en relisant les branches par API
+juste après le déploiement, avant tout déclenchement réel. Corrigé à la racine dans
+`ensure_chain()` : chaque nœud de la chaîne n'a par construction qu'un seul
+prédécesseur, donc toute branche existante qui n'est plus la bonne est retirée avant
+d'ajouter la nouvelle. Redéploiement testé : idempotent, 6 branches, aucun doublon.
+
+Le déclenchement complet de la chaîne à 6 nœuds sur une alerte réelle n'a volontairement
+pas été rejoué ce jour-là (WAZUH + SHUFFLE + THEHIVE + CORTEX + MISP + DFIR-HUNT + WIN01
+dépasserait le budget RAM raisonnable pour ce test) : le mécanisme est prouvé en direct
+sur la cible, le nœud est déployé et vérifié structurellement par API — même niveau de
+rigueur que `Contain_Attacker` et `Trigger_DFIR_Hunt` lors de leur propre ajout, avant
+leur premier test de chaîne complète.
+
 ## Processus d'investigation formalisé (25/09)
 
 Jusque-là, une alerte promue en cas restait un cas vide : pas de tâches, pas de trace
@@ -375,3 +433,5 @@ comme preuve.
 | Chaîne Wazuh → Shuffle → TheHive → Cortex → MISP en une exécution | ✅ (33 s, tag `misp:match`) |
 | Confinement automatique de l'attaquant (Contain_Attacker) | ✅ (blocage + retrait réels sur OPNsense, chemin négatif validé sur alerte réelle) |
 | Boucle SOAR → DFIR (`misp:match` → chasse Velociraptor) | ✅ (`Trigger_DFIR_Hunt`, sighting positif et négatif validés séparément) |
+| Isolation réseau de l'hôte (Quarantine_Host) | ✅ (100 % de perte pendant la quarantaine, canal Velociraptor conservé, restauration vérifiée — mécanisme prouvé en direct, nœud déployé et vérifié par API) |
+| Processus d'investigation formalisé (tâches TheHive) | ✅ (modèle réutilisable, cas #10 clos `TruePositive`, résolu en 55 s) |

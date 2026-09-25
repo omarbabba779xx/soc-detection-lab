@@ -37,7 +37,7 @@ calendrier. Ce ne sont pas des incohérences.
 | 13/09 → 19/09 | Reprise : audit de l'existant (17/09), puis reconstruction étape par étape (ce plan) |
 | 20/09 → 21/09 | Courte pause |
 | 22/09 → 23/09 | Étape 8 (MISP + DFIR-HUNT), intégration native MISP ↔ Velociraptor, puis audit complet : réparation de Wazuh, règles 100139/100186, étape 9 (pare-feu), NDR raccordée au SIEM, déclenchement automatique Wazuh → Shuffle → TheHive |
-| 24/09 | Levée des limites restantes : cause de fond de l'instabilité des VM (hyperviseur Windows), TLS vérifié partout (CA du lab), chasse et sightings automatiques, agent DC01, journaux Windows, licence TheHive et cas, chaîne SOAR complète en une exécution, puis deux limites de process (confinement automatique, boucle SOAR → DFIR) |
+| 24/09 → 25/09 | Levée des limites restantes : cause de fond de l'instabilité des VM (hyperviseur Windows), TLS vérifié partout (CA du lab), chasse et sightings automatiques, agent DC01, journaux Windows, licence TheHive et cas, chaîne SOAR complète en une exécution, puis quatre limites de process (confinement réseau automatique, boucle SOAR → DFIR, isolation hôte, processus d'investigation formalisé avec métriques et rapport d'incident) |
 
 Conséquences visibles :
 
@@ -394,6 +394,26 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   manque de RAM en cours d'exécution ; à son redémarrage automatique, le worker a rejoué
   les premiers nœuds sans dupliquer l'alerte TheHive (dédoublonnage par `sourceRef`) ;
   conteneurs orphelins nettoyés après coup. Voir
+  `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
+- [x] Étape 11 — isolation hôte, processus d'investigation formalisé, métriques et
+  rapport d'incident (2026-09-25). Trois ajouts pour aller au-delà de la chaîne
+  technique déjà prouvée. **Isolation hôte** (`Quarantine_Host`, code dans
+  `soar/nodes/`, CLI dans `dfir/`) : s'appuie sur l'artefact integre de Velociraptor
+  `Windows.Remediation.Quarantine`, gated en plus sur le tag `auto-contained` (defense en
+  profondeur — l'hote n'est isole que si la chaine a deja bloque son IP). Prouve en
+  direct sur WIN01 : ping a 0 % avant, 100 % pendant la quarantaine, canal Velociraptor
+  toujours fonctionnel pendant l'isolement (collecte reussie), 0 % apres levee — avec les
+  scripts reellement livres, pas un brouillon. **Defaut trouve en deployant le noeud** :
+  `ensure_chain()` n'enlevait jamais les anciennes branches ; l'insertion de
+  `Quarantine_Host` avant `Trigger_DFIR_Hunt` aurait fait executer ce dernier deux fois
+  par alerte sans correction. Repere par lecture des branches via l'API juste apres le
+  deploiement, avant tout declenchement reel ; corrige a la racine (chaque noeud de la
+  chaine n'a par construction qu'un seul predecesseur). **Processus d'investigation** :
+  modele de cas TheHive reutilisable (5 taches), applique a un cas reel et clos
+  (`TruePositive`, 55 s de resolution une fois ouvert). **Metriques et rapport
+  d'incident** : MTTD/MTTA/MTTR calcules sur les horodatages deja documentes
+  (`docs/metrics-mttd-mtta-mttr.md`), rapport d'incident complet sur l'alerte reelle
+  `~204804176` (`docs/incident-report-2026-09-24-cron-persistence.md`). Voir
   `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
 
 ## Reste à faire
