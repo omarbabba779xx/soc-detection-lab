@@ -1,53 +1,89 @@
 # SocForge — laboratoire SOC de bout en bout
 
-SOC complet monté sur un seul PC (16 Go de RAM, VirtualBox) : 12 machines virtuelles,
-de la détection à la réponse. Chaque détection est déclenchée par une attaque réelle
-mais bénigne, observée dans le SIEM, puis documentée avec ses preuves : extraits de
-journaux, heures UTC et captures.
+SOC complet monté sur un seul PC (VirtualBox) : 12 machines virtuelles, de la détection à la
+réponse. Chaque détection est déclenchée par une attaque réelle mais bénigne, observée dans le
+SIEM, puis documentée avec ses preuves : extraits de journaux, heures UTC et captures.
 
-Le projet documente aussi ce qui n'a **pas** marché du premier coup. Une bonne partie
-de sa valeur est là : règles qui ne se déclenchaient jamais sans erreur visible, sonde
-réseau sans signatures, pare-feu sans segmentation, SIEM tombé en silence faute de
-disque. Chaque défaut a été trouvé, expliqué et corrigé à la racine.
+Le projet documente aussi ce qui n'a **pas** marché du premier coup. Une bonne partie de sa valeur
+est là : règles qui ne se déclenchaient jamais sans erreur visible, sonde réseau sans signatures,
+pare-feu sans segmentation, SIEM tombé en silence faute de disque. Chaque défaut a été trouvé,
+expliqué et corrigé à la racine.
+
+## Présentation en vidéo
+
+Une attaque réelle, suivie de bout en bout à travers les neuf outils du laboratoire (2 min 50,
+sans son).
+
+[![Vidéo : une attaque réelle, suivie de bout en bout](docs/media/poster.png)](docs/media/socforge-attaque-reelle.mp4)
+
+## En chiffres
+
+| 12 | 16 | 23 | 6 | 6 | 40 |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| machines virtuelles | scénarios d'attaque rejoués | règles de détection personnalisées | zones réseau segmentées | nœuds de la chaîne SOAR | captures de preuve |
+
+Détection en **1 à 3 s**, prise en charge automatique en **~24 s**, blocage de l'attaquant, isolation
+de l'hôte et chasse DFIR en **57 à 72 s** après la livraison de l'alerte
+([métriques](docs/metrics-mttd-mtta-mttr.md)).
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    subgraph ZONES["Zones derrière OPNsense"]
-        PURPLE["PURPLE<br/>Kali — attaquant"]
-        DC01["DC01<br/>Windows Server 2022"]
-        WIN01["WIN01<br/>Windows 11"]
-        LINUX01["LINUX01<br/>Ubuntu"]
-    end
-    FW["OPNsense<br/>segmentation"]
-    NDR["NDR<br/>Suricata + Zeek"]
-    WAZUH["Wazuh<br/>SIEM"]
-    SHUFFLE["Shuffle<br/>SOAR"]
-    THEHIVE["TheHive<br/>incidents"]
-    CORTEX["Cortex<br/>analyseurs"]
-    MISP["MISP<br/>threat intel"]
-    VELO["Velociraptor<br/>DFIR"]
+![Architecture du laboratoire](docs/architecture.png)
 
-    PURPLE -- attaques --> DC01 & WIN01 & LINUX01
-    DC01 & WIN01 & LINUX01 -- agents --> WAZUH
-    FW -- syslog filterlog --> WAZUH
-    NDR -- eve.json --> WAZUH
-    WAZUH -- "webhook (niveau ≥ 10)" --> SHUFFLE
-    SHUFFLE -- "alerte + observables" --> THEHIVE
-    THEHIVE -- analyse --> CORTEX
-    CORTEX -- corrélation --> MISP
-    SHUFFLE -- "confinement IP (misp:match)" --> FW
-    SHUFFLE -- "isolation de l'hote" --> VELO
-    SHUFFLE -- "republie l'IOC" --> MISP
-    MISP -- "publication (IOC)" --> VELO
-    VELO -- sightings --> MISP
-    VELO -- chasse --> DC01 & WIN01
-```
+| Couche | Composants | Rôle |
+|---|---|---|
+| Attaque | PURPLE (Kali Linux) | émet les attaques, seul dans sa zone |
+| Réseau | OPNsense, NDR (Suricata + Zeek) | segmentation par refus par défaut, détection réseau passive |
+| Cibles | DC01, WIN01, LINUX01 | domaine Windows, poste Windows 11 (Sysmon), serveur Ubuntu, chacun avec un agent Wazuh |
+| Détection | Wazuh | reçoit les agents, le syslog du pare-feu et les alertes réseau |
+| Réponse | Shuffle, TheHive, Cortex, MISP | orchestration, suivi d'incident, analyse, renseignement sur la menace |
+| DFIR | Velociraptor | chasse sur les postes Windows, isolation d'un hôte compromis |
 
 Inventaire complet (adresses, versions, flux) : [`docs/lab-registry.md`](docs/lab-registry.md).
-Métriques MTTD/MTTA/MTTR calculées sur les tests réels : [`docs/metrics-mttd-mtta-mttr.md`](docs/metrics-mttd-mtta-mttr.md).
 Exemple de rapport d'incident de bout en bout : [`docs/incident-report-2026-09-24-cron-persistence.md`](docs/incident-report-2026-09-24-cron-persistence.md).
+
+## Une seule attaque, toute la chaîne
+
+Depuis PURPLE, trois accès successifs au partage d'administration de WIN01 produisent une alerte
+Wazuh de niveau 12 (règle `100141`, T1021.002). Cette **même alerte** traverse ensuite les six nœuds
+de Shuffle, et chacun agit sur elle. Détail, heures UTC et preuves : [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md).
+
+| Étape | Ce qui se passe |
+|---|---|
+| 1. Détection | Wazuh : règle `100140` (niveau 10) deux fois, puis `100141` (niveau 12) |
+| 2. Orchestration | Shuffle crée l'alerte TheHive, sévérité 3, avec IP, agent et nom Windows en observables |
+| 3. Enrichissement | Cortex interroge MISP : l'IP et le nom de poste figurent dans l'événement #5, tag `misp:match` |
+| 4. Confinement réseau | l'IP de l'attaquant entre dans l'alias `BLOCKED_ATTACKERS` d'OPNsense |
+| 5. Isolation de l'hôte | WIN01 est isolée par Velociraptor ; le canal de gestion reste ouvert |
+| 6. Chasse DFIR | l'événement MISP est republié, la chasse retrouve 18 traces de l'attaque et renvoie 2 sightings |
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/wazuh-rule-100141-lateral-movement.png" alt="Alertes Wazuh 100140 puis 100141"><br><sub><b>Détection</b> : règle 100141 (niveau 12) précédée des 100140, agent WIN01, IP source 10.10.50.10</sub></td>
+<td width="50%"><img src="docs/screenshots/thehive-alert-single-attack-chain.png" alt="Alerte TheHive à l'issue de la chaîne"><br><sub><b>Orchestration</b> : alerte TheHive de sévérité haute, tags <code>auto-contained</code>, <code>auto-quarantined</code>, <code>misp:match</code>, <code>dfir:hunt-triggered</code></sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/misp-event5-sightings-velociraptor.png" alt="Événement MISP 5 et sightings"><br><sub><b>Chasse</b> : événement MISP #5, 2 sightings renvoyés par Velociraptor</sub></td>
+<td width="50%"><img src="docs/screenshots/opnsense-blocked-attackers-alias.png" alt="Alias BLOCKED_ATTACKERS d'OPNsense"><br><sub><b>Confinement</b> : alias <code>BLOCKED_ATTACKERS</code> d'OPNsense, alimenté par Shuffle (capture du mécanisme lors de son test)</sub></td>
+</tr>
+</table>
+
+## Aperçu des preuves
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/wazuh-dashboard-threat-hunting-overview.png" alt="Tableau de bord Wazuh"><br><sub><b>SIEM</b> : tableau de bord Threat Hunting de Wazuh</sub></td>
+<td width="50%"><img src="docs/screenshots/wazuh-ndr-suricata-scan.png" alt="Alertes Suricata dans Wazuh"><br><sub><b>Réseau</b> : scan détecté par Suricata, alerte niveau 10 dans Wazuh (<a href="purple-team/scenarios/scenario-ndr-purple-scan.md">SC-12</a>)</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/opnsense-segmentation-policy.png" alt="Politique de segmentation OPNsense"><br><sub><b>Segmentation</b> : politique de refus par défaut entre zones (<a href="purple-team/scenarios/scenario-firewall-segmentation.md">SC-16</a>)</sub></td>
+<td width="50%"><img src="docs/screenshots/wazuh-opnsense-segmentation-blocks.png" alt="Blocages du pare-feu dans Wazuh"><br><sub><b>Blocages</b> : tentatives de l'attaquant bloquées et journalisées, visibles dans Wazuh</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/velociraptor-misp-sightings-monitor.png" alt="Sightings MISP dans Velociraptor"><br><sub><b>DFIR</b> : sightings renvoyés à MISP à la fin de chaque chasse (<a href="purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md">SC-15</a>)</sub></td>
+<td width="50%"><img src="docs/screenshots/thehive-case10-ir-playbook-closed.png" alt="Cas TheHive clos"><br><sub><b>Incident</b> : modèle de cas en 5 tâches, appliqué à un incident réel et clos</sub></td>
+</tr>
+</table>
 
 ## Ce qui est démontré
 
@@ -125,7 +161,7 @@ Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-p
 | `velociraptor/` | artefacts serveur MISP ↔ Velociraptor |
 | `detections/` | fiches de détection Windows et Linux |
 | `purple-team/scenarios/` | une fiche par scénario (SC-01 à SC-16) |
-| `docs/` | plan de reconstruction, inventaire, captures |
+| `docs/` | plan de reconstruction, inventaire, métriques, rapport d'incident, schéma d'architecture, captures (`screenshots/`) et vidéo de présentation (`media/`) |
 
 ## Limites connues
 
