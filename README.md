@@ -34,6 +34,7 @@ de l'hôte et chasse DFIR en **57 à 72 s** après la livraison de l'alerte
 |---|---|---|
 | Attaque | PURPLE (Kali Linux) | émet les attaques, seul dans sa zone |
 | Réseau | OPNsense, NDR (Suricata + Zeek) | segmentation par refus par défaut, détection réseau passive |
+| Administration | réseau de gestion `10.10.10.0/24` | héberge les outils (Wazuh, Shuffle, TheHive…) ; réseau d'administration hors bande, non filtré, sans carte côté attaquant |
 | Cibles | DC01, WIN01, LINUX01 | domaine Windows, poste Windows 11 (Sysmon), serveur Ubuntu, chacun avec un agent Wazuh |
 | Détection | Wazuh | reçoit les agents, le syslog du pare-feu et les alertes réseau |
 | Réponse | Shuffle, TheHive, Cortex, MISP | orchestration, suivi d'incident, analyse, renseignement sur la menace |
@@ -163,16 +164,11 @@ Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-p
 | `purple-team/scenarios/` | une fiche par scénario (SC-01 à SC-16) |
 | `docs/` | plan de reconstruction, inventaire, métriques, rapport d'incident, schéma d'architecture, captures (`screenshots/`) et vidéo de présentation (`media/`) |
 
-## Limites connues
+## Limite connue
 
-- **Exécution par groupes** : les machines de l'attaque et celles de la chaîne SOAR ne tiennent pas
-  ensemble en mémoire sur cet hôte. L'alerte réelle d'une attaque a donc été livrée au webhook
-  après coup, et chaque maillon a agi sur elle (SC-14).
-- **Licence TheHive** : essai `Platinum` valable jusqu'au 08/10/2026 ; une licence
-  Community la remplacera pour que le lab reste utilisable ensuite.
-- **Réseau mgmt** non filtré, par conception : c'est le réseau d'administration hors bande du lab.
-  L'attaquant n'y a pas de carte ; ses tentatives vers ce réseau traversent le pare-feu,
-  qui les bloque et les journalise (SC-16).
+**Exécution par groupes.** Les machines de l'attaque et celles de la chaîne SOAR ne tiennent pas
+ensemble en mémoire sur cet hôte. L'attaque et sa détection ont eu lieu en direct ; l'alerte réelle
+a ensuite été livrée au webhook de Shuffle, et chaque maillon a agi sur elle ([SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md)).
 
 ## Chronologie
 
