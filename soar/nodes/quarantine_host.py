@@ -47,9 +47,9 @@ if "auto-contained" not in tags:
 
 obs = requests.post(THEHIVE + "/api/v1/query", headers=TH, timeout=30, json={
     "query": [{"_name": "getAlert", "idOrName": alert_id}, {"_name": "observables"}]}).json()
-hostname = next((o["data"] for o in obs if o["dataType"] == "hostname"), None)
+hostnames = [o["data"] for o in obs if o["dataType"] == "hostname"]
 
-if not hostname:
+if not hostnames:
     out["skipped"] = "no hostname observable on this alert"
     print(json.dumps(out))
     raise SystemExit(0)
@@ -72,15 +72,24 @@ def vql(query):
     finally:
         c.close()
 
-clients = vql("SELECT client_id FROM clients() WHERE os_info.hostname =~ '%s' "
-              "OR os_info.fqdn =~ '%s'" % (hostname, hostname))
+# Wazuh names an agent "WIN01", Velociraptor knows the same machine by its Windows name
+# ("DESKTOP-75LAKDV", FQDN "DESKTOP-75LAKDV.socforge.lab"): Build_TheHive_Alert attaches
+# both as hostname observables, and any of them may match a Velociraptor client, compared
+# on the short name, case-insensitively.
+def short(name):
+    return str(name or "").split(".")[0].lower()
 
-if not clients:
-    out["skipped"] = "hostname %s has no known Velociraptor client" % hostname
+wanted = {short(h) for h in hostnames}
+known = vql("SELECT client_id, os_info.hostname AS hostname, os_info.fqdn AS fqdn FROM clients()")
+match = next((c for c in known
+              if short(c.get("hostname")) in wanted or short(c.get("fqdn")) in wanted), None)
+
+if not match:
+    out["skipped"] = "no Velociraptor client matches hostnames %s" % sorted(wanted)
     print(json.dumps(out))
     raise SystemExit(0)
 
-client_id = clients[0]["client_id"]
+client_id, hostname = match["client_id"], match.get("hostname") or hostnames[0]
 flow_id = vql("SELECT collect_client(client_id='%s', "
               "artifacts='Windows.Remediation.Quarantine', "
               "env=dict(MessageBox='SocForge SOC - host isole par la reponse automatisee'))"

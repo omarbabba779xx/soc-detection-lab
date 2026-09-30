@@ -161,6 +161,26 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
   d'administration.
   Capture : [`wazuh-rules-100139-100140-100186-live.png`](../../docs/screenshots/wazuh-rules-100139-100140-100186-live.png)
 
+- **Règle 100141 — escalade de 100140 (ajoutée le 2026-09-25)** : trois accès à un partage
+  d'administration depuis la même IP en deux minutes (`frequency="3" timeframe="120"`,
+  `<same_field>win.eventdata.ipAddress</same_field>`) passent en **niveau 12**. Pourquoi : 100140
+  (niveau 10) porte l'IP de l'attaquant mais reste sous le seuil de confinement automatique de la
+  chaîne SOAR (sévérité TheHive 3, soit niveau ≥ 12), alors que les règles de niveau ≥ 12 existantes
+  (100121, 100131, 100155, 100103) sont des événements locaux Sysmon sans aucune IP source : aucune
+  alerte ne pouvait à la fois déclencher le confinement et désigner l'adresse à bloquer.
+  **Prérequis** : sous-catégorie d'audit « File Share » activée sur l'hôte
+  (`auditpol /set /subcategory:"File Share" /success:enable /failure:enable`) ; elle était sur
+  « No Auditing » sur WIN01, donc aucun 5140 n'aurait été journalisé.
+- **Testé en direct le 2026-09-25**, depuis PURPLE, sur WIN01 (`10.10.30.110`) : trois connexions SMB
+  à `IPC$` avec le compte local `labuser` (`smbclient -n SOCFORGE-PURPLE`), à 17:08:10, 17:08:20 et
+  17:08:30 UTC →
+  `100140 (level 10)` à 17:08:11 et 17:08:21, puis `Rule: 100141 (level 12) -> 'Sigma T1021.002: Repeated
+  admin-share access from the same source — lateral movement escalation — 10.10.50.10'` à 17:08:31
+  (`win.eventdata.ipAddress` = `10.10.50.10`, agent `WIN01`, MITRE `T1021.002`). Un premier essai à
+  17:05 avait la même détection, sans étiquette MITRE : `wazuh-analysisd` n'avait pas pu charger la table
+  MITRE au démarrage sous forte charge (`Unable to connect to Wazuh-DB for Mitre matrix information`) ;
+  un redémarrage du manager l'a rechargée. Suite de la chaîne : [SC-14](../../purple-team/scenarios/scenario-shuffle-soar-workflow.md).
+
 ### T1027 — Obfuscated Files or Information
 - **Source**: Sysmon EventID 1
 - **Règle Wazuh**: 100127

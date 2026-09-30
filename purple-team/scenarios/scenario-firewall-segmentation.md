@@ -110,6 +110,8 @@ prouverait donc rien. La preuve est dans les journaux du pare-feu :
 pour PURPLE, ne produit **aucun** blocage. Le pare-feu laisse passer ce qui est permis et
 ne bloque que le reste.
 
+**Précision (25/09)** : `10.10.30.10`, la cible de ce scan, n'est portée par aucune machine ; WIN01 est en `10.10.30.110` (`docs/lab-registry.md` corrigé). Cette contre-épreuve prouve donc que le pare-feu laisse passer le trafic autorisé (aucun blocage journalisé), pas qu'un hôte répondait. Le 25/09, un ping lancé depuis OPNsense vers `10.10.30.110` aboutit (3 paquets sur 3).
+
 ## Isolement de l'attaquant (24/09)
 
 Les VM du SOC et les cibles ont une patte sur le réseau **mgmt** (10.10.10.0/24), le

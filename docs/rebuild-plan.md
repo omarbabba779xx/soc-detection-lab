@@ -37,7 +37,7 @@ calendrier. Ce ne sont pas des incohérences.
 | 13/09 → 19/09 | Reprise : audit de l'existant (17/09), puis reconstruction étape par étape (ce plan) |
 | 20/09 → 21/09 | Courte pause |
 | 22/09 → 23/09 | Étape 8 (MISP + DFIR-HUNT), intégration native MISP ↔ Velociraptor, puis audit complet : réparation de Wazuh, règles 100139/100186, étape 9 (pare-feu), NDR raccordée au SIEM, déclenchement automatique Wazuh → Shuffle → TheHive |
-| 24/09 → 25/09 | Levée des limites restantes : cause de fond de l'instabilité des VM (hyperviseur Windows), TLS vérifié partout (CA du lab), chasse et sightings automatiques, agent DC01, journaux Windows, licence TheHive et cas, chaîne SOAR complète en une exécution, puis quatre limites de process (confinement réseau automatique, boucle SOAR → DFIR, isolation hôte, processus d'investigation formalisé avec métriques et rapport d'incident) |
+| 24/09 → 30/09 | Levée des limites restantes : cause de fond de l'instabilité des VM (hyperviseur Windows), TLS vérifié partout (CA du lab), chasse et sightings automatiques, agent DC01, journaux Windows, licence TheHive et cas, chaîne SOAR complète en une exécution, puis quatre limites de process (confinement réseau automatique, boucle SOAR → DFIR, isolation hôte, processus d'investigation formalisé avec métriques et rapport d'incident) |
 
 Conséquences visibles :
 
@@ -414,6 +414,22 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   d'incident** : MTTD/MTTA/MTTR calcules sur les horodatages deja documentes
   (`docs/metrics-mttd-mtta-mttr.md`), rapport d'incident complet sur l'alerte reelle
   `~204804176` (`docs/incident-report-2026-09-24-cron-persistence.md`). Voir
+  `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
+- [x] Étape 12 — une seule attaque, toute la chaîne (2026-09-25 → 30/09). Chaque maillon avait été
+  prouvé séparément ; ce test suit une seule attaque réelle. **Défaut trouvé** : aucune alerte du jeu de règles
+  ne pouvait à la fois déclencher le confinement (règle de niveau ≥ 12) et porter l'IP à bloquer (les règles de
+  niveau ≥ 12 sont des événements Sysmon locaux ; celles qui portent une IP plafonnent à 10) — le confinement
+  automatique n'aurait donc jamais pu agir sur une alerte naturelle. Règle d'escalade `100141` (3 accès à un
+  partage d'administration depuis la même IP en 2 minutes → niveau 12). Trois autres défauts corrigés :
+  `Quarantine_Host` cherchait le nom Wazuh (`WIN01`) alors que Velociraptor connaît `DESKTOP-75LAKDV` (le nœud
+  s'abstenait en silence), audit « File Share » désactivé sur WIN01 (aucun événement 5140), et adresse de zone
+  de WIN01 erronée dans le registre (`.110`, pas `.10`). **Résultat** (SC-14) : alerte Wazuh 100141 du 25/09 →
+  alerte TheHive (`misp:match`) → `10.10.50.10` dans `BLOCKED_ATTACKERS` (lu sur OPNsense) → WIN01 isolée
+  (100 % de perte sur le réseau de gestion à 13:33:39, 0 % après levée à 13:37:26, canal Velociraptor
+  conservé) → chasse : 18 événements de l'attaque retrouvés, 2 sightings dans MISP. **Limite** : les dix machines
+  ne tiennent pas dans 16 Go, l'alerte réelle est donc rejouée dans le webhook (`soar/replay_alert.py`) cinq
+  jours après l'attaque au lieu d'être livrée en direct. Incident pendant la reprise : TheHive figé au
+  démarrage (JVM sans journal pendant 19 minutes), débloqué par `docker restart`. Voir
   `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
 
 ## Reste à faire

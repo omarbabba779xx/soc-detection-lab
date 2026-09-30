@@ -56,6 +56,7 @@ def add(data_type, value, message):
         observables.append({"dataType": data_type, "data": value, "message": message})
 add("ip", src, "Source IP")
 add("hostname", a.get("agent", {}).get("name"), "Wazuh agent")
+add("hostname", data.get("win", {}).get("system", {}).get("computer"), "Windows computer name")
 add("filename", fim.get("path"), "File changed (FIM, %s)" % fim.get("event", ""))
 add("hash", fim.get("sha256_after"), "SHA-256 of the file after the change (FIM)")
 add("filename", win.get("image"), "Process image (Sysmon)")

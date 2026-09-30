@@ -32,7 +32,7 @@ vers ce réseau passent par OPNsense, qui les bloque et les journalise.
 | VM07-NDR | détection réseau | Suricata 6.0.4 (ET Open), Zeek | 10.10.10.40 (écoute) | 10.10.40.10 | 3 Go |
 | VM08-DFIR-HUNT | chasse et forensique | Velociraptor 0.77.1 | 10.10.10.61 | 10.10.60.10 | 3 Go |
 | VM09-DC01 | contrôleur de domaine `socforge.lab` | Windows Server 2022, Sysmon | 10.10.10.109 | 10.10.20.10 | 3 Go |
-| VM10-WIN01 | poste membre du domaine | Windows 11, Sysmon | 10.10.10.110 | 10.10.30.10 | 4 Go |
+| VM10-WIN01 | poste membre du domaine | Windows 11, Sysmon | 10.10.10.110 | 10.10.30.110 | 4 Go |
 | VM11-LINUX01 | serveur Linux | Ubuntu | 10.10.10.111 | 10.10.30.20 | 2 Go |
 | VM12-PURPLE | attaquant | Kali Linux | — (aucune carte mgmt ; administration par NAT) | 10.10.50.10 | 2 Go |
 
