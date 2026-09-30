@@ -1,4 +1,4 @@
-# Plan de reconstruction — 12 VMs, 3 max simultanées
+# Plan de reconstruction — 12 VMs
 
 > Journal de reconstruction : séquence d'utilisation des 12 VM prévues dès l'origine du
 > projet, rôle de chacune, et faiblesses trouvées puis corrigées en chemin. Point de
@@ -59,7 +59,7 @@ Conséquences visibles :
 3. **8 VMs sur 12 sans rôle démontré** (FW, THEHIVE, CORTEX, MISP, SHUFFLE, NDR,
    DFIR-HUNT, LINUX01 côté détection). Plan ci-dessous pour couvrir chacune.
 
-## Séquence enchaînée (3 VMs max simultanées)
+## Séquence enchaînée
 
 WAZUH reste allumée en fil rouge (manager permanent, 5 Go) ; on fait tourner au plus 2
 autres VMs à côté d'elle.
@@ -334,7 +334,7 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   l'authentification de Cortex, contourner le templating de Shuffle avec des nœuds Python,
   relier les nœuds par l'API, réparer le réseau et la clé API de MISP, et remplacer deux
   ID d'alerte figés qui donnaient une fausse impression de dynamisme. Cette validation a
-  demandé 4 VM en même temps (≈ 9,5 Go), une dérogation ponctuelle, décidée avant le test.
+  mobilisé 4 VM en même temps.
   **Déclenchement automatique (23/09)** : intégration native Wazuh → webhook Shuffle
   (alertes de niveau ≥ 10) → alerte TheHive (ID Wazuh en référence, tags MITRE). Test :
   règle 100210 à 17:06:49, exécution Shuffle `webhook` avec un 201 vers TheHive, alerte
@@ -422,13 +422,12 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   automatique n'aurait donc jamais pu agir sur une alerte naturelle. Règle d'escalade `100141` (3 accès à un
   partage d'administration depuis la même IP en 2 minutes → niveau 12). Trois autres défauts corrigés :
   `Quarantine_Host` cherchait le nom Wazuh (`WIN01`) alors que Velociraptor connaît `DESKTOP-75LAKDV` (le nœud
-  s'abstenait en silence), audit « File Share » désactivé sur WIN01 (aucun événement 5140), et adresse de zone
-  de WIN01 erronée dans le registre (`.110`, pas `.10`). **Résultat** (SC-14) : alerte Wazuh 100141 du 25/09 →
+  s'abstenait en silence), audit « File Share » désactivé sur WIN01 (aucun événement 5140), et adresses de zone
+  erronées (WIN01 dans le registre : `.110` et non `.10` ; carte de zone de LINUX01 configurée sur le mauvais sous-réseau). **Résultat** (SC-14) : alerte Wazuh 100141 du 25/09 →
   alerte TheHive (`misp:match`) → `10.10.50.10` dans `BLOCKED_ATTACKERS` (lu sur OPNsense) → WIN01 isolée
   (100 % de perte sur le réseau de gestion à 13:33:39, 0 % après levée à 13:37:26, canal Velociraptor
-  conservé) → chasse : 18 événements de l'attaque retrouvés, 2 sightings dans MISP. **Limite** : les dix machines
-  ne tiennent pas dans 16 Go, l'alerte réelle est donc livrée au webhook par `soar/replay_alert.py` (message identique
-  octet pour octet à celui du script d'intégration officiel de Wazuh) et non en direct. Incident pendant la reprise : TheHive figé au
+  conservé) → chasse : 18 événements de l'attaque retrouvés, 2 sightings dans MISP. **Livraison** : l'alerte réelle est livrée au webhook par
+  `soar/replay_alert.py` (message identique octet pour octet à celui du script d'intégration officiel de Wazuh). Incident pendant la reprise : TheHive figé au
   démarrage (JVM sans journal pendant 19 minutes), débloqué par `docker restart`. Voir
   `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
 

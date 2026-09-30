@@ -96,7 +96,7 @@ worker orphelin de la même panne a été identifié (tempête de conteneurs Doc
 `Dead`) et nettoyé manuellement après coup, sans avoir écrit quoi que ce soit dans
 TheHive. Résultat final vérifié : une seule alerte, un seul jeu de tags cohérent.
 
-Cet incident illustre une vraie contrainte du lab (16 Go de RAM pour 12 VM), pas un
+Cet incident vient de l'exécution de plusieurs VM sur un seul hôte, pas d'un
 défaut de la chaîne SOAR elle-même — voir
 [`README.md`](../README.md#limites-connues) et le détail complet dans
 [`scenario-shuffle-soar-workflow.md`](../purple-team/scenarios/scenario-shuffle-soar-workflow.md).

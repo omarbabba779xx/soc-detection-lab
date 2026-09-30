@@ -53,7 +53,7 @@ Exemple de rapport d'incident de bout en bout : [`docs/incident-report-2026-09-2
 
 | Domaine | Résultat | Preuve |
 |---|---|---|
-| Détection Windows | 16 règles Sigma → Wazuh, toutes validées en direct (PowerShell encodé, tâche planifiée, clé Run, injection, mouvement latéral, profil PowerShell, accès LSASS…) | [`detection-sheet-windows.md`](detections/windows/detection-sheet-windows.md) |
+| Détection Windows | 17 règles Sigma → Wazuh, toutes validées en direct (PowerShell encodé, tâche planifiée, clé Run, injection, mouvement latéral, profil PowerShell, accès LSASS…) | [`detection-sheet-windows.md`](detections/windows/detection-sheet-windows.md) |
 | Détection Linux | sudo, persistance cron | [`detection-sheet-linux.md`](detections/linux/detection-sheet-linux.md) |
 | Réseau | Suricata (52 795 signatures ET Open) détecte un scan, alerte niveau 10 dans Wazuh | [SC-12](purple-team/scenarios/scenario-ndr-purple-scan.md) |
 | Segmentation | politique de refus par défaut entre 6 zones, attaquant sans accès au réseau d'administration, blocages visibles dans Wazuh | [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
@@ -129,15 +129,16 @@ Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-p
 
 ## Limites connues
 
+- **Exécution par groupes** : les machines de l'attaque et celles de la chaîne SOAR ne tiennent pas
+  ensemble en mémoire sur cet hôte. L'alerte réelle d'une attaque a donc été livrée au webhook
+  après coup, et chaque maillon a agi sur elle (SC-14).
 - **Licence TheHive** : essai `Platinum` valable jusqu'au 08/10/2026 ; une licence
   Community la remplacera pour que le lab reste utilisable ensuite.
-- **Budget matériel** : 3 VM au maximum en usage courant (16 Go). La chaîne SOAR complète
-  a été validée avec les 5 VM nécessaires, en réduisant temporairement leur mémoire.
-- **Réseau mgmt** non filtré : c'est le réseau d'administration hors bande du lab.
+- **Réseau mgmt** non filtré, par conception : c'est le réseau d'administration hors bande du lab.
   L'attaquant n'y a pas de carte ; ses tentatives vers ce réseau traversent le pare-feu,
   qui les bloque et les journalise (SC-16).
 
 ## Chronologie
 
 Première réalisation du 2 au 15 août 2026, pause, puis reconstruction et audit du 13 au
-24 septembre 2026 (détail dans [`docs/rebuild-plan.md`](docs/rebuild-plan.md)).
+30 septembre 2026 (détail dans [`docs/rebuild-plan.md`](docs/rebuild-plan.md)).

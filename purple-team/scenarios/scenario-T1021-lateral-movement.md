@@ -57,3 +57,12 @@ Les accès des comptes machine à `SYSVOL` restent sur 67017, ce qui est correct
 un partage d'administration.
 
 Capture : [`docs/screenshots/wazuh-rules-100139-100140-100186-live.png`](../../docs/screenshots/wazuh-rules-100139-100140-100186-live.png)
+
+## Résultats
+
+| Critère          | Valeur      |
+|------------------|-------------|
+| Détecté          | ✅ OUI      |
+| Règle d'alerte   | 100140 (niveau 10), escaladée en 100141 (niveau 12) après trois accès depuis la même IP — voir SC-14 |
+| Bruit filtré     | 100139 (comptes machine et `ANONYMOUS LOGON`), corrigée le 23/09 |
+| Verdict          | VP (vrai positif) |

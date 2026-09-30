@@ -1,6 +1,6 @@
 # Inventaire du lab SocForge
 
-> État au 2026-09-23. Aucun identifiant ici : les comptes, mots de passe et clés API sont
+> État au 2026-09-30, adresses de zone vérifiées sur les machines. Aucun identifiant ici : les comptes, mots de passe et clés API sont
 > dans `secrets/` (hors dépôt).
 
 ## Réseaux
@@ -36,7 +36,7 @@ vers ce réseau passent par OPNsense, qui les bloque et les journalise.
 | VM11-LINUX01 | serveur Linux | Ubuntu | 10.10.10.111 | 10.10.30.20 | 2 Go |
 | VM12-PURPLE | attaquant | Kali Linux | — (aucune carte mgmt ; administration par NAT) | 10.10.50.10 | 2 Go |
 
-Hôte : 16 Go de RAM, d'où un maximum de 3 VM allumées en même temps (voir
+Hôte : 16 Go de RAM ; les VM sont allumées par groupes, selon le scénario (voir
 `docs/rebuild-plan.md`).
 
 ## Agents et flux de données

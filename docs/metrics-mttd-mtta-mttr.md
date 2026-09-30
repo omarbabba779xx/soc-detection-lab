@@ -45,7 +45,7 @@ et réseau en temps réel, pas avec un traitement par lot.
 Écart notable et documenté : la chaîne à 5 nœuds testée le 24/09 (`~204804176`) a mis
 **271 s** entre la règle Wazuh (20:47:53) et la création de l'alerte TheHive (20:52:24).
 Cause connue, pas un défaut du mécanisme : les 5 VM de la chaîne démarraient
-simultanément, charge RAM hôte transitoire (voir
+simultanément, charge hôte transitoire (voir
 [`scenario-shuffle-soar-workflow.md`](../purple-team/scenarios/scenario-shuffle-soar-workflow.md)).
 Exclu de la moyenne ci-dessous pour ne pas fausser la mesure du mécanisme lui-même avec
 un problème d'infrastructure de test.

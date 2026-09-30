@@ -109,8 +109,8 @@ Défauts corrigés pour obtenir une chaîne réellement dynamique :
 
 Exécution finale : 6 nœuds sur 6 en succès, IP `10.10.10.110` extraite en direct, job
 Cortex `Success`. Un contre-test avec une IP jamais analysée (`8.8.8.8`) écarte l'effet
-du cache Cortex. Cette validation a demandé 4 VM à la fois (SHUFFLE, THEHIVE, CORTEX,
-MISP ≈ 9,5 Go), une dérogation ponctuelle au budget de 3 VM, décidée avant le test.
+du cache Cortex. Cette validation a mobilisé 4 VM à la fois (SHUFFLE, THEHIVE, CORTEX,
+MISP).
 CORTEX et MISP ont été éteintes juste après.
 
 ## Licence TheHive et création de cas (24/09)
@@ -192,11 +192,8 @@ Enrich_With_Cortex    SUCCESS | {"alert": "~245788712", "analyzer": "MISP_SocFor
   "misp_match": true}
 ```
 
-Conditions : les 5 VM allumées ensemble (WAZUH, SHUFFLE, THEHIVE, CORTEX, MISP), une
-dérogation ponctuelle au budget de 3 VM, décidée avant le test. Pour tenir dans 16 Go, WAZUH et
-SHUFFLE sont passées temporairement à 2 560 Mo, MISP à 1 536 Mo, et le tableau de bord
-Wazuh a été arrêté. L'hôte est descendu à 0,7 Go libre, sans échec. La RAM d'origine a
-été rétablie juste après.
+Conditions : les 5 VM allumées ensemble (WAZUH, SHUFFLE, THEHIVE, CORTEX, MISP), avec la mémoire de
+WAZUH, SHUFFLE et MISP réduite pour le test (rétablie ensuite) et le tableau de bord Wazuh arrêté.
 
 **Défaut vu pendant ce test** : une première exécution, à 12:46, a donné une alerte sans
 tag MITRE. Au démarrage de Wazuh dans cette configuration réduite, `wazuh-analysisd` n'a
@@ -307,7 +304,7 @@ du 24/09 précédent, événement MISP #4).
 | Heure (UTC) | Maillon | Preuve |
 |---|---|---|
 | 20:47:53 | Wazuh : règle 100210, `modified`, `T1053.003` | alerte `1790282873.…` |
-| 20:52:24 | TheHive : alerte `~204804176` créée | tags `wazuh`, `rule-100210`, `T1053.003` (délai dû à une charge RAM hôte transitoire au démarrage des 5 VM) |
+| 20:52:24 | TheHive : alerte `~204804176` créée | tags `wazuh`, `rule-100210`, `T1053.003` (délai dû au démarrage simultané des 5 VM) |
 | — | `Enrich_With_Cortex` | tag `misp:match` posé |
 | — | `Contain_Attacker` | abstention silencieuse (sévérité 2 < 3) — pas de tag, pas de note |
 | 21:01:13 | `Trigger_DFIR_Hunt` : événement MISP #4 republié, sighting non trouvé dans la fenêtre | tag **`dfir:hunt-triggered`** + note d'audit sur l'alerte |
@@ -318,8 +315,7 @@ minute plus tard. Le worker de l'exécution a repris le fil, rejouant `Build_The
 et `Create_TheHive_Alert` avant d'atteindre `Trigger_DFIR_Hunt` — sans dupliquer l'alerte
 TheHive : `Create_TheHive_Alert` s'appuie sur `sourceRef` (l'ID d'alerte Wazuh), que
 TheHive traite en amont-écrasement plutôt qu'en création. Un second worker orphelin de la
-même panne (tempête de conteneurs `Dead` sous Docker, un autre effet du manque de RAM au
-redémarrage) a été nettoyé après coup (`docker rm -f`) sans avoir rien écrit dans
+même panne (tempête de conteneurs `Dead` sous Docker, une conséquence du même incident) a été nettoyé après coup (`docker rm -f`) sans avoir rien écrit dans
 TheHive. Résultat final : une seule alerte, un seul jeu de tags cohérent, aucune trace
 double.
 
@@ -374,12 +370,9 @@ juste après le déploiement, avant tout déclenchement réel. Corrigé à la ra
 prédécesseur, donc toute branche existante qui n'est plus la bonne est retirée avant
 d'ajouter la nouvelle. Redéploiement testé : idempotent, 6 branches, aucun doublon.
 
-Le déclenchement complet de la chaîne à 6 nœuds sur une alerte réelle n'a volontairement
-pas été rejoué ce jour-là (WAZUH + SHUFFLE + THEHIVE + CORTEX + MISP + DFIR-HUNT + WIN01
-dépasserait le budget RAM raisonnable pour ce test) : le mécanisme est prouvé en direct
-sur la cible, le nœud est déployé et vérifié structurellement par API — même niveau de
-rigueur que `Contain_Attacker` et `Trigger_DFIR_Hunt` lors de leur propre ajout, avant
-leur premier test de chaîne complète.
+Ce jour-là, le mécanisme est prouvé en direct sur la cible et le nœud est déployé et vérifié
+structurellement par API. Le déclenchement de la chaîne à 6 nœuds sur une alerte réelle a eu lieu
+ensuite : voir la section suivante.
 
 ## Une seule attaque, toute la chaîne (25/09 → 30/09)
 
@@ -402,8 +395,12 @@ Trois autres défauts trouvés en préparant l'exécution, tous corrigés :
   compare les noms courts sans tenir compte de la casse (6 cas testés hors Shuffle, dont le cas d'origine).
 - **WIN01 n'auditait pas les partages** : la sous-catégorie « File Share » était sur « No Auditing »,
   aucun événement 5140 n'était journalisé.
-- **Une adresse fausse dans le registre** : WIN01 est en `10.10.30.110` dans sa zone, pas `10.10.30.10`
-  (aucune machine ne porte cette dernière ; `docs/lab-registry.md` corrigé).
+- **Des adresses de zone fausses** : WIN01 est en `10.10.30.110` dans sa zone, pas `10.10.30.10` (aucune
+  machine ne porte cette dernière ; `docs/lab-registry.md` corrigé). En vérifiant les autres machines, la carte de
+  zone de LINUX01 s'est révélée configurée en `10.10.20.10/24` (le sous-réseau de la zone srv, et l'adresse de
+  DC01) alors qu'elle est branchée sur la zone ep : configuration jamais mise à jour lors de la segmentation.
+  Corrigée en `10.10.30.20/24` (`/etc/netplan/01-socforge.yaml`), résolution ARP de la passerelle
+  `10.10.30.1` vérifiée. DC01 (`10.10.20.10`), NDR (`10.10.40.10`), DFIR-HUNT (`10.10.60.10`) et PURPLE (`10.10.50.10`) étaient exacts.
 
 ### Déroulé
 

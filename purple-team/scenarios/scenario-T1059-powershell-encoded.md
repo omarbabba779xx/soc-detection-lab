@@ -110,6 +110,14 @@ contenant la commande de recherche elle-même) ; le motif protégé l'évite.
 Chaque alerte est validée sur son contexte complet (agent émetteur, EventID, champ
 déclencheur), jamais sur un simple comptage.
 
+## Résultats
+
+| Critère          | Valeur      |
+|------------------|-------------|
+| Détecté          | ✅ OUI      |
+| Règles           | 100120 (niveau 8), 100121 (niveau 12), 100131 (niveau 12), 100127 (niveau 10) |
+| Verdict          | VP (vrai positif) |
+
 ## Nettoyage
 
 Aucun artefact persistant : la charge n'écrit rien sur le disque et ne crée aucune
