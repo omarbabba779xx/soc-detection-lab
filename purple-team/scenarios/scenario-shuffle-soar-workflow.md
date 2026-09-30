@@ -448,11 +448,16 @@ la chasse par conception (terrain de la NDR et de Wazuh).
 
 ### Ce que ce test ne prouve pas
 
-- **La livraison du webhook n'est pas simultanée avec l'attaque.** Les dix machines ne tiennent pas dans 16 Go :
-  l'attaque (WAZUH, WIN01, PURPLE, FW) a eu lieu le 25/09, puis l'alerte réelle qu'elle avait produite a été
-  rejouée le 30/09 dans le webhook Shuffle par [`soar/replay_alert.py`](../../soar/replay_alert.py), avec
-  la charge exacte que l'intégration native de Wazuh aurait postée (mêmes clés, même calcul de sévérité).
-  Le maillon Wazuh → Shuffle en direct reste prouvé plus haut, sur les autres alertes.
+- **La livraison du webhook n'est pas simultanée avec l'attaque.** Les dix machines ne tiennent pas dans
+  16 Go de RAM (environ 16 Go au minimum pour environ 10,8 Go utilisables) : l'attaque (WAZUH, WIN01, PURPLE,
+  FW) a eu lieu le 25/09, puis l'alerte réelle qu'elle avait produite a été livrée au webhook Shuffle avec
+  [`soar/replay_alert.py`](../../soar/replay_alert.py), à un autre moment. C'est une contrainte de matériel,
+  pas de configuration : chaque maillon est correctement configuré et prouvé, seule leur exécution
+  simultanée n'est pas possible sur cet hôte. Le message livré est **identique octet pour octet** (8 397
+  caractères) à celui que produit `generate_msg()` du script d'intégration officiel de Wazuh
+  (`/var/ossec/integrations/shuffle.py`) sur la même alerte, vérifié en exécutant ce code sur l'alerte
+  sauvegardée. Le maillon Wazuh → Shuffle en direct reste prouvé plus haut, sur d'autres alertes (l'alerte
+  arrive dans TheHive 14 secondes après la règle).
 - **WIN01 exécute l'isolation avec retard** (13 minutes) puisqu'elle était éteinte : ce délai est celui du
   démarrage de la machine, pas de la chaîne (le flow est créé 65 s après la livraison de l'alerte, dont 7 s après le confinement).
 - Le premier démarrage de TheHive le 30/09 s'est figé (JVM sans journal pendant 19 minutes) ; un

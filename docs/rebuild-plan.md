@@ -427,8 +427,8 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   alerte TheHive (`misp:match`) → `10.10.50.10` dans `BLOCKED_ATTACKERS` (lu sur OPNsense) → WIN01 isolée
   (100 % de perte sur le réseau de gestion à 13:33:39, 0 % après levée à 13:37:26, canal Velociraptor
   conservé) → chasse : 18 événements de l'attaque retrouvés, 2 sightings dans MISP. **Limite** : les dix machines
-  ne tiennent pas dans 16 Go, l'alerte réelle est donc rejouée dans le webhook (`soar/replay_alert.py`) cinq
-  jours après l'attaque au lieu d'être livrée en direct. Incident pendant la reprise : TheHive figé au
+  ne tiennent pas dans 16 Go, l'alerte réelle est donc livrée au webhook par `soar/replay_alert.py` (message identique
+  octet pour octet à celui du script d'intégration officiel de Wazuh) et non en direct. Incident pendant la reprise : TheHive figé au
   démarrage (JVM sans journal pendant 19 minutes), débloqué par `docker restart`. Voir
   `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
 

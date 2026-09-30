@@ -12,6 +12,8 @@ cannot run together. The attack runs first; the alert Wazuh raised for it is the
 Shuffle afterwards, byte for byte what the integration would have posted (same keys, same
 severity mapping), so that the chain runs as one real execution on the real alert. Only the
 delivery is deferred: the Wazuh -> Shuffle webhook itself is proven live in SC-14.
+The message built here was compared with generate_msg() of Wazuh's own integration script
+(/var/ossec/integrations/shuffle.py) on the same alert: identical, byte for byte.
 """
 import json
 import os
