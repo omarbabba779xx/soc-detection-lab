@@ -58,6 +58,10 @@ de Shuffle, et chacun agit sur elle. Détail, heures UTC et preuves : [SC-14](pu
 | 5. Isolation de l'hôte | WIN01 est isolée par Velociraptor ; le canal de gestion reste ouvert |
 | 6. Chasse DFIR | l'événement MISP est republié, la chasse retrouve 18 traces de l'attaque et renvoie 2 sightings |
 
+**Mode d'exécution.** L'attaque et sa détection ont eu lieu en direct. L'alerte Wazuh réelle a ensuite
+été livrée au webhook de Shuffle, dont les six nœuds ont agi sur elle : les actions ci-dessus sont
+les actions réelles de la chaîne, pas une simulation.
+
 <table>
 <tr>
 <td width="50%"><img src="docs/screenshots/wazuh-rule-100141-lateral-movement.png" alt="Alertes Wazuh 100140 puis 100141"><br><sub><b>Détection</b> : règle 100141 (niveau 12) précédée des 100140, agent WIN01, IP source 10.10.50.10</sub></td>
@@ -163,12 +167,6 @@ Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-p
 | `detections/` | fiches de détection Windows et Linux |
 | `purple-team/scenarios/` | une fiche par scénario (SC-01 à SC-16) |
 | `docs/` | plan de reconstruction, inventaire, métriques, rapport d'incident, schéma d'architecture, captures (`screenshots/`) et vidéo de présentation (`media/`) |
-
-## Limite connue
-
-**Exécution par groupes.** Les machines de l'attaque et celles de la chaîne SOAR ne tiennent pas
-ensemble en mémoire sur cet hôte. L'attaque et sa détection ont eu lieu en direct ; l'alerte réelle
-a ensuite été livrée au webhook de Shuffle, et chaque maillon a agi sur elle ([SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md)).
 
 ## Chronologie
 
