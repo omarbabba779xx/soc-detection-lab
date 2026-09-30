@@ -60,21 +60,14 @@ un problème d'infrastructure de test.
 | Retrait du blocage (`uncontain_attacker.py`) | **~5 s** | même test, 21:25:38 → 21:25:43 UTC |
 | Déclenchement de chasse DFIR (`Trigger_DFIR_Hunt`, republication MISP → `AutoHunt`) | **jusqu'à 60 s** (période de sondage `AutoHunt`) + jusqu'à 150 s de sondage des sightings côté nœud | mécanisme documenté dans SC-14/SC-15 ; cycle réel observé à 4 s (republication → nouvelle chasse) dans le cas SC-15 |
 
-**Chaîne complète sur une alerte réelle** (30/09, règle `100141`, sévérité 3 — voir la section « Une seule
-attaque, toute la chaîne » de
-[`scenario-shuffle-soar-workflow.md`](../purple-team/scenarios/scenario-shuffle-soar-workflow.md)). Les
-durées sont comptées depuis la livraison de l'alerte au webhook Shuffle (12:59:35 UTC), seul instant
-commun à toute la chaîne :
-
-| Étape automatisée | Heure (UTC) | Depuis la livraison |
-|---|---|---|
-| `Contain_Attacker` : IP ajoutée à `BLOCKED_ATTACKERS`, alias relu sur OPNsense | 13:00:32 | **57 s** |
-| `Quarantine_Host` : flow d'isolation créé sur Velociraptor | 13:00:39 | **64 s** |
-| `Trigger_DFIR_Hunt` : événement MISP republié, chasse créée | 13:00:46 → 13:00:47 | **72 s** |
-
-Ces 57 à 72 s incluent la création de l'alerte TheHive et l'enrichissement Cortex/MISP qui précèdent
-chaque action. Le délai entre l'attaque (25/09 17:08:10) et la livraison n'est pas un temps de réponse :
-l'alerte a été livrée à Shuffle après coup (voir la limite unique du scénario).
+**Limite honnête à noter** : le temps d'un confinement **déclenché automatiquement à
+l'intérieur d'une exécution Shuffle réelle** (alerte → `Contain_Attacker` → blocage,
+sans intervention) n'a pas encore été mesuré de bout en bout, faute d'alerte réelle ayant
+atteint le seuil de sévérité ≥ 3 pendant les tests en conditions réelles — celle du 24/09
+était de sévérité 2, et `Contain_Attacker` s'est donc correctement abstenu (chemin
+négatif prouvé, pas le chemin positif complet en conditions réelles). Le mécanisme de
+blocage lui-même est prouvé (CLI, identique au code du nœud), mais le chiffre ci-dessus
+mesure l'exécution du blocage, pas le délai total alerte-réelle → blocage-automatique.
 
 ## Synthèse
 
@@ -82,7 +75,7 @@ l'alerte a été livrée à Shuffle après coup (voir la limite unique du scéna
 |---|---|---|
 | MTTD | **~1-3 s** | 5 mesures, détection Wazuh temps réel |
 | MTTA | **~24 s** (hors incident RAM documenté) | 5 mesures, SC-14 et SC-15 |
-| MTTR (mécanique) | **~3-5 s** pour l'application du blocage ; **57 s / 64 s / 72 s** de la livraison de l'alerte au blocage, à l'isolation et à la chasse | SC-14, SC-15, chaîne réelle du 30/09 |
+| MTTR (mécanique) | **~3-5 s** pour le confinement, **≤ 60-150 s** pour le déclenchement de chasse | SC-14, SC-15 |
 
 Échantillon volontairement restreint : mieux vaut 5 mesures vérifiables à la seconde,
 chacune reliée à sa preuve dans une fiche de scénario, qu'une moyenne sur 16 scénarios
