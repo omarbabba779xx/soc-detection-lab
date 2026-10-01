@@ -11,7 +11,7 @@ expliqué et corrigé à la racine.
 
 ## En chiffres
 
-| 12 | 16 | 23 | 6 | 6 | 42 |
+| 12 | 16 | 23 | 6 | 6 | 43 |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | machines virtuelles | scénarios d'attaque rejoués | règles de détection personnalisées | zones réseau segmentées | nœuds de la chaîne SOAR | captures de preuve |
 

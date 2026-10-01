@@ -36,6 +36,8 @@ vers ce réseau passent par OPNsense, qui les bloque et les journalise.
 | VM11-LINUX01 | serveur Linux | Ubuntu | 10.10.10.111 | 10.10.30.20 | 2 Go |
 | VM12-PURPLE | attaquant | Kali Linux | — (aucune carte mgmt ; administration par NAT) | 10.10.50.10 | 2 Go |
 
+Horloges Windows (WIN01, DC01) : horloge virtuelle en UTC (`rtcuseutc`) et fuseau UTC, corrigées le 2026-10-01.
+
 Hôte : 16 Go de RAM ; les VM sont allumées par groupes, selon le scénario (voir
 `docs/rebuild-plan.md`).
 
