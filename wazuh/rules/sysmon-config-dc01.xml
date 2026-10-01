@@ -6,5 +6,10 @@
     <RuleGroup name="" groupRelation="or">
       <ProcessCreate onmatch="exclude" />
     </RuleGroup>
+    <RuleGroup name="" groupRelation="or">
+      <ProcessAccess onmatch="include">
+        <TargetImage condition="end with">lsass.exe</TargetImage>
+      </ProcessAccess>
+    </RuleGroup>
   </EventFiltering>
 </Sysmon>

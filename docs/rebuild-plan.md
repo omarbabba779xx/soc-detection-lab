@@ -37,7 +37,7 @@ calendrier. Ce ne sont pas des incohérences.
 | 13/09 → 19/09 | Reprise : audit de l'existant (17/09), puis reconstruction étape par étape (ce plan) |
 | 20/09 → 21/09 | Courte pause |
 | 22/09 → 23/09 | Étape 8 (MISP + DFIR-HUNT), intégration native MISP ↔ Velociraptor, puis audit complet : réparation de Wazuh, règles 100139/100186, étape 9 (pare-feu), NDR raccordée au SIEM, déclenchement automatique Wazuh → Shuffle → TheHive |
-| 24/09 → 01/10 | Levée des limites restantes : cause de fond de l'instabilité des VM (hyperviseur Windows), TLS vérifié partout (CA du lab), chasse et sightings automatiques, agent DC01, journaux Windows, licence TheHive et cas, chaîne SOAR complète en une exécution, puis quatre limites de process (confinement réseau automatique, boucle SOAR → DFIR, isolation hôte, processus d'investigation formalisé avec métriques et rapport d'incident) |
+| 24/09 → 01/10 | Levée des limites restantes : cause de fond de l'instabilité des VM (hyperviseur Windows), TLS vérifié partout (CA du lab), chasse et sightings automatiques, agent DC01, journaux Windows, licence TheHive et cas, chaîne SOAR complète en une exécution, puis quatre limites de process (confinement réseau automatique, boucle SOAR → DFIR, isolation hôte, processus d'investigation formalisé avec métriques et rapport d'incident), et enfin une seule attaque suivie dans toute la chaîne (01/10) |
 
 Conséquences visibles :
 
@@ -398,21 +398,21 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
 - [x] Étape 11 — isolation hôte, processus d'investigation formalisé, métriques et
   rapport d'incident (2026-09-25). Trois ajouts pour aller au-delà de la chaîne
   technique déjà prouvée. **Isolation hôte** (`Quarantine_Host`, code dans
-  `soar/nodes/`, CLI dans `dfir/`) : s'appuie sur l'artefact integre de Velociraptor
-  `Windows.Remediation.Quarantine`, gated en plus sur le tag `auto-contained` (defense en
-  profondeur — l'hote n'est isole que si la chaine a deja bloque son IP). Prouve en
-  direct sur WIN01 : ping a 0 % avant, 100 % pendant la quarantaine, canal Velociraptor
-  toujours fonctionnel pendant l'isolement (collecte reussie), 0 % apres levee — avec les
-  scripts reellement livres, pas un brouillon. **Defaut trouve en deployant le noeud** :
+  `soar/nodes/`, CLI dans `dfir/`) : s'appuie sur l'artefact intégré de Velociraptor
+  `Windows.Remediation.Quarantine`, gated en plus sur le tag `auto-contained` (défense en
+  profondeur — l'hôte n'est isolé que si la chaîne a déjà bloqué son IP). Prouvé en
+  direct sur WIN01 : ping à 0 % avant, 100 % pendant la quarantaine, canal Velociraptor
+  toujours fonctionnel pendant l'isolement (collecte réussie), 0 % après levée — avec les
+  scripts réellement livrés, pas un brouillon. **Défaut trouvé en déployant le nœud** :
   `ensure_chain()` n'enlevait jamais les anciennes branches ; l'insertion de
-  `Quarantine_Host` avant `Trigger_DFIR_Hunt` aurait fait executer ce dernier deux fois
-  par alerte sans correction. Repere par lecture des branches via l'API juste apres le
-  deploiement, avant tout declenchement reel ; corrige a la racine (chaque noeud de la
-  chaine n'a par construction qu'un seul predecesseur). **Processus d'investigation** :
-  modele de cas TheHive reutilisable (5 taches), applique a un cas reel et clos
-  (`TruePositive`, 55 s de resolution une fois ouvert). **Metriques et rapport
-  d'incident** : MTTD/MTTA/MTTR calcules sur les horodatages deja documentes
-  (`docs/metrics-mttd-mtta-mttr.md`), rapport d'incident complet sur l'alerte reelle
+  `Quarantine_Host` avant `Trigger_DFIR_Hunt` aurait fait exécuter ce dernier deux fois
+  par alerte sans correction. Repéré par lecture des branches via l'API juste après le
+  déploiement, avant tout déclenchement réel ; corrigé à la racine (chaque nœud de la
+  chaîne n'a par construction qu'un seul prédécesseur). **Processus d'investigation** :
+  modèle de cas TheHive réutilisable (5 tâches), appliqué à un cas réel et clos
+  (`TruePositive`, 55 s de résolution une fois ouvert). **Métriques et rapport
+  d'incident** : MTTD/MTTA/MTTR calculés sur les horodatages déjà documentés
+  (`docs/metrics-mttd-mtta-mttr.md`), rapport d'incident complet sur l'alerte réelle
   `~204804176` (`docs/incident-report-2026-09-24-cron-persistence.md`). Voir
   `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
 - [x] Étape 12 — une seule attaque, toute la chaîne (2026-10-01). Chaque maillon avait été prouvé
@@ -428,6 +428,12 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
   événements au total avec un essai antérieur), 2 sightings dans MISP. Exécutée en deux vagues dans la même
   session (contrainte de mémoire) : l'alerte a été livrée à Shuffle 33 minutes après sa création, avec le
   script d'intégration officiel de Wazuh. Voir `purple-team/scenarios/scenario-shuffle-soar-workflow.md`.
+34. **Horloge des machines Windows en avance d'une heure** (01/10), vue pendant l'attaque suivie dans
+    toute la chaîne : WIN01 et DC01 avaient le fuseau « Morocco Standard Time », dont les tables de règles
+    n'appliquaient pas l'heure d'été, alors que VirtualBox fournit l'heure locale de l'hôte (UTC+1) ; leur
+    heure « UTC » avançait donc d'une heure. Corrigé sur les deux machines : horloge virtuelle en UTC
+    (`rtcuseutc`) et fuseau UTC ; WIN01 vérifiée à 2 s de l'hôte. Les horodatages de l'attaque déjà
+    enregistrés ne sont pas modifiés (voir SC-14).
 
 ## Reste à faire
 

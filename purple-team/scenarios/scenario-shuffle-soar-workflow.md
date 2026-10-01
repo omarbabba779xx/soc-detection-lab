@@ -1,9 +1,10 @@
 # SC-14 — Étape 7 : SOAR — Wazuh → Shuffle → TheHive → Cortex → MISP
 
 **Sessions** : 2026-09-19 (reconstruction de VM06, workflow d'enrichissement),
-2026-09-23 (déclenchement automatique depuis Wazuh) et 2026-09-24 (observables, licence
+2026-09-23 (déclenchement automatique depuis Wazuh), 2026-09-24 (observables, licence
 TheHive, cas, chaîne complète Wazuh → MISP en une seule exécution, puis confinement
-automatique et déclenchement de chasse DFIR)
+automatique et déclenchement de chasse DFIR), 2026-09-25 (isolation de l'hôte, processus
+d'investigation) et 2026-10-01 (une seule attaque suivie dans toute la chaîne)
 **Objectif** (plan de reconstruction) : alerte → TheHive → action Shuffle.
 
 ---
@@ -498,8 +499,9 @@ processus structuré mais rapide sur un incident déjà bien compris.
 
 Fichiers `/etc/cron.d/socforge-soar-test`, `socforge-soar-obs-test` et
 `socforge-soar-chain-test` supprimés du manager (leur suppression a servi de déclencheur
-supplémentaire). L'IP de test `198.51.100.77` a été retirée de `BLOCKED_ATTACKERS` après
-capture. Les workflows, les alertes, les cas #8 et #9 et l'événement MISP #4 restent
+supplémentaire). L'IP de test `198.51.100.77`, puis `10.10.50.10` après l'attaque du 01/10, ont été
+retirées de `BLOCKED_ATTACKERS` après capture, et l'isolation de WIN01 a été levée
+(`dfir/unquarantine_host.py`). Les workflows, les alertes, les cas #8 et #9 et l'événement MISP #4 restent
 comme preuve.
 
 ## Résultats
@@ -512,7 +514,8 @@ comme preuve.
 | Création de cas TheHive | ✅ (cas #8 et #9, depuis des alertes Wazuh automatiques) |
 | Observables extraits de l'alerte Wazuh | ✅ (fichier, SHA-256, hôte ; SHA-256 vérifié) |
 | Chaîne Wazuh → Shuffle → TheHive → Cortex → MISP en une exécution | ✅ (33 s, tag `misp:match`) |
-| Confinement automatique de l'attaquant (Contain_Attacker) | ✅ (blocage + retrait réels sur OPNsense, chemin négatif validé sur alerte réelle) |
+| Confinement automatique de l'attaquant (Contain_Attacker) | ✅ (blocage + retrait réels sur OPNsense ; chemin négatif sur l'alerte du 24/09, chemin positif sur l'alerte du 01/10) |
 | Boucle SOAR → DFIR (`misp:match` → chasse Velociraptor) | ✅ (`Trigger_DFIR_Hunt`, sighting positif et négatif validés séparément) |
-| Isolation réseau de l'hôte (Quarantine_Host) | ✅ (100 % de perte pendant la quarantaine, canal Velociraptor conservé, restauration vérifiée — mécanisme prouvé en direct, nœud déployé et vérifié par API) |
+| Isolation réseau de l'hôte (Quarantine_Host) | ✅ (100 % de perte pendant la quarantaine, canal Velociraptor conservé, restauration vérifiée ; déclenché par la chaîne sur l'alerte du 01/10) |
 | Processus d'investigation formalisé (tâches TheHive) | ✅ (modèle réutilisable, cas #10 clos `TruePositive`, résolu en 55 s) |
+| Une seule attaque, toute la chaîne (01/10) | ✅ (attaque réelle → alerte Wazuh de niveau 12 → les six nœuds agissent sur la même alerte : TheHive en 12 s, blocage en 36 s, isolation en 41 s, chasse en 54 à 63 s) |

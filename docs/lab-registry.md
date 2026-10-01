@@ -1,6 +1,6 @@
 # Inventaire du lab SocForge
 
-> État au 2026-09-30, adresses de zone vérifiées sur les machines. Aucun identifiant ici : les comptes, mots de passe et clés API sont
+> État au 2026-10-01, adresses de zone vérifiées sur les machines. Aucun identifiant ici : les comptes, mots de passe et clés API sont
 > dans `secrets/` (hors dépôt).
 
 ## Réseaux

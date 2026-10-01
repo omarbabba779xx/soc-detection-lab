@@ -315,8 +315,8 @@ après le démarrage ou 10 min plus tard. La configuration concernée n'existe p
 
 ## Périmètre
 
-- Seuls les types `text` et `regkey|value` sont chassés sur l'endpoint. L'IOC réseau
-  `10.10.10.60` relève de NDR et de Wazuh.
+- Les types `text`, `regkey|value`, `filename` et `hash` sont chassés sur l'endpoint (les deux
+  derniers depuis le 24/09, voir SC-14). Les IOC réseau (`ip-src`, `ip-dst`) relèvent de NDR et de Wazuh.
 - `AutoHunt` apprend les publications en interrogeant MISP toutes les 60 s : MISP ne
   peut pas appeler Velociraptor. Aucune action humaine n'est nécessaire.
 

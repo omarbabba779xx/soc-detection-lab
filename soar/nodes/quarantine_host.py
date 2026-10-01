@@ -11,9 +11,10 @@
 # Contain_Attacker has *already* contained the source IP (tag auto-contained present) —
 # defense in depth, not a parallel independent trigger. A host is only isolated once the
 # chain is already confident enough to have blocked its network path out. It also needs
-# a hostname/fqdn observable that resolves to a known Velociraptor client — most alerts
-# won't have one (Wazuh's Build_TheHive_Alert only adds a hostname observable for
-# FIM/Sysmon-sourced events), so this stays a narrow, deliberate action, not a default.
+# a hostname/fqdn observable that resolves to a known Velociraptor client — Build_TheHive_Alert
+# attaches the Wazuh agent name and, for Windows events, the Windows computer name, so a
+# Windows host is resolved while a Linux agent that Velociraptor does not know is skipped:
+# a narrow, deliberate action, not a default.
 #
 # Placeholders __THEHIVE__, __THEHIVE_KEY__, __VELO_SSH_HOST__, __VELO_SSH_PORT__,
 # __VELO_SSH_USER__, __VELO_SSH_PASSWORD__ are filled in by

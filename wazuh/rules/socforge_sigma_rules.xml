@@ -121,17 +121,14 @@
   <!-- ============================================================ -->
   <!-- T1547.001 — Registry Run Keys / Startup Folder                -->
   <!-- ============================================================ -->
-  <!-- Root cause reelle (confirmee par test A/B sur ce manager le
-       2026-09-18) : <if_group>sysmon_event_13</if_group> ne declenche JAMAIS
-       une regle custom sur cet agent/manager, meme quand le groupe est
-       correctement tague (la regle officielle 92300, qui depend du meme
-       groupe, matche bien — seul le chainage if_group depuis une regle
-       CUSTOM echoue silencieusement, sans avertissement wazuh-logtest). Une
-       regle de debug chainee sur <if_sid>92300</if_sid> a matche
-       immediatement, confirmant que if_sid fonctionne alors que if_group ne
-       fonctionne pas dans ce contexte. Rule 92300 filtre deja sur
-       CurrentVersion\Run (et variantes WOW6432Node) — chainer directement
-       sur elle rend le field regex superflu pour ce cas. -->
+  <!-- Actual root cause (confirmed by an A/B test on this manager, 2026-09-18):
+       <if_group>sysmon_event_13</if_group> NEVER triggers a custom rule here, even when the
+       group is correctly tagged (the official rule 92300, which depends on the same group,
+       does match — only the if_group chaining from a CUSTOM rule fails silently, with no
+       wazuh-logtest warning). A debug rule chained on <if_sid>92300</if_sid> matched
+       immediately, which shows that if_sid works where if_group does not in this context.
+       Rule 92300 already filters on CurrentVersion\Run (and the WOW6432Node variants), so
+       chaining directly on it makes the field regex redundant for this case. -->
   <rule id="100147" level="9">
     <if_sid>92300</if_sid>
     <description>Sigma T1547.001: Registry autostart persistence — $(win.eventdata.targetObject)</description>

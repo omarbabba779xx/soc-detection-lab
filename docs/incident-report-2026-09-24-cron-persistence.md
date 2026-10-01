@@ -97,8 +97,7 @@ worker orphelin de la même panne a été identifié (tempête de conteneurs Doc
 TheHive. Résultat final vérifié : une seule alerte, un seul jeu de tags cohérent.
 
 Cet incident vient de l'exécution de plusieurs VM sur un seul hôte, pas d'un
-défaut de la chaîne SOAR elle-même — voir
-[`README.md`](../README.md#limites-connues) et le détail complet dans
+défaut de la chaîne SOAR elle-même — voir le détail dans
 [`scenario-shuffle-soar-workflow.md`](../purple-team/scenarios/scenario-shuffle-soar-workflow.md).
 
 ## 7. Clôture et recommandations

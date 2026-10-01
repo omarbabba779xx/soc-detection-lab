@@ -1,4 +1,4 @@
-# Shuffle node "Trigger_DFIR_Hunt" (execute_python), added after Contain_Attacker.
+# Shuffle node "Trigger_DFIR_Hunt" (execute_python), the last node of the chain (after Quarantine_Host).
 #
 # Closes the loop between the SOAR chain and DFIR: on a misp:match alert, republishes
 # the matched MISP event(s), which Custom.Server.MISP.AutoHunt (Velociraptor, polling

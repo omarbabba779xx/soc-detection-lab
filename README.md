@@ -7,9 +7,9 @@ chaîne : détection, orchestration, enrichissement, blocage réseau, isolation 
 
 ## En chiffres
 
-| 12 | 16 | 23 | 6 | 6 | 42 |
+| 12 | 16 | 23 | 5 | 6 | 42 |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| machines virtuelles | scénarios d'attaque rejoués | règles de détection personnalisées | zones réseau segmentées | nœuds de la chaîne SOAR | captures de preuve |
+| machines virtuelles | scénarios d'attaque rejoués | règles de détection personnalisées | zones réseau filtrées | nœuds de la chaîne SOAR | captures de preuve |
 
 Détection en **1 à 3 s**, prise en charge automatique en **~24 s**, blocage de l'attaquant, isolation de l'hôte et chasse DFIR en **36 à 63 s** après la livraison de l'alerte ([métriques](docs/metrics-mttd-mtta-mttr.md)).
 
@@ -87,7 +87,7 @@ le script d'intégration officiel de Wazuh, et les actions ci-dessus sont les ac
 | Détection Windows | 17 règles Sigma → Wazuh, toutes validées en direct (PowerShell encodé, tâche planifiée, clé Run, injection, mouvement latéral, profil PowerShell, accès LSASS…) | [`detection-sheet-windows.md`](detections/windows/detection-sheet-windows.md) |
 | Détection Linux | sudo, persistance cron | [`detection-sheet-linux.md`](detections/linux/detection-sheet-linux.md) |
 | Réseau | Suricata (52 795 signatures ET Open) détecte un scan, alerte niveau 10 dans Wazuh | [SC-12](purple-team/scenarios/scenario-ndr-purple-scan.md) |
-| Segmentation | politique de refus par défaut entre 6 zones, attaquant sans accès au réseau d'administration, blocages visibles dans Wazuh | [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
+| Segmentation | politique de refus par défaut entre 5 zones filtrées, attaquant sans accès au réseau d'administration, blocages visibles dans Wazuh | [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
 | SIEM → SOAR → CTI | alerte Wazuh → Shuffle → TheHive (avec observables) → Cortex → MISP, sans action humaine : alerte TheHive créée **12 s** après la livraison, tag `misp:match` posé après corrélation | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | Gestion d'incident | alertes Wazuh promues en cas TheHive, observables repris | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | DFIR | publication d'un événement MISP → chasse Velociraptor lancée **automatiquement** sur les postes Windows → sightings renvoyés à MISP dès la fin de la chasse ; persistance retrouvée alors que la clé était supprimée | [SC-15](purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md) |
