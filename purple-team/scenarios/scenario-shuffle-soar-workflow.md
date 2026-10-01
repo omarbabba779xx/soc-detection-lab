@@ -412,9 +412,8 @@ intervention. Les heures ci-dessous sont en UTC (horloge du manager Wazuh et des
 « Morocco Standard Time » n'appliquait pas l'heure d'été (tables de règles anciennes) alors que l'horloge
 virtuelle suit l'heure locale de l'hôte, d'où des horodatages Windows (`systemTime`, colonne « Last Active » de
 Velociraptor) en avance d'une heure sur les heures de référence ci-dessous. Corrigé ensuite sur les deux
-machines (fuseau UTC et horloge virtuelle en UTC, `rtcuseutc`) : WIN01 affiche désormais l'heure UTC réelle à
-deux secondes de l'hôte ([capture](../../docs/screenshots/win01-horloge-utc-corrigee.png)). Les preuves de
-l'attaque ci-dessous gardent leurs horodatages d'origine.
+machines (fuseau UTC et horloge virtuelle en UTC, `rtcuseutc`) : WIN01 est désormais à l'heure UTC réelle, à
+deux secondes de l'hôte. Les preuves de l'attaque ci-dessous gardent leurs horodatages d'origine.
 
 ### Déroulé
 
@@ -493,7 +492,6 @@ processus structuré mais rapide sur un incident déjà bien compris.
 - [`docs/screenshots/thehive-alert-chain-100141.png`](../../docs/screenshots/thehive-alert-chain-100141.png) — l'alerte TheHive à l'issue de la chaîne : sévérité haute, tags `auto-contained`, `auto-quarantined`, `misp:match`, `dfir:hunt-triggered`, et les notes d'audit de chaque nœud
 - [`docs/screenshots/opnsense-blocked-attackers-attack-ip.png`](../../docs/screenshots/opnsense-blocked-attackers-attack-ip.png) — l'alias `BLOCKED_ATTACKERS` d'OpenSense contenant `10.10.50.10`, ajouté par Shuffle
 - [`docs/screenshots/velociraptor-win01-flows-isolation.png`](../../docs/screenshots/velociraptor-win01-flows-isolation.png) — les flows de WIN01 : isolation, collecte pendant l'isolation, chasse, levée d'isolation (la colonne « Last Active » suit l'horloge de WIN01, en avance)
-- [`docs/screenshots/win01-horloge-utc-corrigee.png`](../../docs/screenshots/win01-horloge-utc-corrigee.png) — WIN01 après correction de l'horloge : fuseau UTC, heure UTC 11:56:58, soit l'heure réelle de l'hôte à deux secondes près
 - [`docs/screenshots/misp-event6-sightings.png`](../../docs/screenshots/misp-event6-sightings.png) — événement MISP #6 : `SOCFORGE-PURPLE` avec 2 sightings renvoyés par Velociraptor, publié à 10:35:39 par la republication de `Trigger_DFIR_Hunt`
 
 ## Nettoyage
