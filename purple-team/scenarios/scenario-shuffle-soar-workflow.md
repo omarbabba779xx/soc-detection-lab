@@ -119,8 +119,7 @@ CORTEX et MISP ont été éteintes juste après.
 L'instance tournait sans licence depuis l'expiration de l'essai d'août (`plan "No"`) :
 les alertes arrivaient, mais toute création de cas renvoyait `403`. Licence obtenue sur le
 portail StrangeBee et activée par challenge (`GET /api/v1/license/challenge`, puis clé
-installée) : `Platinum`, `Trial`, du 24/09 au 08/10/2026, 2 organisations, 5 utilisateurs.
-À renouveler par une licence Community pour que le lab reste utilisable après cette date.
+installée) : `Platinum`, `Trial`, 2 organisations, 5 utilisateurs.
 
 Deux défauts de rôles, trouvés en créant le premier cas :
 

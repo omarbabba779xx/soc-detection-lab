@@ -434,10 +434,3 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     heure « UTC » avançait donc d'une heure. Corrigé sur les deux machines : horloge virtuelle en UTC
     (`rtcuseutc`) et fuseau UTC ; WIN01 vérifiée à 2 s de l'hôte. Les horodatages de l'attaque déjà
     enregistrés ne sont pas modifiés (voir SC-14).
-
-## Reste à faire
-
-- **Licence TheHive** : la licence active est un essai `Platinum` qui expire le
-  08/10/2026. La promotion alerte → cas est validée (cas #8 et #9, SC-14) ; pour que le
-  lab reste utilisable ensuite, installer une licence Community (portail StrangeBee,
-  même procédure par challenge).
