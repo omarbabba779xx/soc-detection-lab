@@ -1,13 +1,9 @@
 # SocForge — laboratoire SOC de bout en bout
 
-SOC complet monté sur un seul PC (VirtualBox) : 12 machines virtuelles, de la détection à la
-réponse. Chaque détection est déclenchée par une attaque réelle mais bénigne, observée dans le
-SIEM, puis documentée avec ses preuves : extraits de journaux, heures UTC et captures.
-
-Le projet documente aussi ce qui n'a **pas** marché du premier coup. Une bonne partie de sa valeur
-est là : règles qui ne se déclenchaient jamais sans erreur visible, sonde réseau sans signatures,
-pare-feu sans segmentation, SIEM tombé en silence faute de disque. Chaque défaut a été trouvé,
-expliqué et corrigé à la racine.
+SOC complet monté sur un seul PC (VirtualBox) : 12 machines virtuelles, de la détection à la réponse.
+Chaque détection est déclenchée par une attaque réelle mais bénigne, observée dans le SIEM, puis documentée
+avec ses preuves : extraits de journaux, heures UTC et captures. Une même attaque est suivie à travers toute la
+chaîne : détection, orchestration, enrichissement, blocage réseau, isolation de l'hôte et chasse DFIR.
 
 ## En chiffres
 
@@ -92,13 +88,12 @@ le script d'intégration officiel de Wazuh, et les actions ci-dessus sont les ac
 | Détection Linux | sudo, persistance cron | [`detection-sheet-linux.md`](detections/linux/detection-sheet-linux.md) |
 | Réseau | Suricata (52 795 signatures ET Open) détecte un scan, alerte niveau 10 dans Wazuh | [SC-12](purple-team/scenarios/scenario-ndr-purple-scan.md) |
 | Segmentation | politique de refus par défaut entre 6 zones, attaquant sans accès au réseau d'administration, blocages visibles dans Wazuh | [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
-| SIEM → SOAR → CTI | alerte Wazuh → Shuffle → TheHive (avec observables) → Cortex → MISP en **une seule exécution, 33 s**, sans action humaine ; tag `misp:match` sur l'alerte | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
-| Gestion d'incident | alertes Wazuh promues en cas TheHive (licence StrangeBee), observables repris | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
+| SIEM → SOAR → CTI | alerte Wazuh → Shuffle → TheHive (avec observables) → Cortex → MISP, sans action humaine : alerte TheHive créée **12 s** après la livraison, tag `misp:match` posé après corrélation | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
+| Gestion d'incident | alertes Wazuh promues en cas TheHive, observables repris | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | DFIR | publication d'un événement MISP → chasse Velociraptor lancée **automatiquement** sur les postes Windows → sightings renvoyés à MISP dès la fin de la chasse ; persistance retrouvée alors que la clé était supprimée | [SC-15](purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md) |
 | Réponse automatique (réseau) | une alerte confirmée (sévérité ≥ 3, `misp:match`) fait bloquer son IP sur OPNsense par Shuffle lui-même, sans analyste — réversible par script | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | Réponse automatique (hôte) | l'hôte compromis est isolé du réseau par Velociraptor (canal de gestion conservé), une fois le confinement réseau déjà déclenché — réversible par script | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | Boucle SOAR → DFIR | un `misp:match` posé par la chaîne SOAR republie l'IOC dans MISP et déclenche la chasse Velociraptor correspondante, sans intervention | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
-| **Une seule attaque, toute la chaîne** | une attaque réelle depuis PURPLE (accès répétés aux partages d'administration) produit une alerte Wazuh de niveau 12 ; la **même alerte**, livrée à Shuffle, est corrélée à MISP, bloque l'IP de l'attaquant sur OpenSense, isole WIN01 via Velociraptor (100 % de perte sur le réseau de gestion, canal conservé) et déclenche une chasse qui retrouve les traces de l'attaque dans les journaux de WIN01, renvoyées à MISP en sightings | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | Processus d'investigation | modèle de cas TheHive réutilisable (triage → confinement → éradication → récupération → REX), appliqué à un incident réel et clos | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | Chiffrement | TLS vérifié entre les outils (CA interne du lab), aucune vérification désactivée | [SC-15](purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md), [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
 
@@ -122,28 +117,6 @@ le script d'intégration officiel de Wazuh, et les actions ci-dessus sont les ac
 | SC-14 | SOAR Wazuh → Shuffle → TheHive → Cortex → MISP | [scenario-shuffle-soar-workflow.md](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | SC-15 | Chasse Velociraptor pilotée par MISP | [scenario-dfir-velociraptor-misp-hunt.md](purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md) |
 | SC-16 | Segmentation OPNsense | [scenario-firewall-segmentation.md](purple-team/scenarios/scenario-firewall-segmentation.md) |
-
-## Quelques défauts trouvés en chemin
-
-- **Règles qui ne sonnaient jamais, sans aucune erreur** : groupes mal nommés
-  (`sysmon_event10` au lieu de `sysmon_event_10`), groupe inexistant
-  (`windows_powershell`), `<same_source_ip/>` inopérant sur les événements Windows, règle
-  de bruit court-circuitée par une règle officielle du même niveau. À chaque fois, la
-  preuve a été apportée par `wazuh-logtest`, un test A/B ou la lecture des alertes réelles.
-- **FIM** : le profil PowerShell n'était jamais surveillé (chemin masqué par la config
-  locale de l'agent), et `report_changes` sur Program Files saturait le quota et bloquait
-  le scan.
-- **Infrastructure** : SIEM arrêté quatre jours par un disque plein, horloges faussées de
-  plusieurs heures, NDR sans signatures, pare-feu sans aucune règle entre zones.
-- **Une cause racine derrière plusieurs symptômes** : un écran bleu de WIN01, analysé avec
-  WinDbg, a mené au journal VirtualBox : l'hyperviseur Windows (Intégrité de la mémoire)
-  occupait AMD-V, et VirtualBox tournait en mode de repli. C'était la cause commune de la
-  dérive des horloges, des gels de disque et des blocages au démarrage des VM.
-- **Rôles** : TheHive se connectait à Cortex avec un compte `superadmin`, qui ne peut pas
-  lancer d'analyseur ; l'administrateur de l'organisation TheHive n'avait aucun droit sur
-  les incidents. Comptes corrigés selon le moindre privilège.
-
-Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-plan.md).
 
 ## Organisation du dépôt
 

@@ -36,8 +36,6 @@ vers ce réseau passent par OPNsense, qui les bloque et les journalise.
 | VM11-LINUX01 | serveur Linux | Ubuntu | 10.10.10.111 | 10.10.30.20 | 2 Go |
 | VM12-PURPLE | attaquant | Kali Linux | — (aucune carte mgmt ; administration par NAT) | 10.10.50.10 | 2 Go |
 
-Horloges Windows (WIN01, DC01) : horloge virtuelle en UTC (`rtcuseutc`) et fuseau UTC, corrigées le 2026-10-01.
-
 Hôte : 16 Go de RAM ; les VM sont allumées par groupes, selon le scénario (voir
 `docs/rebuild-plan.md`).
 
@@ -55,8 +53,8 @@ Hôte : 16 Go de RAM ; les VM sont allumées par groupes, selon le scénario (vo
 
 ## Heure
 
-Les heures citées dans la documentation sont en UTC. DC01 se synchronise sur `pool.ntp.org` et sert
-l'heure au domaine ; les VM Ubuntu utilisent `systemd-timesyncd` (intervalle maximal de
-5 minutes sur THEHIVE, SHUFFLE et WAZUH). Les dérives de plusieurs minutes par heure
-observées jusqu'au 23/09 venaient de VirtualBox en mode de repli sur l'hyperviseur Windows
+Les heures citées dans la documentation sont en UTC. Les machines Windows (DC01, WIN01) ont leur horloge
+virtuelle en UTC (`rtcuseutc`) et le fuseau UTC (corrigé le 01/10) ; les VM Ubuntu utilisent
+`systemd-timesyncd` (intervalle maximal de 5 minutes sur THEHIVE, SHUFFLE et WAZUH). Les dérives de plusieurs
+minutes par heure observées jusqu'au 23/09 venaient de VirtualBox en mode de repli sur l'hyperviseur Windows
 (faiblesse 26 du plan de reconstruction) ; depuis, les VM tournent en AMD-V natif.
