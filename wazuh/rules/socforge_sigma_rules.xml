@@ -175,6 +175,22 @@
     </mitre>
   </rule>
 
+  <!-- Escalation of 100140: three or more admin-share accesses from the same source IP
+       within two minutes is a lateral-movement pattern, not a one-off admin action —
+       raised to level 12 so Build_TheHive_Alert sets TheHive severity 3 (the threshold
+       Contain_Attacker acts on). same_field on win.eventdata.ipAddress, which 100140
+       already carries, so this alert keeps the attacker's IP as an observable — unlike
+       the other level >= 12 rules (100121, 100131, 100155, 100103), all host-only Sysmon
+       events with no network source field. -->
+  <rule id="100141" level="12" frequency="3" timeframe="120">
+    <if_matched_sid>100140</if_matched_sid>
+    <same_field>win.eventdata.ipAddress</same_field>
+    <description>Sigma T1021.002: Repeated admin-share access from the same source — lateral movement escalation — $(win.eventdata.ipAddress)</description>
+    <group>lateral_movement,mitre_lateral_movement,</group>
+    <mitre>
+      <id>T1021.002</id>
+    </mitre>
+  </rule>
 
   <!-- ============================================================ -->
   <!-- T1055 — Process Injection (Sysmon EventID 8 — CreateRemoteThread) -->

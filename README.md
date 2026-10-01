@@ -11,11 +11,11 @@ expliqué et corrigé à la racine.
 
 ## En chiffres
 
-| 12 | 16 | 22 | 6 | 6 | 37 |
+| 12 | 16 | 23 | 6 | 6 | 42 |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | machines virtuelles | scénarios d'attaque rejoués | règles de détection personnalisées | zones réseau segmentées | nœuds de la chaîne SOAR | captures de preuve |
 
-Détection en **1 à 3 s** et prise en charge automatique en **~24 s** ([métriques](docs/metrics-mttd-mtta-mttr.md)).
+Détection en **1 à 3 s**, prise en charge automatique en **~24 s**, blocage de l'attaquant, isolation de l'hôte et chasse DFIR en **36 à 63 s** après la livraison de l'alerte ([métriques](docs/metrics-mttd-mtta-mttr.md)).
 
 ## Architecture
 
@@ -33,6 +33,39 @@ Détection en **1 à 3 s** et prise en charge automatique en **~24 s** ([métriq
 
 Inventaire complet (adresses, versions, flux) : [`docs/lab-registry.md`](docs/lab-registry.md).
 Exemple de rapport d'incident de bout en bout : [`docs/incident-report-2026-09-24-cron-persistence.md`](docs/incident-report-2026-09-24-cron-persistence.md).
+
+## Une seule attaque, toute la chaîne
+
+Depuis PURPLE, trois accès successifs au partage d'administration de WIN01 produisent une alerte Wazuh de
+niveau 12 (règle `100141`, T1021.002). Cette **même alerte** traverse ensuite les six nœuds de Shuffle, et
+chacun agit sur elle. Détail, heures UTC et preuves : [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md).
+
+| Étape | Ce qui se passe |
+|---|---|
+| 1. Détection | Wazuh : règle `100140` (niveau 10) deux fois, puis `100141` (niveau 12), en moins de 2 s après chaque accès |
+| 2. Orchestration | Shuffle crée l'alerte TheHive, sévérité 3, avec IP, agent et nom Windows en observables (12 s) |
+| 3. Enrichissement | Cortex interroge MISP : l'IP et le nom de poste figurent dans l'événement #6, tag `misp:match` |
+| 4. Confinement réseau | l'IP de l'attaquant entre dans l'alias `BLOCKED_ATTACKERS` d'OpenSense (36 s) |
+| 5. Isolation de l'hôte | WIN01 est isolée par Velociraptor (100 % de perte sur le réseau de gestion, canal conservé) (41 s) |
+| 6. Chasse DFIR | l'événement MISP est republié, la chasse retrouve les traces de l'attaque et renvoie 2 sightings (54 à 63 s) |
+
+**Mode d'exécution.** La contrainte de mémoire de l'hôte conduit à exécuter la chaîne en deux vagues dans la
+même session : l'attaque et sa détection, puis la chaîne de réponse. L'alerte réelle a été livrée à Shuffle avec
+le script d'intégration officiel de Wazuh, et les actions ci-dessus sont les actions réelles de la chaîne.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/wazuh-rule-100141-live.png" alt="Alertes Wazuh 100140 puis 100141"><br><sub><b>Détection</b> : règle 100141 (niveau 12) précédée des deux 100140, agent WIN01, IP source 10.10.50.10</sub></td>
+<td width="50%"><img src="docs/screenshots/thehive-alert-chain-100141.png" alt="Alerte TheHive à l'issue de la chaîne"><br><sub><b>Orchestration</b> : alerte TheHive de sévérité haute, tags <code>auto-contained</code>, <code>auto-quarantined</code>, <code>misp:match</code>, <code>dfir:hunt-triggered</code></sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/opnsense-blocked-attackers-attack-ip.png" alt="Alias BLOCKED_ATTACKERS d'OpenSense"><br><sub><b>Confinement</b> : l'IP de l'attaquant dans l'alias <code>BLOCKED_ATTACKERS</code>, alimenté par Shuffle</sub></td>
+<td width="50%"><img src="docs/screenshots/velociraptor-win01-flows-isolation.png" alt="Flows Velociraptor sur WIN01"><br><sub><b>Isolation</b> : flows de WIN01 (isolation, collecte pendant l'isolation, chasse, levée)</sub></td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/screenshots/misp-event6-sightings.png" alt="Événement MISP 6 et sightings" width="50%"><br><sub><b>Chasse</b> : événement MISP #6, 2 sightings renvoyés par Velociraptor</sub></td>
+</tr>
+</table>
 
 ## Aperçu des preuves
 
@@ -55,7 +88,7 @@ Exemple de rapport d'incident de bout en bout : [`docs/incident-report-2026-09-2
 
 | Domaine | Résultat | Preuve |
 |---|---|---|
-| Détection Windows | 16 règles Sigma → Wazuh, toutes validées en direct (PowerShell encodé, tâche planifiée, clé Run, injection, mouvement latéral, profil PowerShell, accès LSASS…) | [`detection-sheet-windows.md`](detections/windows/detection-sheet-windows.md) |
+| Détection Windows | 17 règles Sigma → Wazuh, toutes validées en direct (PowerShell encodé, tâche planifiée, clé Run, injection, mouvement latéral, profil PowerShell, accès LSASS…) | [`detection-sheet-windows.md`](detections/windows/detection-sheet-windows.md) |
 | Détection Linux | sudo, persistance cron | [`detection-sheet-linux.md`](detections/linux/detection-sheet-linux.md) |
 | Réseau | Suricata (52 795 signatures ET Open) détecte un scan, alerte niveau 10 dans Wazuh | [SC-12](purple-team/scenarios/scenario-ndr-purple-scan.md) |
 | Segmentation | politique de refus par défaut entre 6 zones, attaquant sans accès au réseau d'administration, blocages visibles dans Wazuh | [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
@@ -65,6 +98,7 @@ Exemple de rapport d'incident de bout en bout : [`docs/incident-report-2026-09-2
 | Réponse automatique (réseau) | une alerte confirmée (sévérité ≥ 3, `misp:match`) fait bloquer son IP sur OPNsense par Shuffle lui-même, sans analyste — réversible par script | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | Réponse automatique (hôte) | l'hôte compromis est isolé du réseau par Velociraptor (canal de gestion conservé), une fois le confinement réseau déjà déclenché — réversible par script | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | Boucle SOAR → DFIR | un `misp:match` posé par la chaîne SOAR republie l'IOC dans MISP et déclenche la chasse Velociraptor correspondante, sans intervention | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
+| **Une seule attaque, toute la chaîne** | une attaque réelle depuis PURPLE (accès répétés aux partages d'administration) produit une alerte Wazuh de niveau 12 ; la **même alerte**, livrée à Shuffle, est corrélée à MISP, bloque l'IP de l'attaquant sur OpenSense, isole WIN01 via Velociraptor (100 % de perte sur le réseau de gestion, canal conservé) et déclenche une chasse qui retrouve les traces de l'attaque dans les journaux de WIN01, renvoyées à MISP en sightings | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | Processus d'investigation | modèle de cas TheHive réutilisable (triage → confinement → éradication → récupération → REX), appliqué à un incident réel et clos | [SC-14](purple-team/scenarios/scenario-shuffle-soar-workflow.md) |
 | Chiffrement | TLS vérifié entre les outils (CA interne du lab), aucune vérification désactivée | [SC-15](purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md), [SC-16](purple-team/scenarios/scenario-firewall-segmentation.md) |
 
@@ -130,5 +164,5 @@ Le détail de chaque correction est dans [`docs/rebuild-plan.md`](docs/rebuild-p
 
 ## Chronologie
 
-Première réalisation du 2 au 15 août 2026, pause, puis reconstruction et audit du 13 au
-25 septembre 2026 (détail dans [`docs/rebuild-plan.md`](docs/rebuild-plan.md)).
+Première réalisation du 2 au 15 août 2026, pause, puis reconstruction et audit du 13 septembre au
+1er octobre 2026 (détail dans [`docs/rebuild-plan.md`](docs/rebuild-plan.md)).
