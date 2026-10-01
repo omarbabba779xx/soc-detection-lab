@@ -5,6 +5,12 @@ Chaque détection est déclenchée par une attaque réelle mais bénigne, observ
 avec ses preuves : extraits de journaux, heures UTC et captures. Une même attaque est suivie à travers toute la
 chaîne : détection, orchestration, enrichissement, blocage réseau, isolation de l'hôte et chasse DFIR.
 
+## Présentation en vidéo
+
+Une attaque réelle, suivie à travers les outils du laboratoire : de la détection jusqu'à la chasse DFIR (2 min 21, sans son).
+
+[![Vidéo : une attaque réelle, suivie de bout en bout](docs/media/poster.png)](docs/media/socforge-attaque-reelle.mp4)
+
 ## En chiffres
 
 | 12 | 16 | 23 | 5 | 6 | 42 |
@@ -133,7 +139,7 @@ le script d'intégration officiel de Wazuh, et les actions ci-dessus sont les ac
 | `velociraptor/` | artefacts serveur MISP ↔ Velociraptor |
 | `detections/` | fiches de détection Windows et Linux |
 | `purple-team/scenarios/` | une fiche par scénario (SC-01 à SC-16) |
-| `docs/` | plan de reconstruction, inventaire, métriques, rapport d'incident, schéma d'architecture, captures (`screenshots/`) |
+| `docs/` | plan de reconstruction, inventaire, métriques, rapport d'incident, schéma d'architecture, captures (`screenshots/`) et vidéo de présentation (`media/`) |
 
 ## Chronologie
 
