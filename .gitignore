@@ -14,3 +14,6 @@ __pycache__/
 *.vmdk
 *.ova
 *.vbox-prev
+
+# Fichiers d'état d'outils locaux
+.omx/

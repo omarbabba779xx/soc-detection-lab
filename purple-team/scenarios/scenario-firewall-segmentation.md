@@ -68,6 +68,9 @@ OPNsense présentait un certificat auto-signé pour `OPNsense.localdomain`. Dés
 | `apply_policy.py` sans `OPN_TLS_NAME` | `CERTIFICATE_VERIFY_FAILED`, avant toute modification |
 | `apply_policy.py` complet | 12 règles `saved`, `filter apply: OK`, `syslog reconfigure: ok` |
 
+Depuis le 24/09, la politique versionnée compte une treizième règle (séquence 395, blocage des adresses de
+l'alias `BLOCKED_ATTACKERS`, voir SC-14) ; les chiffres et la capture de cette fiche datent du 23/09.
+
 ## Journaux vers Wazuh
 
 - **OPNsense** : destination syslog `10.10.10.10:514/udp`, programme `filterlog`, format BSD.
@@ -161,3 +164,8 @@ Côté PURPLE : 0 réponse au `ping`, connexion TCP refusée ; route
 | Tentative de l'attaquant vers une zone interdite détectée | ✅ (100301 par port, 100302 niveau 12) |
 | Trafic autorisé non bloqué | ✅ (contre-épreuve zone ep : 0 blocage) |
 | Attaquant sans accès au réseau d'administration | ✅ (plus de carte mgmt ; tentatives bloquées et journalisées, 100302) |
+
+## Nettoyage
+
+Aucun : la politique, l'envoi syslog et les règles 100300 à 100302 restent en place, c'est la configuration
+voulue du lab.

@@ -45,7 +45,7 @@ Rule: 100155 (level 13) -> 'Sigma T1055: CreateRemoteThread into another process
 StartFunction: Sleep
 ```
 
-Capture (dashboard Wazuh, 18 correspondances sur `rule.id:100155`) :
+Capture (dashboard Wazuh, 17 correspondances sur `rule.id:100155`) :
 [`docs/screenshots/wazuh-dashboard-rule-100155-live.png`](../../docs/screenshots/wazuh-dashboard-rule-100155-live.png)
 
 ## Historique du bug (root cause)

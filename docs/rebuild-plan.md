@@ -37,7 +37,7 @@ calendrier. Ce ne sont pas des incohérences.
 | 13/09 → 19/09 | Reprise : audit de l'existant (17/09), puis reconstruction étape par étape (ce plan) |
 | 20/09 → 21/09 | Courte pause |
 | 22/09 → 23/09 | Étape 8 (MISP + DFIR-HUNT), intégration native MISP ↔ Velociraptor, puis audit complet : réparation de Wazuh, règles 100139/100186, étape 9 (pare-feu), NDR raccordée au SIEM, déclenchement automatique Wazuh → Shuffle → TheHive |
-| 24/09 → 01/10 | Levée des limites restantes : cause de fond de l'instabilité des VM (hyperviseur Windows), TLS vérifié partout (CA du lab), chasse et sightings automatiques, agent DC01, journaux Windows, licence TheHive et cas, chaîne SOAR complète en une exécution, puis quatre limites de process (confinement réseau automatique, boucle SOAR → DFIR, isolation hôte, processus d'investigation formalisé avec métriques et rapport d'incident), et enfin une seule attaque suivie dans toute la chaîne (01/10) |
+| 24/09 → 01/10 | Levée des limites restantes : cause de fond de l'instabilité des VM (hyperviseur Windows), TLS vérifié avec la CA du lab pour les services en HTTPS (MISP, OPNsense), chasse et sightings automatiques, agent DC01, journaux Windows, licence TheHive et cas, chaîne SOAR complète en une exécution, puis quatre limites de process (confinement réseau automatique, boucle SOAR → DFIR, isolation hôte, processus d'investigation formalisé avec métriques et rapport d'incident), et enfin une seule attaque suivie dans toute la chaîne (01/10) |
 
 Conséquences visibles :
 
@@ -204,8 +204,8 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     sur WIN01, le nombre d'événements Security augmente alors que le plus ancien reste le
     même, le journal ne s'écrase plus.
 28. **Agent Velociraptor de DC01 hors ligne depuis le 10/08** (24/09). Sa config visait
-    encore `https://10.10.10.60:8889/`, l'ancienne adresse du serveur (aujourd'hui celle de
-    PURPLE) ; seule celle de WIN01 avait été corrigée à l'étape 8. Config du serveur
+    encore `https://10.10.10.60:8889/`, l'ancienne adresse du serveur (reprise ensuite par
+    PURPLE jusqu'au 24/09) ; seule celle de WIN01 avait été corrigée à l'étape 8. Config du serveur
     déployée (même SHA-256 que WIN01), `--config` ajouté au service comme sur WIN01. Même
     client `C.c6b3dab429088216`, reconnecté à 11:50:15, collectes acceptées.
 29. **Rôles TheHive et Cortex mal attribués** (24/09), trouvés en créant le premier cas :
@@ -272,7 +272,7 @@ ouvert), exécuter, capturer la preuve, **éteindre avant l'étape suivante** sa
     règle de base EventID8 dans `0330-sysmon_rules.xml`). **Testé en direct et
     validé** : injection de thread bénigne (`CreateRemoteThread` → `kernel32!Sleep`)
     depuis PowerShell vers `notepad.exe` (non protégé par PPL) → alerte confirmée,
-    18 correspondances sur le dashboard. Voir
+    17 correspondances sur le dashboard. Voir
     `purple-team/scenarios/scenario-T1055-process-injection.md` et capture
     `docs/screenshots/wazuh-dashboard-rule-100155-live.png`.
   - **100139 et 100186, complétées le 2026-09-23** (voir faiblesses 16 et 17) :

@@ -69,13 +69,16 @@ toute la chaîne :
 | Étape automatisée | Heure (UTC) | Depuis la livraison |
 |---|---|---|
 | Alerte TheHive créée (sévérité 3, 3 observables) | 10:34:57 | **12 s** |
-| `Contain_Attacker` : IP ajoutée à `BLOCKED_ATTACKERS`, alias relu sur OpenSense | 10:35:21 | **36 s** |
+| `Enrich_With_Cortex` : corrélation MISP terminée, tag `misp:match` | 10:35:18 | **33 s** |
+| `Contain_Attacker` : IP ajoutée à `BLOCKED_ATTACKERS`, alias relu sur OPNsense | 10:35:21 | **36 s** |
 | `Quarantine_Host` : flow d'isolation créé sur Velociraptor | 10:35:26 | **41 s** |
 | `Trigger_DFIR_Hunt` : événement MISP republié, chasse créée | 10:35:39 → 10:35:48 | **54 à 63 s** |
 
 Ces durées incluent la création de l'alerte TheHive et l'enrichissement Cortex/MISP qui précèdent chaque
-action. Côté détection, les connexions de l'attaque (10:01:47 et 10:01:57) ont produit leur alerte `100140` et
-`100141` en moins de 2 s (10:01:48 et 10:01:58). Le délai entre la création de l'alerte (10:01:58) et sa
+action. Ce sont les instants où chaque ordre est émis : l'isolation et la chasse ne se sont appliquées sur
+WIN01 qu'à sa reprise (10:43:39), le poste étant en sommeil pendant l'exécution de la chaîne. Côté détection, les connexions de l'attaque lancées à 10:01:47 et 10:01:57 ont produit leur alerte `100140` et
+`100141` 1 à 2 s plus tard (10:01:48 et 10:01:58) ; la première connexion a mis une douzaine de secondes à
+s'établir, son alerte est à 10:01:37. Le délai entre la création de l'alerte (10:01:58) et sa
 livraison à Shuffle (33 minutes) n'est pas un temps de réponse : il correspond au mode d'exécution décrit dans
 la fiche.
 

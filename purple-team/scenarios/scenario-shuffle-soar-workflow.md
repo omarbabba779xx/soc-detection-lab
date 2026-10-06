@@ -402,42 +402,78 @@ Trois autres défauts trouvés en préparant l'exécution, tous corrigés :
 ### Mode d'exécution
 
 La contrainte de mémoire de l'hôte conduit à exécuter la chaîne en deux vagues dans la même session : l'attaque
-et sa détection (PURPLE, OpenSense, WIN01, Wazuh), puis la chaîne de réponse (Shuffle, TheHive, Cortex, MISP,
-Velociraptor, OpenSense). L'alerte réelle de la première vague a été livrée au webhook de Shuffle **33 minutes**
+et sa détection (PURPLE, OPNsense, WIN01, Wazuh), puis la chaîne de réponse (Shuffle, TheHive, Cortex, MISP,
+Velociraptor, OPNsense). L'alerte réelle de la première vague a été livrée au webhook de Shuffle **33 minutes**
 après sa création, avec le script d'intégration officiel de Wazuh (`/var/ossec/integrations/shuffle.py`,
 copié depuis le manager) appliqué au JSON de l'alerte ; les six nœuds ont ensuite agi sur cette alerte, sans
 intervention. Les heures ci-dessous sont en UTC (horloge du manager Wazuh et des serveurs).
 
-**Horloge des machines Windows.** Pendant cette exécution, WIN01 et DC01 avançaient d'une heure : leur fuseau
+**Horloge des machines Windows.** Pendant l'attaque, WIN01 et DC01 avançaient d'une heure : leur fuseau
 « Morocco Standard Time » n'appliquait pas l'heure d'été (tables de règles anciennes) alors que l'horloge
-virtuelle suit l'heure locale de l'hôte, d'où des horodatages Windows (`systemTime`, colonne « Last Active » de
-Velociraptor) en avance d'une heure sur les heures de référence ci-dessous. Corrigé ensuite sur les deux
+virtuelle suit l'heure locale de l'hôte, d'où un `systemTime` Windows en avance d'une heure sur les heures de
+référence ci-dessous. Après la reprise de WIN01 depuis son état sauvegardé, l'avance n'était plus que d'environ
+22 minutes (l'horloge s'était arrêtée pendant la suspension) : c'est l'écart visible dans la colonne
+« Last Active » de Velociraptor. Corrigé ensuite sur les deux
 machines (fuseau UTC et horloge virtuelle en UTC, `rtcuseutc`) : WIN01 est désormais à l'heure UTC réelle, à
 deux secondes de l'hôte. Les preuves de l'attaque ci-dessous gardent leurs horodatages d'origine.
 
 ### Déroulé
 
-Captures : [alerte Wazuh](../../docs/screenshots/wazuh-rule-100141-live.png), [alerte TheHive à l'issue de la chaîne](../../docs/screenshots/thehive-alert-chain-100141.png), [alias OpenSense](../../docs/screenshots/opnsense-blocked-attackers-attack-ip.png), [flows Velociraptor](../../docs/screenshots/velociraptor-win01-flows-isolation.png), [événement MISP #6 et sightings](../../docs/screenshots/misp-event6-sightings.png).
+Captures : [alerte Wazuh](../../docs/screenshots/wazuh-rule-100141-live.png), [exécution Shuffle](../../docs/screenshots/shuffle-execution-chain-100141.png), [alerte TheHive à l'issue de la chaîne](../../docs/screenshots/thehive-alert-chain-100141.png), [alias OPNsense](../../docs/screenshots/opnsense-blocked-attackers-attack-ip.png), [flows Velociraptor](../../docs/screenshots/velociraptor-win01-flows-isolation.png), [événement MISP #6 et sightings](../../docs/screenshots/misp-event6-sightings.png).
 
 | Heure (UTC) | Maillon | Preuve |
 |---|---|---|
-| 10:01:23, 10:01:47, 10:01:57 | **Attaque** : PURPLE → WIN01 (`10.10.30.110`), 3 connexions à `IPC$` (`labuser`, `smbclient -n SOCFORGE-PURPLE`), à travers OpenSense | événements `5140` sur WIN01 |
+| 10:01:23, 10:01:47, 10:01:57 | **Attaque** : PURPLE → WIN01 (`10.10.30.110`), 3 connexions à `IPC$` (`labuser`, `smbclient -n SOCFORGE-PURPLE`), à travers OPNsense | événements `5140` sur WIN01 |
 | 10:01:37, 10:01:48 | **Wazuh** : règle `100140` (niveau 10), IP `10.10.50.10` | alertes `1790848897.1591582`, `1790848908.1605262` |
 | 10:01:58 | **Wazuh** : règle `100141` (niveau 12, `T1021.002`) | alerte `1790848918.1618438` |
 | 10:33:06 | MISP : événement #6 créé et publié (`ip-src 10.10.50.10`, `text SOCFORGE-PURPLE`) | MISP |
-| **10:34:45** | **Webhook Shuffle** : l'alerte réelle est livrée (code retour 0) | script officiel de Wazuh |
+| **10:34:45** | **Webhook Shuffle** : l'alerte réelle est livrée (code retour 0), exécution `e98da78c-0c4e-4656-bdae-9fb6f1d39874` | script officiel de Wazuh, exécution Shuffle |
 | 10:34:57 (+12 s) | `Build_TheHive_Alert`, `Create_TheHive_Alert` : alerte TheHive `~286724176`, sévérité 3, 3 observables (IP, agent, nom Windows) | TheHive |
-| ≈ 10:35 | `Enrich_With_Cortex` : corrélation avec l'événement #6, tag `misp:match` | TheHive |
-| **10:35:21** (+36 s) | `Contain_Attacker` : `10.10.50.10` ajoutée à `BLOCKED_ATTACKERS`, tag `auto-contained` | alias lu sur OpenSense, note d'audit |
+| 10:35:00 → 10:35:18 (+33 s) | `Enrich_With_Cortex` : analyse Cortex `MISP_SocForge` de l'observable `ip` (tâche `~327684272`), 1 correspondance dans l'événement #6, tag `misp:match` | sortie du nœud : `"misp_hits": 1, "misp_match": true` |
+| **10:35:21** (+36 s) | `Contain_Attacker` : `10.10.50.10` ajoutée à `BLOCKED_ATTACKERS`, tag `auto-contained` | alias lu sur OPNsense, note d'audit |
 | **10:35:26** (+41 s) | `Quarantine_Host` : `WIN01` résolue en `DESKTOP-75LAKDV` (`C.07dab9364f98e1aa`), flow `F.DAV3ETNTNA6N0`, tag `auto-quarantined` | note d'audit, flow Velociraptor |
 | **10:35:39 → 10:38:08** | `Trigger_DFIR_Hunt` : événement #6 republié (10:35:39), chasse `H.DAV3F15BPTMII` créée à 10:35:48 (+63 s), attente des sightings sans résultat dans la fenêtre de 150 s, tag `dfir:hunt-triggered` | note d'audit, MISP |
+
+### Sortie de l'exécution Shuffle
+
+Exécution `e98da78c-0c4e-4656-bdae-9fb6f1d39874` (`FINISHED`, source `webhook`, 10:34:46 → 10:37:37), relue par
+l'API de Shuffle :
+
+```
+Build_TheHive_Alert   SUCCESS | sévérité 3 | tags ['wazuh', 'rule-100141', 'T1021.002'] | 3 observables
+Create_TheHive_Alert  SUCCESS | HTTP 201 | alerte ~286724176
+Enrich_With_Cortex    SUCCESS | {"observable": "10.10.50.10", "dataType": "ip", "job": "~327684272", "status": "Success",
+                                 "misp_hits": 1, "misp_events": ["6"]} | "misp_match": true
+Contain_Attacker      SUCCESS | {"contained": true, "ip": "10.10.50.10", "opnsense_add": "done", "opnsense_apply": "OK"}
+Quarantine_Host       SUCCESS | {"quarantined": true, "hostname": "DESKTOP-75LAKDV", "client_id": "C.07dab9364f98e1aa",
+                                 "flow_id": "F.DAV3ETNTNA6N0"}
+Trigger_DFIR_Hunt     délai dépassé côté Shuffle : "Timeout error within 120 seconds"
+```
+
+### Constats de cette exécution
+
+- **`Trigger_DFIR_Hunt` dépasse le délai d'exécution de Shuffle.** Le nœud attend les sightings jusqu'à 150 s,
+  alors que Shuffle interrompt le suivi d'une action au bout de 120 s : l'exécution est enregistrée avec un
+  dépassement de délai pour ce nœud. Son code s'est pourtant terminé (événement republié à 10:35:39, note et tag
+  `dfir:hunt-triggered` posés à 10:38:08). À corriger : fenêtre d'attente ramenée sous 120 s, ou
+  `SHUFFLE_APP_SDK_TIMEOUT` relevé ; la correction devra être revalidée par une exécution.
+- **Le chemin `dfir:hunted` n'a pas été observé dans la chaîne complète** : WIN01 étant en sommeil, aucun
+  sighting ne pouvait arriver dans la fenêtre d'attente. Les sightings sont arrivés à la reprise du poste. Ce
+  chemin reste validé séparément (24/09, événement #3).
+- **L'IOC a été saisi dans MISP après l'attaque** (10:33:06), à partir de ses propres indicateurs : la
+  corrélation prouve le mécanisme d'enrichissement, pas un renseignement antérieur à l'attaque.
+- **L'effet du blocage sur le trafic n'a pas été remesuré ce jour-là** : PURPLE était éteinte pendant la seconde
+  vague. La présence de l'IP dans l'alias a été relue sur OPNsense ; l'effet sur le trafic avait été mesuré le
+  24/09 (voir plus haut).
+- **L'alerte n'a pas été promue en cas** : le modèle de cas à cinq tâches a été appliqué à l'alerte du 24/09
+  (cas #10), pas à celle-ci, qui reste au statut `New`.
 
 ### Ce que Velociraptor a constaté sur WIN01
 
 WIN01 était en sommeil pendant l'exécution de la chaîne : les flows ont attendu sa reprise (10:42:27) et se sont
 exécutés à la reconnexion de l'agent (10:43:39). Le journal du flow d'isolation montre la politique posée par
-`netsh ipsec` (`VelociraptorQuarantine`) avec un filtre qui n'autorise que le frontend Velociraptor
-(`10.10.10.61:8889`).
+`netsh ipsec` (`VelociraptorQuarantine`) : seuls le frontend Velociraptor (`10.10.10.61:8889`), le DNS et le
+DHCP sont autorisés, tout le reste est bloqué (résultats du flow `F.DAV3ETNTNA6N0`, relus sur le serveur).
 
 | Heure (UTC) | Constat |
 |---|---|
@@ -489,8 +525,9 @@ processus structuré mais rapide sur un incident déjà bien compris.
 - [`docs/screenshots/thehive-alert-dfir-hunt-triggered.png`](../../docs/screenshots/thehive-alert-dfir-hunt-triggered.png) — alerte `~204804176` à l'issue de la chaîne à 5 nœuds : tags `misp:match` + `dfir:hunt-triggered`, note d'audit avec l'ID d'événement MISP republié
 - [`docs/screenshots/thehive-case10-ir-playbook-closed.png`](../../docs/screenshots/thehive-case10-ir-playbook-closed.png) — cas #10 : 5 tâches du modèle IR closes, statut `True Positive`, résolution en 55 s
 - [`docs/screenshots/wazuh-rule-100141-live.png`](../../docs/screenshots/wazuh-rule-100141-live.png) — l'attaque vue par Wazuh : règle 100141 (niveau 12) précédée des deux 100140 (niveau 10), agent `WIN01`, IP `10.10.50.10` (le tableau de bord affiche l'heure locale, UTC+1 : 11:01 = 10:01 UTC)
+- [`docs/screenshots/shuffle-execution-chain-100141.png`](../../docs/screenshots/shuffle-execution-chain-100141.png) — l'exécution Shuffle `e98da78c…` : les six nœuds et leur résultat, dont le dépassement de délai de `Trigger_DFIR_Hunt` (heures affichées en heure locale, UTC+1)
 - [`docs/screenshots/thehive-alert-chain-100141.png`](../../docs/screenshots/thehive-alert-chain-100141.png) — l'alerte TheHive à l'issue de la chaîne : sévérité haute, tags `auto-contained`, `auto-quarantined`, `misp:match`, `dfir:hunt-triggered`, et les notes d'audit de chaque nœud
-- [`docs/screenshots/opnsense-blocked-attackers-attack-ip.png`](../../docs/screenshots/opnsense-blocked-attackers-attack-ip.png) — l'alias `BLOCKED_ATTACKERS` d'OpenSense contenant `10.10.50.10`, ajouté par Shuffle
+- [`docs/screenshots/opnsense-blocked-attackers-attack-ip.png`](../../docs/screenshots/opnsense-blocked-attackers-attack-ip.png) — l'alias `BLOCKED_ATTACKERS` d'OPNsense contenant `10.10.50.10`, ajouté par Shuffle
 - [`docs/screenshots/velociraptor-win01-flows-isolation.png`](../../docs/screenshots/velociraptor-win01-flows-isolation.png) — les flows de WIN01 : isolation, collecte pendant l'isolation, chasse, levée d'isolation (la colonne « Last Active » suit l'horloge de WIN01, en avance)
 - [`docs/screenshots/misp-event6-sightings.png`](../../docs/screenshots/misp-event6-sightings.png) — événement MISP #6 : `SOCFORGE-PURPLE` avec 2 sightings renvoyés par Velociraptor, publié à 10:35:39 par la republication de `Trigger_DFIR_Hunt`
 
@@ -517,4 +554,4 @@ comme preuve.
 | Boucle SOAR → DFIR (`misp:match` → chasse Velociraptor) | ✅ (`Trigger_DFIR_Hunt`, sighting positif et négatif validés séparément) |
 | Isolation réseau de l'hôte (Quarantine_Host) | ✅ (100 % de perte pendant la quarantaine, canal Velociraptor conservé, restauration vérifiée ; déclenché par la chaîne sur l'alerte du 01/10) |
 | Processus d'investigation formalisé (tâches TheHive) | ✅ (modèle réutilisable, cas #10 clos `TruePositive`, résolu en 55 s) |
-| Une seule attaque, toute la chaîne (01/10) | ✅ (attaque réelle → alerte Wazuh de niveau 12 → les six nœuds agissent sur la même alerte : TheHive en 12 s, blocage en 36 s, isolation en 41 s, chasse en 54 à 63 s) |
+| Une seule attaque, toute la chaîne (01/10) | ✅ (attaque réelle → alerte Wazuh de niveau 12 → les six nœuds agissent sur la même alerte : alerte TheHive en 12 s, blocage en 36 s, ordre d'isolation en 41 s, chasse créée en 54 à 63 s) |

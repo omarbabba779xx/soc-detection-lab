@@ -40,7 +40,7 @@ net use \\10.10.10.109\C$ /user:administrator <mot de passe du lab>
 | Règle            | 100178      |
 | Verdict          | VP (vrai positif) |
 
-Capture : [`docs/screenshots/rule-100153-100178-live-rebuild.png`](../../docs/screenshots/rule-100153-100178-live-rebuild.png)
+Captures : [commandes exécutées sur DC01](../../docs/screenshots/rule-100153-100178-live-rebuild.png), [alertes dans Wazuh](../../docs/screenshots/wazuh-dashboard-dc01-events.png)
 
 ## Nettoyage
 

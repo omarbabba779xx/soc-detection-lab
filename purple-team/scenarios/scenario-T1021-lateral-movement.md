@@ -66,3 +66,7 @@ Capture : [`docs/screenshots/wazuh-rules-100139-100140-100186-live.png`](../../d
 | Règle d'alerte   | 100140 (niveau 10), escaladée en 100141 (niveau 12) après trois accès depuis la même IP — voir SC-14 |
 | Bruit filtré     | 100139 (comptes machine et `ANONYMOUS LOGON`), corrigée le 23/09 |
 | Verdict          | VP (vrai positif) |
+
+## Nettoyage
+
+Aucun artefact : les accès aux partages n'écrivent rien. Les règles 100139 et 100140 restent déployées.

@@ -48,7 +48,7 @@ schtasks /create /tn SocForgeRebuildTest /tr calc.exe /sc once /st 23:59 /f
 | Règle            | 100153      |
 | Verdict          | VP (vrai positif) |
 
-Capture : [`docs/screenshots/rule-100153-100178-live-rebuild.png`](../../docs/screenshots/rule-100153-100178-live-rebuild.png)
+Captures : [commandes exécutées sur DC01](../../docs/screenshots/rule-100153-100178-live-rebuild.png), [alertes dans Wazuh](../../docs/screenshots/wazuh-dashboard-dc01-events.png)
 
 ## Nettoyage
 

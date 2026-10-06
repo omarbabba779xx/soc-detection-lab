@@ -16,7 +16,7 @@ Chain: Wazuh_Webhook -> Build_TheHive_Alert -> Create_TheHive_Alert -> Enrich_Wi
 See soar/nodes/*.py for what Contain_Attacker, Quarantine_Host and Trigger_DFIR_Hunt do
 and why.
 """
-import json, os, pathlib, uuid, requests
+import os, pathlib, uuid, requests
 
 HERE = pathlib.Path(__file__).resolve().parent
 BASE = os.environ.get("SHUFFLE_URL", "http://10.10.10.30:3001").rstrip("/") + "/api/v1"

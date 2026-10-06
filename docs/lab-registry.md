@@ -53,7 +53,9 @@ Hôte : 16 Go de RAM ; les VM sont allumées par groupes, selon le scénario (vo
 
 ## Heure
 
-Les heures citées dans la documentation sont en UTC. Les machines Windows (DC01, WIN01) ont leur horloge
+Les heures citées dans la documentation sont en UTC. Les captures du tableau de bord Wazuh, de TheHive et de
+Shuffle affichent selon le cas l'heure UTC ou l'heure locale de l'hôte (UTC+1) ; la légende le précise quand
+elles diffèrent. Les machines Windows (DC01, WIN01) ont leur horloge
 virtuelle en UTC (`rtcuseutc`) et le fuseau UTC (corrigé le 01/10) ; les VM Ubuntu utilisent
 `systemd-timesyncd` (intervalle maximal de 5 minutes sur THEHIVE, SHUFFLE et WAZUH). Les dérives de plusieurs
 minutes par heure observées jusqu'au 23/09 venaient de VirtualBox en mode de repli sur l'hyperviseur Windows

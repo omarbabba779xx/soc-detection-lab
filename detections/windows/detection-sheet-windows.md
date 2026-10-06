@@ -278,8 +278,7 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
   — l'injection a réellement réussi (notepad.exe n'est pas protégé par PPL, contrairement à lsass.exe). Alerte
   confirmée sur le manager :
   `Rule: 100155 (level 13) -> 'Sigma T1055: CreateRemoteThread into another process — possible process injection — C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -> ...\Notepad.exe'`
-  avec `StartFunction: Sleep` correspondant exactement à notre test. Capture (dashboard Wazuh, 18
-  correspondances) :
+  avec `StartFunction: Sleep` correspondant exactement à notre test. Capture (dashboard Wazuh, 17 correspondances) :
   [`wazuh-dashboard-rule-100155-live.png`](../../docs/screenshots/wazuh-dashboard-rule-100155-live.png)
 
 ---
