@@ -438,7 +438,7 @@ Après l'exercice, l'isolation de WIN01 a été levée et l'adresse retirée de 
 - Garde-fous de la réponse automatique : liste d'adresses jamais bloquées, label qui protège le contrôleur de domaine, blocage temporaire, webhook réservé à Wazuh, accès à Velociraptor par une clé SSH limitée à une commande. Ils sont testés dans la fiche [SC-14](purple-team/scenarios/SC-14-shuffle-soar-workflow.md).
 - DFIR : un événement MISP publié lance seul une chasse Velociraptor et les sightings reviennent dans MISP. La boucle complète est prouvée sur Windows et sur Linux ; l'isolation d'un poste Linux a été testée séparément.
 - Qualité du dépôt : 54 tests automatiques vérifient les règles, la politique du pare-feu, les artefacts, le code des nœuds et les liens de la documentation ; ils tournent à chaque envoi, avec la validation des règles Sigma.
-- Chiffrement : les services en HTTPS (MISP, OPNsense) sont appelés avec la CA interne du lab, sans désactiver la vérification. TheHive, Cortex et Shuffle restent en HTTP sur le réseau de gestion.
+- Chiffrement : les services en HTTPS (MISP, OPNsense) sont appelés avec la CA interne du lab, sans désactiver la vérification. TheHive, Cortex et Shuffle ne sont joignables que depuis le réseau de gestion, isolé de l'attaquant et des cibles, et sont appelés en HTTP.
 
 ## Scénarios
 
