@@ -1,0 +1,26 @@
+title: Scheduled Task Created Or Modified
+id: afc8cb41-cc2d-532b-b212-f6e1e3773e06
+name: socforge_scheduled_task
+status: test
+description: "A scheduled task is created or updated (Security events 4698 and 4702, audit subcategory Other Object Access Events)."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.persistence
+    - attack.execution
+    - attack.t1053.005
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID:
+            - 4698
+            - 4702
+    condition: selection
+falsepositives:
+    - "Windows Update (\\Microsoft\\Windows\\UpdateOrchestrator) and software updaters"
+level: medium
+custom:
+    wazuh_rule: 100153

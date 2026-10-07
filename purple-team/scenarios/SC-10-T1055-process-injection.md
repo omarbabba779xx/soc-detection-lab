@@ -1,10 +1,10 @@
-# SC-10 — T1055 : Process Injection (CreateRemoteThread)
+# SC-10 : T1055 : Process Injection (CreateRemoteThread)
 
-**Session** : Reconstruction, étape 4 — 2026-09-18
-**Attaquant** : WIN01, console locale (`labuser`, cmd élevé)
-**Cible** : WIN01 (agent Wazuh), processus `notepad.exe` local
-**MITRE** : T1055 — Process Injection
-**Tactique** : Defense Evasion / Privilege Escalation
+Session : Reconstruction, étape 4, 2026-09-18
+Attaquant : WIN01, console locale (`labuser`, cmd élevé)
+Cible : WIN01 (agent Wazuh), processus `notepad.exe` local
+MITRE : T1055, Process Injection
+Tactique : Defense Evasion / Privilege Escalation
 
 ---
 
@@ -21,11 +21,11 @@ Script PowerShell (encodé en Base64, `-EncodedCommand`) :
 3. `CreateRemoteThread` pointant sur `kernel32!Sleep` (adresse résolue via
    `GetProcAddress`), avec un paramètre de 500ms.
 
-Aucun shellcode n'est écrit en mémoire — le thread distant exécute uniquement une
+Aucun shellcode n'est écrit en mémoire, le thread distant exécute uniquement une
 fonction Win32 légitime déjà mappée dans le processus cible (`Sleep`), une technique de
 test standard qui déclenche la télémétrie Sysmon sans risque réel.
 
-**Résultat console** :
+Résultat console :
 ```
 Target handle: True
 Remote thread handle: True
@@ -38,7 +38,7 @@ Done
 |--------|--------|----------------------|--------------------------------------------|
 | 100155 | 13     | Sysmon EventID 8     | CreateRemoteThread vers un autre processus |
 
-**Testé en direct le 2026-09-18** :
+Testé en direct le 2026-09-18 :
 
 ```
 Rule: 100155 (level 13) -> 'Sigma T1055: CreateRemoteThread into another process — possible process injection — C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -> C:\Program Files\WindowsApps\Microsoft.WindowsNotepad_...\Notepad\Notepad.exe'
@@ -53,7 +53,7 @@ Capture (dashboard Wazuh, 17 correspondances sur `rule.id:100155`) :
 Même famille de bug que 100147 et 100103 : `<if_group>sysmon_event8</if_group>` ne
 déclenche jamais cette règle custom sur ce manager. Contrairement à 100103 (qui a pu
 chaîner sur une règle officielle équivalente, 92900), aucune règle officielle générique
-n'existe pour EventID 8 — chacune des règles Wazuh natives (92400-92403) est limitée à
+n'existe pour EventID 8, chacune des règles Wazuh natives (92400-92403) est limitée à
 un processus cible précis. Corrigé en chaînant sur `<if_sid>185006</if_sid>`, la règle
 de base (niveau 0) qui tague tout événement EventID 8 avec le groupe `sysmon_event8`.
 
@@ -61,7 +61,7 @@ de base (niveau 0) qui tague tout événement EventID 8 avec le groupe `sysmon_e
 
 | Critère    | Valeur                       |
 |------------|--------------------------------|
-| Détecté    | ✅ OUI                        |
+| Détecté    | validé OUI                        |
 | Règle      | 100155                        |
 | Verdict    | VP (vrai positif)              |
 | Source     | WIN01 (local)                 |

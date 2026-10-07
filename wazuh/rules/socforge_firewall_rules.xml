@@ -1,7 +1,8 @@
 <!-- SocForge — OPNsense segmentation events (filterlog over syslog, decoder "pf") -->
 <!-- The official drop rule 87701 has <options>no_log</options>: single blocks are  -->
 <!-- never written. These child rules surface inter-zone blocks and flag the        -->
-<!-- attacker zone (10.10.50.0/24) hitting the segmentation boundary.               -->
+<!-- attacker zone (10.10.50.0/24) hitting the segmentation boundary, and internal   -->
+<!-- hosts trying to open a connection towards it (callback or data leaving).        -->
 
 <group name="socforge,firewall,opnsense,">
 
@@ -28,6 +29,37 @@
     <group>firewall_drop,segmentation_violation,attack,</group>
     <mitre>
       <id>T1046</id>
+    </mitre>
+  </rule>
+
+  <!-- An internal host opening a connection to the attacker zone: nothing legitimate
+       goes there, so a blocked attempt is the trace of a callback (command and control)
+       or of data being sent out. The firewall has already stopped it; the alert names
+       the internal machine to look at. The source zones are listed one by one because a
+       negated address range (!10.10.50.0/24) is not supported by the srcip option. -->
+  <rule id="100310" level="10">
+    <if_sid>100300</if_sid>
+    <dstip>10.10.50.0/24</dstip>
+    <srcip>10.10.10.0/24</srcip>
+    <srcip>10.10.20.0/24</srcip>
+    <srcip>10.10.30.0/24</srcip>
+    <srcip>10.10.40.0/24</srcip>
+    <srcip>10.10.60.0/24</srcip>
+    <description>OPNsense segmentation: internal host $(srcip) blocked towards the attacker zone $(dstip):$(dstport), possible command-and-control callback</description>
+    <group>firewall_drop,egress_violation,</group>
+    <mitre>
+      <id>T1071</id>
+    </mitre>
+  </rule>
+
+  <rule id="100311" level="12" frequency="8" timeframe="120" ignore="120">
+    <if_matched_sid>100310</if_matched_sid>
+    <same_source_ip />
+    <description>OPNsense segmentation: repeated blocked connections from $(srcip) towards the attacker zone, possible beaconing or exfiltration attempt</description>
+    <group>firewall_drop,egress_violation,attack,</group>
+    <mitre>
+      <id>T1071</id>
+      <id>T1041</id>
     </mitre>
   </rule>
 

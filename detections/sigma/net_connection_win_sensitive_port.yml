@@ -1,0 +1,56 @@
+title: Network Connection To A Sensitive Or Admin Port
+id: 3b652cf9-51e9-5333-b0c2-16e765acec08
+name: socforge_sensitive_port_connection
+status: test
+description: "A process opens a connection to a remote administration or database port (Sysmon event 3)."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.discovery
+    - attack.t1046
+logsource:
+    product: windows
+    category: network_connection
+detection:
+    selection:
+        DestinationPort:
+            - 21
+            - 22
+            - 23
+            - 25
+            - 445
+            - 1433
+            - 3306
+            - 3389
+            - 5985
+            - 5986
+    condition: selection
+falsepositives:
+    - "Administration tools and file shares used by the IT team"
+level: medium
+custom:
+    wazuh_rule: 100101
+---
+title: Port Scan From A Single Source
+id: dd397b3b-2770-5a60-9634-544d7f6988e6
+status: test
+description: Correlation of the rule above, per SourceIp.
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+correlation:
+    type: event_count
+    rules:
+        - socforge_sensitive_port_connection
+    group-by:
+        - SourceIp
+    timespan: 5m
+    condition:
+        gte: 10
+tags:
+    - attack.discovery
+    - attack.t1046
+level: high
+custom:
+    wazuh_rule: 100102

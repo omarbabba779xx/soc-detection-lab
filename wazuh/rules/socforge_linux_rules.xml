@@ -3,9 +3,22 @@
   <!-- ============================================================ -->
   <!-- T1548.003 — Sudo and Sudo Caching abuse                       -->
   <!-- ============================================================ -->
-  <rule id="100200" level="9">
+  <!-- Every sudo command is recorded at level 5; only the ones that touch accounts,
+       sudo rights, credentials or open a root shell alert. At level 9 for every command
+       this rule was the noisiest of the lab (560 hits, almost all administration). -->
+  <rule id="100200" level="5">
     <if_sid>5402</if_sid>
-    <description>Sigma T1548.003: sudo command executed — $(command)</description>
+    <description>sudo command executed — $(command)</description>
+    <group>privilege_escalation,</group>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+  </rule>
+
+  <rule id="100201" level="10">
+    <if_sid>100200</if_sid>
+    <field name="command" type="pcre2">(/etc/shadow|/etc/sudoers|visudo|useradd|usermod|passwd |chmod [ugo0-9+]*s|/bin/(ba)?sh$|/bin/su( |$)|authorized_keys)</field>
+    <description>Sigma T1548.003: sensitive command run through sudo — $(command)</description>
     <group>privilege_escalation,mitre_privilege_escalation,</group>
     <mitre>
       <id>T1548.003</id>

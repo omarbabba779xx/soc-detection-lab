@@ -1,0 +1,23 @@
+title: Thread Created In Another Process
+id: fe773c79-3909-5b9b-a0de-95b11a7dc126
+name: socforge_create_remote_thread
+status: test
+description: "A process creates a thread in another process (Sysmon event 8). No filter: the lab keeps every event of this type."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.privilege-escalation
+    - attack.t1055
+logsource:
+    product: windows
+    category: create_remote_thread
+detection:
+    selection:
+        EventID: 8
+    condition: selection
+falsepositives:
+    - "Debuggers, security products and some system processes (csrss.exe, svchost.exe)"
+level: high
+custom:
+    wazuh_rule: 100155

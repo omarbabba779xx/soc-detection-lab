@@ -18,14 +18,20 @@
      "description": "SOAR containment (firewall/contain_attacker.py): IPs added here on a confirmed, high-severity alert. Content is managed live, outside this file — apply_policy.py creates it once and never overwrites it."}
   ],
   "rules": [
+    {"seq": 95, "if": "opt1", "action": "block", "proto": "any", "src": "BLOCKED_ATTACKERS",
+     "dst": "any",           "port": "",                "log": 1, "desc": "srv -> blocked (SOAR containment)"},
     {"seq": 100, "if": "opt1", "action": "pass",  "proto": "TCP",     "dst": "10.10.10.0/24", "port": "SOC_AGENT_PORTS", "log": 0, "desc": "srv -> SOC agents"},
     {"seq": 190, "if": "opt1", "action": "block", "proto": "any",     "dst": "any",           "port": "",                "log": 1, "desc": "srv default deny"},
 
+    {"seq": 195, "if": "opt2", "action": "block", "proto": "any", "src": "BLOCKED_ATTACKERS",
+     "dst": "any",           "port": "",                "log": 1, "desc": "ep -> blocked (SOAR containment)"},
     {"seq": 200, "if": "opt2", "action": "pass",  "proto": "TCP",     "dst": "10.10.20.0/24", "port": "AD_PORTS",        "log": 0, "desc": "ep -> AD services (tcp)"},
     {"seq": 201, "if": "opt2", "action": "pass",  "proto": "UDP",     "dst": "10.10.20.0/24", "port": "AD_PORTS",        "log": 0, "desc": "ep -> AD services (udp)"},
     {"seq": 210, "if": "opt2", "action": "pass",  "proto": "TCP",     "dst": "10.10.10.0/24", "port": "SOC_AGENT_PORTS", "log": 0, "desc": "ep -> SOC agents"},
     {"seq": 290, "if": "opt2", "action": "block", "proto": "any",     "dst": "any",           "port": "",                "log": 1, "desc": "ep default deny"},
 
+    {"seq": 295, "if": "opt3", "action": "block", "proto": "any", "src": "BLOCKED_ATTACKERS",
+     "dst": "any",           "port": "",                "log": 1, "desc": "ndr -> blocked (SOAR containment)"},
     {"seq": 300, "if": "opt3", "action": "pass",  "proto": "TCP",     "dst": "10.10.10.0/24", "port": "SOC_AGENT_PORTS", "log": 0, "desc": "ndr -> SOC agents"},
     {"seq": 390, "if": "opt3", "action": "block", "proto": "any",     "dst": "any",           "port": "",                "log": 1, "desc": "ndr default deny"},
 
@@ -34,6 +40,8 @@
     {"seq": 400, "if": "opt4", "action": "pass",  "proto": "any",     "dst": "10.10.30.0/24", "port": "",                "log": 0, "desc": "purple -> ep (test targets)"},
     {"seq": 490, "if": "opt4", "action": "block", "proto": "any",     "dst": "any",           "port": "",                "log": 1, "desc": "purple default deny (srv, mgmt, dfir, ndr)"},
 
+    {"seq": 495, "if": "opt5", "action": "block", "proto": "any", "src": "BLOCKED_ATTACKERS",
+     "dst": "any",           "port": "",                "log": 1, "desc": "dfir -> blocked (SOAR containment)"},
     {"seq": 500, "if": "opt5", "action": "pass",  "proto": "TCP",     "dst": "10.10.10.0/24", "port": "SOC_AGENT_PORTS", "log": 0, "desc": "dfir -> SOC agents"},
     {"seq": 590, "if": "opt5", "action": "block", "proto": "any",     "dst": "any",           "port": "",                "log": 1, "desc": "dfir default deny"}
   ],

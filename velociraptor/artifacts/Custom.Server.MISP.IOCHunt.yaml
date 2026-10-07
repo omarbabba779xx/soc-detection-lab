@@ -5,8 +5,9 @@ description: |
 
   The IOCs are read from MISP by Custom.Server.MISP.Iocs, turned into a
   single IocRegex and passed to Windows.EventLogs.EvtxHunter on every
-  Windows client. The hunt is tagged "misp" and "misp-event-<id>" so that
-  Custom.Server.MISP.Sightings can report each hit back to MISP.
+  Windows client and to Custom.Linux.IOC.LogHunter on every Linux client
+  (one hunt per OS). Both hunts are tagged "misp" and "misp-event-<id>" so
+  that Custom.Server.MISP.Sightings can report each hit back to MISP.
 
   Run it from Server Artifacts in the GUI (or with collect_client on
   client "server"). Nothing runs outside the Velociraptor server.
@@ -39,6 +40,13 @@ sources:
                artifacts='Windows.EventLogs.EvtxHunter',
                spec=dict(`Windows.EventLogs.EvtxHunter`=dict(IocRegex=IocRegex)),
                os='windows').HuntId AS HuntId,
+             hunt(
+               description=format(format='MISP event #%v - LogHunter (Linux) on %v IOC(s): %v',
+                                  args=[EventId, len(list=Iocs), IocRegex]),
+               tags=['misp', 'misp-event-' + EventId],
+               artifacts='Custom.Linux.IOC.LogHunter',
+               spec=dict(`Custom.Linux.IOC.LogHunter`=dict(IocRegex=IocRegex)),
+               os='linux').HuntId AS LinuxHuntId,
              EventId, len(list=Iocs) AS NbIocs, IocRegex
       FROM scope()
       WHERE NbIocs > 0

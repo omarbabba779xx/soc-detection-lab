@@ -13,9 +13,12 @@
     </mitre>
   </rule>
 
+  <!-- same_field on the source address: without it the counter added up connections
+       from unrelated machines and the "same source" of the description was not true. -->
   <rule id="100102" level="10" frequency="10" timeframe="300">
     <if_matched_sid>100101</if_matched_sid>
-    <description>Sigma T1046: Multiple ports scanned from the same source — possible port scan</description>
+    <same_field>win.eventdata.sourceIp</same_field>
+    <description>Sigma T1046: Multiple ports scanned from the same source — possible port scan — $(win.eventdata.sourceIp)</description>
     <group>network_scan,mitre_discovery,</group>
     <mitre>
       <id>T1046</id>
@@ -211,9 +214,26 @@
   <!-- Requires Windows audit subcategory "Other Object Access      -->
   <!-- Events" enabled — see detection sheet for auditpol command    -->
   <!-- ============================================================ -->
+  <!-- The agent reports the task path with doubled backslashes, hence the "+" in the
+       patterns below. Tasks under \Microsoft\Windows\ are rewritten by Windows itself (UpdateOrchestrator,
+       Windows Update...): most of the 118 hits of this rule over the lab's history. They
+       are kept at level 3, visible but not alerting; a task planted in that folder is a
+       known evasion, so the event is not discarded. -->
+  <rule id="100152" level="3">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID" type="pcre2">^(4698|4702)$</field>
+    <field name="win.eventdata.taskName" type="pcre2">(?i)^\\+Microsoft\\+Windows\\+</field>
+    <description>Scheduled task of the Windows system folder created/modified — $(win.eventdata.taskName)</description>
+    <group>persistence_noise,</group>
+    <mitre>
+      <id>T1053.005</id>
+    </mitre>
+  </rule>
+
   <rule id="100153" level="9">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">^(4698|4702)$</field>
+    <field name="win.eventdata.taskName" type="pcre2" negate="yes">(?i)^\\+Microsoft\\+Windows\\+</field>
     <description>Sigma T1053: Scheduled task created/modified — $(win.eventdata.taskName)</description>
     <group>persistence,mitre_persistence,</group>
     <mitre>
@@ -232,6 +252,25 @@
     <description>Sigma T1078: Privileged account remote logon — $(win.eventdata.targetUserName) from $(win.eventdata.ipAddress)</description>
     <group>privileged_logon,mitre_privilege_escalation,</group>
     <mitre>
+      <id>T1078</id>
+    </mitre>
+  </rule>
+
+  <!-- ============================================================ -->
+  <!-- T1133 — External Remote Services (initial access)             -->
+  <!-- A network or remote-interactive logon that succeeds from the   -->
+  <!-- attacker zone (10.10.50.0/24): no legitimate session starts    -->
+  <!-- there. Any account, unlike 100178 (privileged names only).     -->
+  <!-- ============================================================ -->
+  <rule id="100179" level="12">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^4624$</field>
+    <field name="win.eventdata.logonType" type="pcre2">^(3|10)$</field>
+    <field name="win.eventdata.ipAddress" type="pcre2">^10\.10\.50\.</field>
+    <description>Sigma T1133: Successful remote logon from the untrusted zone — $(win.eventdata.targetUserName) from $(win.eventdata.ipAddress)</description>
+    <group>initial_access,mitre_initial_access,</group>
+    <mitre>
+      <id>T1133</id>
       <id>T1078</id>
     </mitre>
   </rule>

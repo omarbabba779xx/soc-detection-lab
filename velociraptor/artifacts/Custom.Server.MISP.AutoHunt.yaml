@@ -14,7 +14,8 @@ description: |
   are considered: enabling the artifact does not re-hunt the whole MISP
   history.
 
-  Each handled publication gives one row: the hunt created, or none when
+  Each handled publication gives one row: the hunts created (Windows and
+  Linux), or none when
   the event has no hunt-able IOC (types listed in IocTypes).
 
 type: SERVER_EVENT
@@ -64,7 +65,7 @@ sources:
         FROM Published
         WHERE NOT format(format='%v@%v', args=[EventId, Pub]) IN Handled.Key
 
-      LET HuntFor(EventId) = SELECT HuntId, NbIocs, IocRegex
+      LET HuntFor(EventId) = SELECT HuntId, LinuxHuntId, NbIocs, IocRegex
         FROM Artifact.Custom.Server.MISP.IOCHunt(
             MispUrl=MispUrl, MispSecret=MispSecret, EventId=EventId,
             IocTypes=IocTypes)
@@ -74,11 +75,13 @@ sources:
       -- never evaluated and would give null). No row -> no hunt-able IOC.
       LET Launch = SELECT * FROM foreach(row=ToHunt, query={
           SELECT Key, EventId, timestamp(epoch=Pub) AS Published, Info,
-                 Hunt.HuntId AS HuntId, Hunt.NbIocs AS NbIocs, Hunt.IocRegex AS IocRegex
+                 Hunt.HuntId AS HuntId, Hunt.LinuxHuntId AS LinuxHuntId,
+                 Hunt.NbIocs AS NbIocs, Hunt.IocRegex AS IocRegex
           FROM foreach(row={
             SELECT to_dict(item={
                 SELECT 'h' AS _key,
-                       dict(HuntId=HuntId, NbIocs=NbIocs, IocRegex=IocRegex) AS _value
+                       dict(HuntId=HuntId, LinuxHuntId=LinuxHuntId, NbIocs=NbIocs,
+                            IocRegex=IocRegex) AS _value
                 FROM HuntFor(EventId=EventId)
               }).h AS Hunt
             FROM scope()

@@ -1,0 +1,55 @@
+name: Custom.Linux.IOC.LogHunter
+author: SocForge
+description: |
+  Linux counterpart of Windows.EventLogs.EvtxHunter for the MISP-driven
+  hunt (Custom.Server.MISP.IOCHunt): looks for IocRegex on a Linux client.
+
+  Two places are searched: the lines of the text logs and scheduled-task
+  files listed in ContentGlobs (authentication log, syslog, crontabs),
+  and the paths of the files found under PathGlobs (a filename IOC is
+  seen when the file is there). At most 100 hits are kept per file.
+
+  Each hit gives one row with the same columns Custom.Server.MISP.Sightings
+  reads from EvtxHunter: Computer and Message.
+
+type: CLIENT
+
+precondition: SELECT OS FROM info() WHERE OS = 'linux'
+
+parameters:
+  - name: IocRegex
+    default: SocForgeNoSuchIndicator
+  - name: ContentGlobs
+    type: json_array
+    default: '["/var/log/auth.log", "/var/log/syslog", "/etc/crontab", "/etc/cron.d/*", "/var/spool/cron/crontabs/*"]'
+  - name: PathGlobs
+    type: json_array
+    default: '["/etc/cron.*/*", "/var/spool/cron/crontabs/*", "/tmp/*", "/var/tmp/*", "/dev/shm/*"]'
+
+sources:
+  - query: |
+      LET Host <= SELECT Hostname FROM info()
+
+      LET InContent = SELECT * FROM foreach(
+          row={ SELECT OSPath FROM glob(globs=ContentGlobs) WHERE NOT IsDir },
+          query={
+            SELECT OSPath, Line FROM parse_lines(filename=OSPath)
+            WHERE Line =~ IocRegex
+            LIMIT 100
+          })
+
+      LET InPath = SELECT OSPath, Mtime FROM glob(globs=PathGlobs)
+        WHERE NOT IsDir AND OSPath.String =~ IocRegex
+
+      SELECT * FROM chain(
+        content={
+          SELECT Host[0].Hostname AS Computer, 'content' AS Kind,
+                 OSPath.String AS Source, Line AS Message
+          FROM InContent
+        },
+        path={
+          SELECT Host[0].Hostname AS Computer, 'file present' AS Kind,
+                 OSPath.String AS Source,
+                 format(format='file present: %v (modified %v)', args=[OSPath.String, Mtime]) AS Message
+          FROM InPath
+        })

@@ -1,0 +1,26 @@
+title: Cron File Created Or Modified
+id: 52a10baa-7b67-5827-a4b0-6bb2e75017bd
+name: socforge_cron_file
+status: test
+description: "A file is written in a cron directory. The lab detects it through Wazuh file integrity monitoring."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.persistence
+    - attack.execution
+    - attack.t1053.003
+logsource:
+    product: linux
+    category: file_event
+detection:
+    selection:
+        TargetFilename|startswith:
+            - '/etc/cron'
+            - '/var/spool/cron'
+    condition: selection
+falsepositives:
+    - "Package installation and configuration management"
+level: medium
+custom:
+    wazuh_rule: 100210

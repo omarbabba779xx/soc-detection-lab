@@ -3,11 +3,17 @@
 # Closes the loop between the SOAR chain and DFIR: on a misp:match alert, republishes
 # the matched MISP event(s), which Custom.Server.MISP.AutoHunt (Velociraptor, polling
 # MISP every 60 s, see velociraptor/artifacts/) picks up as a new publication and hunts
-# for on the Windows endpoints; Custom.Server.MISP.Sightings then reports back to MISP as
-# soon as the hunt's flow finishes (see SC-15). This node does not talk to Velociraptor
-# directly — it reuses the two artifacts above, already proven end to end — and instead
-# waits a little and reads the resulting sightings back from MISP, so the TheHive alert
-# carries the outcome, not just the fact that a hunt was asked for.
+# for on the endpoints; Custom.Server.MISP.Sightings then reports back to MISP as soon
+# as the hunt's flow finishes (see SC-15). This node does not talk to Velociraptor
+# directly — it reuses the two artifacts above, already proven end to end.
+#
+# The node only asks for the hunt and returns. A hunt takes at least one AutoHunt poll
+# (60 s) plus the collection itself, and longer when the endpoint is offline: waiting
+# for it here would exceed the 120 s Shuffle gives an action (the first version waited
+# 150 s and was cut off by that timeout on every run without a fast sighting).
+# The outcome is picked up later by Follow_DFIR_Hunt (soar/nodes/housekeeping.py), which
+# finds this alert through the tags set here: dfir:hunt-triggered, hunt-requested:<epoch>
+# and misp-event:<id>.
 #
 # Republishing an event MISP already had published, unchanged, still bumps
 # publish_timestamp (checked live on 2026-09-24): AutoHunt's dedup key is
@@ -27,7 +33,6 @@ ca_file.write("""__LAB_CA__""")
 ca_file.close()
 
 alert_id = "$create_thehive_alert.body._id"
-now = lambda: datetime.datetime.now(datetime.timezone.utc)
 out = {"alert": alert_id, "event_ids": [], "triggered": False}
 
 alert = requests.get(THEHIVE + "/api/v1/alert/" + alert_id, headers=TH, timeout=30).json()
@@ -53,7 +58,7 @@ for o in obs:
         full = (report.get("report") or {}).get("full") or {}
         for r in full.get("results", []):
             for ev in r.get("result", []):
-                if ev.get("id"):
+                if str(ev.get("id") or "").isdigit():
                     event_ids.add(str(ev["id"]))
 out["event_ids"] = sorted(event_ids)
 
@@ -62,41 +67,27 @@ if not event_ids:
     print(json.dumps(out))
     raise SystemExit(0)
 
-trigger_time = now()
-for eid in event_ids:
+requested = int(time.time())
+published = []
+for eid in sorted(event_ids):
     r = requests.post(MISP + "/events/publish/" + eid, headers=MH, timeout=30, verify=ca_file.name)
-    out["triggered"] = True
+    if r.ok:
+        published.append(eid)
+out.update({"triggered": bool(published), "published": published, "requested_at": requested})
 
-# Give AutoHunt its poll interval plus a short hunt window, then look for sightings that
-# landed after this node asked for them. Not finding one yet is not an error: the hunt
-# may still be running when this node's own timeout is reached.
-sightings_seen = []
-deadline = time.time() + 150
-while time.time() < deadline and not sightings_seen:
-    time.sleep(15)
-    for eid in event_ids:
-        r = requests.get(MISP + "/sightings/index/" + eid, headers=MH, timeout=30, verify=ca_file.name)
-        for row in (r.json() if r.ok else []):
-            s = row.get("Sighting", row)
-            if "Velociraptor" in (s.get("source") or "") and \
-               datetime.datetime.fromtimestamp(int(s["date_sighting"]), datetime.timezone.utc) >= trigger_time:
-                sightings_seen.append({"event_id": eid, "source": s["source"],
-                                       "at": s["date_sighting"]})
-out["sightings"] = sightings_seen
+if not published:
+    out["skipped"] = "MISP refused the publication"
+    print(json.dumps(out))
+    raise SystemExit(0)
 
-note = "\n\n[SOAR] %s: republished MISP event(s) %s to trigger Custom.Server.MISP.AutoHunt " \
-       "(Velociraptor)." % (now().strftime("%Y-%m-%d %H:%M:%S UTC"), ", ".join(event_ids))
-tag = "dfir:hunt-triggered"
-if sightings_seen:
-    note += " Hunt completed: %d sighting(s) back from Velociraptor within the wait window." % len(sightings_seen)
-    tag = "dfir:hunted"
-else:
-    note += " No sighting yet within this node's wait window; check SC-15 / MISP for the " \
-            "hunt this triggers within the next poll cycle."
-
+stamp = datetime.datetime.fromtimestamp(requested, datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 requests.patch(THEHIVE + "/api/v1/alert/" + alert_id, headers=TH, timeout=30, json={
-    "tags": sorted(set(alert.get("tags", []) + [tag])),
-    "description": alert.get("description", "") + note})
+    "tags": sorted(set(alert.get("tags", []) + ["dfir:hunt-triggered", "hunt-requested:%d" % requested] +
+                       ["misp-event:" + e for e in published])),
+    "description": alert.get("description", "") +
+        "\n\n[SOAR] %s: republished MISP event(s) %s to trigger Custom.Server.MISP.AutoHunt "
+        "(Velociraptor). The result is added to this alert when the hunt reports back." %
+        (stamp, ", ".join(published))})
 
 print(json.dumps(out))
 '''

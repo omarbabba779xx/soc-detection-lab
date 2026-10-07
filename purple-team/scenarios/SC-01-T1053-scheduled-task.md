@@ -1,9 +1,9 @@
-# SC-01 — T1053.005 : Scheduled Task (Windows)
+# SC-01 : T1053.005 : Scheduled Task (Windows)
 
-**Session** : Reconstruction — 2026-09-17
-**Attaquant** : Console locale DC01 (Administrator)
-**MITRE** : T1053.005 — Scheduled Task/Job: Scheduled Task
-**Tactique** : Persistence / Execution
+Session : Reconstruction, 2026-09-17
+Attaquant : Console locale DC01 (Administrator)
+MITRE : T1053.005, Scheduled Task/Job: Scheduled Task
+Tactique : Persistence / Execution
 
 ---
 
@@ -17,7 +17,7 @@ Créer une tâche planifiée pour simuler un mécanisme de persistance post-expl
   ```powershell
   auditpol /set /subcategory:"Other Object Access Events" /success:enable /failure:enable
   ```
-  Sans ce réglage, Windows ne génère jamais les EventID 4698/4702 requis — root cause
+  Sans ce réglage, Windows ne génère jamais les EventID 4698/4702 requis, root cause
   confirmée lors d'une session d'investigation antérieure.
 
 ## Commande exécutée
@@ -26,9 +26,9 @@ Créer une tâche planifiée pour simuler un mécanisme de persistance post-expl
 schtasks /create /tn SocForgeRebuildTest /tr calc.exe /sc once /st 23:59 /f
 ```
 
-**Résultat** : `SUCCESS: The scheduled task "SocForgeRebuildTest" has successfully been created.`
+Résultat : `SUCCESS: The scheduled task "SocForgeRebuildTest" has successfully been created.`
 
-**Heure d'exécution** : 2026-09-17 15:31 UTC
+Heure d'exécution : 2026-09-17 15:31 UTC
 
 ## Détection Wazuh
 
@@ -36,7 +36,7 @@ schtasks /create /tn SocForgeRebuildTest /tr calc.exe /sc once /st 23:59 /f
 |----------------|--------------------------------------------------|
 | Règle          | 100153                                          |
 | Niveau         | 9                                                |
-| Description    | Sigma T1053: Scheduled task created/modified — \SocForgeRebuildTest |
+| Description    | Sigma T1053: Scheduled task created/modified, \SocForgeRebuildTest |
 | EventID source | 4698                                             |
 | Agent          | DC01                                             |
 
@@ -44,7 +44,7 @@ schtasks /create /tn SocForgeRebuildTest /tr calc.exe /sc once /st 23:59 /f
 
 | Critère          | Valeur      |
 |------------------|-------------|
-| Détecté          | ✅ OUI      |
+| Détecté          | validé OUI      |
 | Règle            | 100153      |
 | Verdict          | VP (vrai positif) |
 

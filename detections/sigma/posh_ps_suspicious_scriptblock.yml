@@ -1,0 +1,27 @@
+title: PowerShell Script Block With Decoding Or Dynamic Execution
+id: b84ca908-ee93-57e4-8e24-3a90d70679d6
+name: socforge_powershell_suspicious_scriptblock
+status: test
+description: "A logged script block decodes Base64 or evaluates a string as code (PowerShell event 4104)."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.execution
+    - attack.t1059.001
+logsource:
+    product: windows
+    category: ps_script
+detection:
+    selection:
+        ScriptBlockText|contains:
+            - '-EncodedCommand'
+            - 'FromBase64String'
+            - 'IEX'
+            - 'Invoke-Expression'
+    condition: selection
+falsepositives:
+    - "Modules and installers that legitimately decode embedded resources"
+level: high
+custom:
+    wazuh_rule: 100131

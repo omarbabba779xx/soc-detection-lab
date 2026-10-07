@@ -6,7 +6,8 @@ description: |
 
   It reacts to System.Flow.Completion. When a client flow of a hunt tagged
   "misp" (created by Custom.Server.MISP.IOCHunt) finishes, it matches the
-  EvtxHunter rows against the IOCs of the MISP event named in the hunt tag
+  rows of the hunt (Windows.EventLogs.EvtxHunter on Windows,
+  Custom.Linux.IOC.LogHunter on Linux) against the IOCs of the MISP event named in the hunt tag
   ("misp-event-<id>") and adds one MISP sighting per IOC seen on the
   endpoint. The sighting source names the host, the client and the hunt.
 
@@ -43,6 +44,18 @@ sources:
         FROM hunts(hunt_id=Hunt)
         WHERE 'misp' IN tags
 
+      LET Rows(Client, FId) = SELECT * FROM chain(
+          windows={
+            SELECT Computer, Message, serialize(item=EventData) AS Data
+            FROM source(client_id=Client, flow_id=FId,
+                        artifact='Windows.EventLogs.EvtxHunter')
+          },
+          linux={
+            SELECT Computer, Message, '' AS Data
+            FROM source(client_id=Client, flow_id=FId,
+                        artifact='Custom.Linux.IOC.LogHunter')
+          })
+
       LET Matches(Client, FId, Event) = SELECT * FROM foreach(
           row={
             SELECT * FROM Artifact.Custom.Server.MISP.Iocs(
@@ -50,9 +63,8 @@ sources:
           },
           query={
             SELECT AttributeId, Value, count() AS Hits, Computer
-            FROM source(client_id=Client, flow_id=FId,
-                        artifact='Windows.EventLogs.EvtxHunter')
-            WHERE Message =~ Pattern OR serialize(item=EventData) =~ Pattern
+            FROM Rows(Client=Client, FId=FId)
+            WHERE Message =~ Pattern OR Data =~ Pattern
             GROUP BY AttributeId
           })
 
@@ -94,12 +106,13 @@ sources:
       -- Live: one completion event per finished client flow of a hunt. The
       -- event's Flow carries no request (Flow.request is null), so the flow is
       -- selected on the artifacts that returned rows: a hunt flow without
-      -- EvtxHunter hits has nothing to report anyway.
+      -- hits has nothing to report anyway.
       LET Completed = SELECT ClientId AS Client, FlowId AS FId,
              'H.' + regex_replace(source=FlowId, re='''^F\.(.+)\.H$''', replace='$1') AS Hunt
         FROM watch_monitoring(artifact='System.Flow.Completion')
         WHERE FlowId =~ '''\.H$'''
-          AND 'Windows.EventLogs.EvtxHunter' IN Flow.artifacts_with_results
+          AND ('Windows.EventLogs.EvtxHunter' IN Flow.artifacts_with_results
+               OR 'Custom.Linux.IOC.LogHunter' IN Flow.artifacts_with_results)
 
       SELECT * FROM chain(
         catchup={

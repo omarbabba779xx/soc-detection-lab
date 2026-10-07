@@ -1,0 +1,23 @@
+title: Command Executed Through Sudo
+id: 5ea55fad-146c-536c-94b1-ba705981b063
+name: socforge_sudo_command
+status: test
+description: "A command is run through sudo (auth log). The Wazuh rule chains on the official rule 5402."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.privilege-escalation
+    - attack.t1548.003
+logsource:
+    product: linux
+    service: auth
+detection:
+    keywords:
+        - 'COMMAND='
+    condition: keywords
+falsepositives:
+    - "Every legitimate administration command: high volume, to be scoped to sensitive commands in production"
+level: medium
+custom:
+    wazuh_rule: 100200

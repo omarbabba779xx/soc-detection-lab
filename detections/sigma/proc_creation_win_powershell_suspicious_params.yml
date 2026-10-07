@@ -1,0 +1,30 @@
+title: PowerShell Started With Encoded, Download Or Bypass Parameters
+id: 9ff16234-cc58-5715-8ac8-f370e61177e3
+name: socforge_powershell_suspicious_params
+status: test
+description: "PowerShell is started with an encoded command, a download cradle or an execution-policy bypass (Security event 4688 with command line auditing). Wazuh rule 100120 is the parent that matches any PowerShell start."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.execution
+    - attack.t1059.001
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection_img:
+        Image|endswith: '\powershell.exe'
+    selection_cli:
+        CommandLine|contains:
+            - '-enc'
+            - '-EncodedCommand'
+            - 'IEX'
+            - 'DownloadString'
+            - '-bypass'
+    condition: all of selection_*
+falsepositives:
+    - "Deployment and management scripts that use -EncodedCommand or -ExecutionPolicy Bypass"
+level: high
+custom:
+    wazuh_rule: 100121

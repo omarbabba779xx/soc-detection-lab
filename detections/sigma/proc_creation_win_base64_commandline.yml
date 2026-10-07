@@ -1,0 +1,24 @@
+title: Base64 Pattern In A Command Line
+id: 75e2a8d2-8f86-5070-842c-241bb29ab4f4
+name: socforge_base64_commandline
+status: test
+description: "A command line contains FromBase64String or a long Base64 run (Sysmon event 1)."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.t1027
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection_kw:
+        CommandLine|contains: 'FromBase64String'
+    selection_re:
+        CommandLine|re: '[A-Za-z0-9+/]{100,}={0,2}'
+    condition: 1 of selection_*
+falsepositives:
+    - "Software updaters passing tokens or signed blobs on the command line"
+level: medium
+custom:
+    wazuh_rule: 100127

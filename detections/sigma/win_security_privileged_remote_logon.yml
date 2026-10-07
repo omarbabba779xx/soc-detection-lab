@@ -1,0 +1,31 @@
+title: Privileged Account Remote Logon
+id: 095c41e9-d92c-5c37-98a2-7a57e71fc90b
+name: socforge_privileged_remote_logon
+status: test
+description: "An administrator or service account logs on over the network or through Remote Desktop (Security event 4624, logon types 3 and 10)."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.privilege-escalation
+    - attack.initial-access
+    - attack.t1078
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4624
+        LogonType:
+            - 3
+            - 10
+        TargetUserName|contains:
+            - 'administrator'
+            - 'admin'
+            - 'svc_'
+    condition: selection
+falsepositives:
+    - "Planned administration sessions"
+level: medium
+custom:
+    wazuh_rule: 100178

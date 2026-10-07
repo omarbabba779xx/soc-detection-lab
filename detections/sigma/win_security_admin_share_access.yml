@@ -1,0 +1,54 @@
+title: Admin Share Accessed By A Real Account
+id: 89e38f88-daac-5cc3-8370-2a1120685950
+name: socforge_admin_share_access
+status: test
+description: "ADMIN$, C$ or IPC$ is accessed by an account that is neither a machine account nor ANONYMOUS LOGON (Security event 5140). Wazuh rule 100139 holds the excluded noise at level 3."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.lateral-movement
+    - attack.t1021.002
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 5140
+        ShareName|endswith:
+            - 'ADMIN$'
+            - 'C$'
+            - 'IPC$'
+    filter_machine:
+        SubjectUserName|endswith: '$'
+    filter_anonymous:
+        SubjectUserName: 'ANONYMOUS LOGON'
+    condition: selection and not 1 of filter_*
+falsepositives:
+    - "Administrators and backup or inventory tools using admin shares"
+level: high
+custom:
+    wazuh_rule: 100140
+---
+title: Repeated Admin Share Access From A Single Source
+id: ba128d85-5d30-5606-b3d4-3ccc0e350d79
+status: test
+description: Correlation of the rule above, per IpAddress.
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+correlation:
+    type: event_count
+    rules:
+        - socforge_admin_share_access
+    group-by:
+        - IpAddress
+    timespan: 2m
+    condition:
+        gte: 3
+tags:
+    - attack.lateral-movement
+    - attack.t1021.002
+level: high
+custom:
+    wazuh_rule: 100141

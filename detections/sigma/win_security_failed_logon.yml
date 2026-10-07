@@ -1,0 +1,46 @@
+title: Failed Logon
+id: 0ca397dc-d3be-5a39-9dd4-70787c17ce34
+name: socforge_failed_logon
+status: test
+description: "A logon attempt fails (Security event 4625)."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.credential-access
+    - attack.t1110
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4625
+    condition: selection
+falsepositives:
+    - "Mistyped or expired passwords"
+level: low
+custom:
+    wazuh_rule: 100110
+---
+title: Brute Force From A Single Source
+id: a70f21fc-9a5f-5abe-abcc-1acdd6946776
+status: test
+description: Correlation of the rule above, per IpAddress.
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+correlation:
+    type: event_count
+    rules:
+        - socforge_failed_logon
+    group-by:
+        - IpAddress
+    timespan: 1m
+    condition:
+        gte: 5
+tags:
+    - attack.credential-access
+    - attack.t1110
+level: high
+custom:
+    wazuh_rule: 100111

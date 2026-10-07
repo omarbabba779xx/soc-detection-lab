@@ -1,0 +1,25 @@
+title: PowerShell Profile Created Or Modified
+id: 1bd01ebf-2a91-5e21-8393-220b4fe5c8f9
+name: socforge_powershell_profile
+status: test
+description: "A PowerShell profile script is written. The lab detects it through Wazuh file integrity monitoring; the Sigma form uses the Sysmon file event."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.persistence
+    - attack.t1546.013
+logsource:
+    product: windows
+    category: file_event
+detection:
+    selection:
+        TargetFilename|endswith:
+            - '\Microsoft.PowerShell_profile.ps1'
+            - '\profile.ps1'
+    condition: selection
+falsepositives:
+    - "Users and administrators customising their own profile"
+level: medium
+custom:
+    wazuh_rule: 100186

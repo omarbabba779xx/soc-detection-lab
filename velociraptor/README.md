@@ -1,7 +1,7 @@
-# Velociraptor — artefacts SocForge
+# Velociraptor : artefacts SocForge
 
 Serveur : VM08-DFIR-HUNT, Velociraptor 0.77.1. Détail et preuves : SC-15
-(`purple-team/scenarios/scenario-dfir-velociraptor-misp-hunt.md`).
+(`purple-team/scenarios/SC-15-dfir-velociraptor-misp-hunt.md`).
 
 | Artefact | Type | Rôle |
 |---|---|---|
@@ -23,7 +23,7 @@ Serveur : VM08-DFIR-HUNT, Velociraptor 0.77.1. Détail et preuves : SC-15
    | `skip_verify` | `FALSE` (MISP présente un certificat signé par la CA du lab) |
    | `extra_headers` (YAML) | `Authorization: <clé API MISP>`<br>`Accept: application/json`<br>`Content-Type: application/json` |
 
-2. Le partager avec les comptes qui lancent les artefacts **et** avec le principal du
+2. Le partager avec les comptes qui lancent les artefacts et avec le principal du
    serveur, sous lequel tourne le monitoring :
 
    ```sql

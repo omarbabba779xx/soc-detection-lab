@@ -1,0 +1,30 @@
+title: Suspicious Access To LSASS Memory
+id: f2e7713e-0db7-57ec-a06c-a1d5f3aa0429
+name: socforge_lsass_access
+status: test
+description: "A process opens lsass.exe with rights that allow reading its memory (Sysmon event 10). The Wazuh rule chains on the official rule 92900, which carries the same filters."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.credential-access
+    - attack.t1003.001
+logsource:
+    product: windows
+    category: process_access
+detection:
+    selection:
+        TargetImage|endswith: '\lsass.exe'
+        GrantedAccess:
+            - '0x1010'
+            - '0x40'
+    filter:
+        SourceImage|contains: '\Program Files'
+    filter_wmi:
+        SourceImage|endswith: '\wmiprvse.exe'
+    condition: selection and not 1 of filter*
+falsepositives:
+    - "Security products and monitoring agents installed outside Program Files"
+level: critical
+custom:
+    wazuh_rule: 100103

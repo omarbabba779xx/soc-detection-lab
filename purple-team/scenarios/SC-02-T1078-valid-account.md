@@ -1,9 +1,9 @@
-# SC-02 — T1078 : Valid Account Remote Logon
+# SC-02 : T1078 : Valid Account Remote Logon
 
-**Session** : Reconstruction — 2026-09-17
-**Attaquant** : Console locale DC01 (Administrator)
-**MITRE** : T1078 — Valid Accounts
-**Tactique** : Initial Access / Lateral Movement
+Session : Reconstruction, 2026-09-17
+Attaquant : Console locale DC01 (Administrator)
+MITRE : T1078, Valid Accounts
+Tactique : Initial Access / Lateral Movement
 
 ---
 
@@ -18,9 +18,9 @@ mouvement latéral via comptes légitimes.
 net use \\10.10.10.109\C$ /user:administrator <mot de passe du lab>
 ```
 
-**Résultat** : `The command completed successfully.`
+Résultat : `The command completed successfully.`
 
-**Heure d'exécution** : 2026-09-17 15:32 UTC
+Heure d'exécution : 2026-09-17 15:32 UTC
 
 ## Détection Wazuh
 
@@ -28,7 +28,7 @@ net use \\10.10.10.109\C$ /user:administrator <mot de passe du lab>
 |----------------|-----------------------------------------------------------------|
 | Règle          | 100178                                                           |
 | Niveau         | 9                                                                 |
-| Description    | Sigma T1078: Privileged account remote logon — Administrator from 10.10.10.109 |
+| Description    | Sigma T1078: Privileged account remote logon, Administrator from 10.10.10.109 |
 | EventID source | 4624 (LogonType 3)                                               |
 | Agent          | DC01                                                              |
 
@@ -36,7 +36,7 @@ net use \\10.10.10.109\C$ /user:administrator <mot de passe du lab>
 
 | Critère          | Valeur      |
 |------------------|-------------|
-| Détecté          | ✅ OUI      |
+| Détecté          | validé OUI      |
 | Règle            | 100178      |
 | Verdict          | VP (vrai positif) |
 

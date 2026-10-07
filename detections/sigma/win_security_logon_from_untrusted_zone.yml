@@ -1,0 +1,28 @@
+title: Successful Remote Logon From The Untrusted Zone
+id: 7a05b1c7-440d-53d3-9a6e-5e4cea417c3b
+name: socforge_logon_from_untrusted_zone
+status: test
+description: "A network or Remote Desktop logon succeeds from the attacker zone of the lab, 10.10.50.0/24 (Security event 4624). The address range is specific to this lab."
+author: SocForge
+date: 2026-09-17
+modified: 2026-10-06
+tags:
+    - attack.initial-access
+    - attack.t1133
+    - attack.t1078
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4624
+        LogonType:
+            - 3
+            - 10
+        IpAddress|cidr: '10.10.50.0/24'
+    condition: selection
+falsepositives:
+    - "None expected: no legitimate session starts from this zone"
+level: high
+custom:
+    wazuh_rule: 100179
