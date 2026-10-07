@@ -463,6 +463,18 @@ Les fiches SC-01 à SC-11 ont été écrites avant le retrait des cartes de gest
 | SC-15 | Chasse Velociraptor pilotée par MISP | [SC-15-dfir-velociraptor-misp-hunt.md](purple-team/scenarios/SC-15-dfir-velociraptor-misp-hunt.md) |
 | SC-16 | Segmentation OPNsense | [SC-16-firewall-segmentation.md](purple-team/scenarios/SC-16-firewall-segmentation.md) |
 
+## Configuration matérielle
+
+Les douze machines virtuelles totalisent 32,5 Go de mémoire allouée (détail par machine dans
+[`docs/lab-registry.md`](docs/lab-registry.md)). Pour les faire tourner toutes ensemble, il faut un hôte d'au moins
+48 Go.
+
+Le lab a été construit et exploité sur un PC de 16 Go. Les machines y sont donc allumées par groupes, selon le
+rôle joué à chaque étape : l'attaquant, la cible et Wazuh pour la détection ; Shuffle, TheHive, Cortex et MISP pour
+la réponse ; Velociraptor et le poste pour la chasse. Le pare-feu reste allumé d'un groupe à l'autre. C'est la
+raison pour laquelle l'alerte de l'étape 6 est remise à Shuffle quelques minutes après sa levée : la chaîne et sa
+configuration sont les mêmes que sur un hôte plus grand, seul l'enchaînement est découpé.
+
 ## Organisation du dépôt
 
 | Dossier | Contenu |
