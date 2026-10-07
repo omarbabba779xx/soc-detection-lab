@@ -1,4 +1,4 @@
-# SC-03 : T1021.002 : Remote Services : SMB/Admin Shares
+# SC-03 : T1021.002, partages d'administration SMB
 
 Session : Reconstruction, correction initiale 2026-09-14/16, re-validation en direct 2026-09-23
 MITRE : T1021.002, Remote Services: SMB/Windows Admin Shares
@@ -21,10 +21,10 @@ normal, pas une attaque.
 Fix : séparation en deux règles selon `subjectUserName` :
 
 - 100139 (niveau 3, bruit) : `subjectUserName` correspond à `\$$` (compte machine)
-  ou `ANONYMOUS LOGON`, filé, pas d'alerte.
+  ou `ANONYMOUS LOGON` : filtré, pas d'alerte.
 - 100140 (niveau 10, détection réelle) : `subjectUserName` ne correspond pas
-  à ce filtre, c'est ce que ressemble un mouvement latéral réel via identifiants
-  volés/abusés.
+  à ce filtre : c'est à cela que ressemble un mouvement latéral avec des identifiants
+  volés.
 
 ## Détection Wazuh
 
@@ -62,7 +62,7 @@ Capture : [`docs/screenshots/wazuh-rules-100139-100140-100186-live.png`](../../d
 
 | Critère          | Valeur      |
 |------------------|-------------|
-| Détecté          | validé OUI      |
+| Détecté          | oui      |
 | Règle d'alerte   | 100140 (niveau 10), escaladée en 100141 (niveau 12) après trois accès depuis la même IP, voir SC-14 |
 | Bruit filtré     | 100139 (comptes machine et `ANONYMOUS LOGON`), corrigée le 23/09 |
 | Verdict          | VP (vrai positif) |

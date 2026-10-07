@@ -17,10 +17,10 @@
 | VM06-SHUFFLE | 10.10.10.30 | Orchestration SOAR | 4096 |
 | VM07-NDR | 10.10.10.40 | Zeek/Suricata (détection réseau) | 3072 |
 | VM08-DFIR-HUNT | 10.10.10.61 | Threat hunting / forensics (Velociraptor) | 3072 |
-| VM09-DC01 | 10.10.10.109 | Cible Windows Server (victime) | 3072 |
-| VM10-WIN01 | 10.10.10.110 | Cible Windows 11 (victime) | 4096 |
-| VM11-LINUX01 | 10.10.10.111 | Cible Linux (victime) | 2048 |
-| VM12-PURPLE |, (zone 10.10.50.10 ; 10.10.10.60 retirée le 24/09) | Kali, source d'attaque | 2048 |
+| VM09-DC01 | retirée le 07/10 (zone 10.10.20.10) | Cible Windows Server (victime) | 3072 |
+| VM10-WIN01 | retirée le 07/10 (zone 10.10.30.110) | Cible Windows 11 (victime) | 4096 |
+| VM11-LINUX01 | retirée le 07/10 (zone 10.10.30.20) | Cible Linux (victime) | 2048 |
+| VM12-PURPLE | - (zone 10.10.50.10 ; 10.10.10.60 retirée le 24/09) | Kali, source d'attaque | 2048 |
 
 Réseaux de zone, logiciels et flux : `docs/lab-registry.md`.
 
@@ -53,7 +53,7 @@ Conséquences visibles :
 1. Dashboard Wazuh inaccessible, aucun port-forward vers le 443 de la VM. Corrigé :
    `--natpf2 "wazuh-dash,tcp,127.0.0.1,8443,,443"`. Dashboard accessible sur
    `https://localhost:8443` une fois WAZUH démarrée.
-2. Attaques lancées depuis la console de la victime (DC01, WIN01) au lieu de PURPLE —
+2. Attaques lancées depuis la console de la victime (DC01, WIN01) au lieu de PURPLE :
    pas réaliste pour un scénario purple-team. À partir de maintenant : PURPLE est la
    source, la victime est uniquement observée côté logs/Wazuh.
 3. 8 VMs sur 12 sans rôle démontré (FW, THEHIVE, CORTEX, MISP, SHUFFLE, NDR,
@@ -252,7 +252,7 @@ ouvert), exécuter, capturer la preuve, éteindre avant l'étape suivante sauf W
   orphelins, puis la vraie root cause : `if_group` ne déclenchait pas cette règle custom
   précise, corrigé en chaînant sur `if_sid` directement). Au passage, un `wazuh-db`
   planté sur le manager a été diagnostiqué et corrigé (redémarrage complet du service).
-  - 100103 : root cause identique à 100147 trouvée et corrigée le 2026-09-18 —
+  - 100103 : root cause identique à 100147 trouvée et corrigée le 2026-09-18 :
     `<if_group>sysmon_event_10</if_group>` chaîné sur `<if_sid>92900</if_sid>` (règle
     officielle LSASS/EventID10). Testé en direct après redémarrage propre de WIN01 :
     `OpenProcess` LSASS (droits 0x1010) exécuté en Administrator → `Handle: 0` (accès
@@ -313,7 +313,7 @@ ouvert), exécuter, capturer la preuve, éteindre avant l'étape suivante sauf W
   test représentant la règle Wazuh 100155 (`POST /api/v1/alert` → 201). Découverte
   logicielle réelle : la licence TheHive de ce déploiement (bandeau "invalid
   license" dans l'UI) bloque toute opération d'écriture liée aux cas/observables
-  (création de cas, ajout d'observable), quel que soit le compte ou profil utilisé —
+  (création de cas, ajout d'observable), quel que soit le compte ou profil utilisé :
   confirmé par test sur 3 comptes différents et sur un cas existant, pas seulement à
   la création. La création d'alerte (utilisée pour l'intégration SIEM) n'est pas
   concernée et fonctionne normalement. Cortex : un analyseur configuré
@@ -379,7 +379,7 @@ ouvert), exécuter, capturer la preuve, éteindre avant l'étape suivante sauf W
   `soar/create_wazuh_webhook_workflow.py`) ferment la boucle. Confinement : alias
   dynamique `BLOCKED_ATTACKERS` sur OPNsense (`firewall/contain_attacker.py` /
   `uncontain_attacker.py`, `firewall/opnsense_client.py` partagé avec `apply_policy.py`),
-  réversible, déclenché seulement sur alerte confirmée (sévérité ≥ 3 et `misp:match`) —
+  réversible, déclenché seulement sur alerte confirmée (sévérité ≥ 3 et `misp:match`) :
   validé avec du trafic réel (blocage/rétablissement) puis revalidé en nœud Shuffle
   (`198.51.100.77`, GUI OPNsense). Boucle DFIR : republication de l'événement MISP déjà
   identifié par Cortex, ce qui relance `Custom.Server.MISP.AutoHunt`, puis sondage des

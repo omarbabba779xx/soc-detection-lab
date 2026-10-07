@@ -1,4 +1,4 @@
-# SC-15 : Étape 8 : IOC MISP et chasse Velociraptor (DFIR-HUNT)
+# SC-15 : IOC MISP et chasse Velociraptor
 
 Sessions : reconstruction, étape 8, 2026-09-22 (déploiement, chasses 1 et 2) et
 2026-09-23 (intégration native MISP ↔ Velociraptor)
@@ -123,9 +123,9 @@ côté manager (lecture du canal par l'agent, envoi, analyse). Ce ne sont pas de
 | Type | Valeur | IDS | Scénario |
 |---|---|---|---|
 | ip-src | `10.10.10.60` (PURPLE) | validé | SC-05 (scan), SC-06 (brute force) |
-| text | `U29jRm9yZ2VSdWxlVGVzdA==` |, | SC-04 (T1059.001, WIN01) |
+| text | `U29jRm9yZ2VSdWxlVGVzdA==` | - | SC-04 (T1059.001, WIN01) |
 | regkey\|value | `HKLM\...\Run\SocForgeTest12\|%WINDIR%\System32\calc.exe` | validé | SC-09 (T1547.001, WIN01) |
-| text | `SocForgeRebuildTest` |, | SC-01 (T1053.005, DC01) |
+| text | `SocForgeRebuildTest` | - | SC-01 (T1053.005, DC01) |
 | filename | `/etc/cron.d/socforge-test` | validé | SC-07 (T1053.003, LINUX01) |
 
 Le type `windows-scheduled-task` n'existe pas dans cette version de MISP (2.4.177). La

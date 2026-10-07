@@ -1,4 +1,4 @@
-# SC-09 : T1547.001 : Registry Run Key Persistence
+# SC-09 : T1547.001, persistance par clé Run
 
 Session : Reconstruction, étape 4, 2026-09-18
 Attaquant : WIN01, console locale (`labuser`, cmd élevé)
@@ -66,7 +66,7 @@ pression RAM hôte. Corrigé par un redémarrage complet du manager.
 
 | Critère    | Valeur              |
 |------------|----------------------|
-| Détecté    | validé OUI               |
+| Détecté    | oui               |
 | Règle      | 100147               |
 | Verdict    | VP (vrai positif)    |
 | Source     | WIN01 (console locale) |

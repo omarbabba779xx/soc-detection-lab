@@ -1,4 +1,4 @@
-# SC-01 : T1053.005 : Scheduled Task (Windows)
+# SC-01 : T1053.005, tâche planifiée (Windows)
 
 Session : Reconstruction, 2026-09-17
 Attaquant : Console locale DC01 (Administrator)
@@ -36,7 +36,7 @@ Heure d'exécution : 2026-09-17 15:31 UTC
 |----------------|--------------------------------------------------|
 | Règle          | 100153                                          |
 | Niveau         | 9                                                |
-| Description    | Sigma T1053: Scheduled task created/modified, \SocForgeRebuildTest |
+| Description    | Sigma T1053: Scheduled task created/modified — \SocForgeRebuildTest |
 | EventID source | 4698                                             |
 | Agent          | DC01                                             |
 
@@ -44,7 +44,7 @@ Heure d'exécution : 2026-09-17 15:31 UTC
 
 | Critère          | Valeur      |
 |------------------|-------------|
-| Détecté          | validé OUI      |
+| Détecté          | oui      |
 | Règle            | 100153      |
 | Verdict          | VP (vrai positif) |
 

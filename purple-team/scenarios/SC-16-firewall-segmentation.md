@@ -1,4 +1,4 @@
-# SC-16 : Étape 9 : Segmentation OPNsense et journaux de blocage dans Wazuh
+# SC-16 : segmentation OPNsense et journaux de blocage dans Wazuh
 
 Session : Reconstruction, étape 9, 2026-09-23
 VM actives : VM02-WAZUH + VM01-FW (OPNsense 24.7) + VM12-PURPLE

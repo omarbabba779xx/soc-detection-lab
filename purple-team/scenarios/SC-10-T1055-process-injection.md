@@ -1,4 +1,4 @@
-# SC-10 : T1055 : Process Injection (CreateRemoteThread)
+# SC-10 : T1055, injection de processus (CreateRemoteThread)
 
 Session : Reconstruction, étape 4, 2026-09-18
 Attaquant : WIN01, console locale (`labuser`, cmd élevé)
@@ -61,7 +61,7 @@ de base (niveau 0) qui tague tout événement EventID 8 avec le groupe `sysmon_e
 
 | Critère    | Valeur                       |
 |------------|--------------------------------|
-| Détecté    | validé OUI                        |
+| Détecté    | oui                        |
 | Règle      | 100155                        |
 | Verdict    | VP (vrai positif)              |
 | Source     | WIN01 (local)                 |

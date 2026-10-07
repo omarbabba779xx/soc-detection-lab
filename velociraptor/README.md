@@ -6,9 +6,10 @@ Serveur : VM08-DFIR-HUNT, Velociraptor 0.77.1. Détail et preuves : SC-15
 | Artefact | Type | Rôle |
 |---|---|---|
 | `Custom.Server.MISP.Iocs` | SERVER | Lit les IOC chassables d'un événement MISP (API REST, secret serveur) |
-| `Custom.Server.MISP.IOCHunt` | SERVER | Crée une chasse EvtxHunter à partir de ces IOC, taguée `misp` / `misp-event-<id>` |
+| `Custom.Server.MISP.IOCHunt` | SERVER | Crée deux chasses à partir de ces IOC, une pour Windows (EvtxHunter) et une pour Linux (LogHunter), taguées `misp` / `misp-event-<id>` |
 | `Custom.Server.MISP.Sightings` | SERVER_EVENT | À la fin de chaque flow d'une chasse `misp`, renvoie à MISP un sighting par IOC vu sur l'endpoint |
 | `Custom.Server.MISP.AutoHunt` | SERVER_EVENT | Lance `IOCHunt` tout seul à chaque publication d'un événement MISP |
+| `Custom.Linux.IOC.LogHunter` | CLIENT | Cherche les IOC sur un poste Linux : journaux d'authentification, syslog, crontabs, fichiers présents dans les répertoires cron et temporaires |
 | `Custom.Windows.EventLogs.Retention` | CLIENT | Taille maximale, taille actuelle et plus ancien événement de chaque journal Windows |
 
 ## Installation

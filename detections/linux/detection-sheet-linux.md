@@ -17,7 +17,7 @@
 
 ### T1548.003 : Sudo and Sudo Caching Abuse
 - Source: journald (PAM), règle de base Wazuh 5402
-- Règle Wazuh: 100200
+- Règle Wazuh: 100200, 100201
 - Indicateurs: `100200` (niveau 5) enregistre toute commande exécutée via `sudo` ; `100201` (niveau 10) alerte quand la commande touche aux comptes, aux droits ou aux identifiants (`/etc/shadow`, `/etc/sudoers`, `useradd`, `usermod`, `passwd`, `visudo`, `authorized_keys`), ouvre un shell root ou pose un bit setuid.
 - Testé en direct le 2026-09-17 : `sudo whoami` exécuté depuis PURPLE (Kali) via
   un pivot SSH vers linux01 (10.10.10.111), simulant un attaquant ayant déjà obtenu un

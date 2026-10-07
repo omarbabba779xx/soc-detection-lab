@@ -1,4 +1,4 @@
-# SC-04 : T1059.001 : PowerShell encodé (EncodedCommand)
+# SC-04 : T1059.001, PowerShell encodé (EncodedCommand)
 
 Session : Reconstruction, 2026-09-17
 Attaquant : Console locale WIN01 (`labuser`, PowerShell élevée)
@@ -114,7 +114,7 @@ déclencheur), jamais sur un simple comptage.
 
 | Critère          | Valeur      |
 |------------------|-------------|
-| Détecté          | validé OUI      |
+| Détecté          | oui      |
 | Règles           | 100120 (niveau 8), 100121 (niveau 12), 100131 (niveau 12), 100127 (niveau 10) |
 | Verdict          | VP (vrai positif) |
 

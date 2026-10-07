@@ -1,4 +1,4 @@
-# SC-11 : T1003 : Credential Dumping (accès LSASS) : bloqué sur WIN01, validé en direct sur DC01
+# SC-11 : T1003, accès à LSASS (bloqué sur WIN01, validé sur DC01)
 
 Sessions : Reconstruction, étape 4, 2026-09-18 (WIN01, bloqué) ; 2026-09-23 (DC01, validé en direct)
 MITRE : T1003.001, OS Credential Dumping: LSASS Memory
@@ -11,7 +11,7 @@ Tactique : Credential Access
 Valider la règle 100103 (accès LSASS suspect) après correction du bug `if_group`
 (même root cause que 100147/100155).
 
-## Tentative 1 : WIN01 (18/09) : bloquée par une vraie protection OS
+## Tentative 1, WIN01 (18/09) : bloquée par une vraie protection OS
 
 Attaquant : WIN01, console locale (`labuser`, cmd élevé/Administrator).
 
@@ -49,7 +49,7 @@ règle, ni Sysmon, ni aucun outil basé sur cette télémétrie ne peuvent voir 
 quel que soit le compte appelant. C'est le comportement attendu d'une vraie protection
 contre le credential dumping.
 
-## Tentative 2 : DC01 (23/09) : validée en direct
+## Tentative 2, DC01 (23/09) : validée en direct
 
 Windows Server n'active pas `RunAsPPL` par défaut. Avant de tenter quoi que ce soit,
 l'état de la protection a été vérifié :
@@ -92,7 +92,7 @@ sourceImage=powershell.exe  targetImage=lsass.exe  grantedAccess=0x1010
 
 Observation en passant : les journaux montrent aussi Windows Defender
 (`MsMpEng.exe`) accédant à `lsass.exe` avec `GrantedAccess=0x101000`, capté par la même
-règle. C'est un vrai comportement d'antivirus qui inspecte la mémoire, pas une menace —
+règle. C'est un vrai comportement d'antivirus qui inspecte la mémoire, pas une menace :
 il confirme que la règle est sensible et bien réglée, sans qu'aucun filtre supplémentaire
 n'ait été nécessaire pour ce test.
 
@@ -110,10 +110,10 @@ La règle 100103 est donc validée à la fois par sa logique et par une alerte e
 
 | Critère | WIN01 (18/09) | DC01 (23/09) |
 |---|---|---|
-| Règle corrigée | validé (`if_sid` 92900 au lieu de `if_group`) |, |
+| Règle corrigée | validé (`if_sid` 92900 au lieu de `if_group`) | - |
 | Test exécuté | validé (`Handle: 0`, accès refusé) | validé (`Handle` non nul, accès accordé) |
-| EventID Sysmon généré | ❌ (bloqué par RunAsPPL avant Sysmon) | validé (0x1010, corrigé une config Sysmon vide) |
-| Alerte 100103 en direct | ❌ (protection réelle, pas un bug) | validé (niveau 14, 2 s après le test) |
+| EventID Sysmon généré | non (bloqué par RunAsPPL avant Sysmon) | validé (0x1010, corrigé une config Sysmon vide) |
+| Alerte 100103 en direct | non (protection réelle, pas un bug) | validé (niveau 14, 2 s après le test) |
 
 ## Nettoyage
 

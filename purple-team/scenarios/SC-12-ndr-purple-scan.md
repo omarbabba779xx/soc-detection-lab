@@ -1,4 +1,4 @@
-# SC-12 : Étape 5 : NDR (Suricata/Zeek) : capture et détection d'un scan PURPLE
+# SC-12 : NDR (Suricata et Zeek), capture et détection d'un scan
 
 Sessions : Reconstruction, étape 5, 2026-09-18 (capture), 2026-09-23 (détection et intégration SIEM)
 Attaquant : PURPLE (Kali, 10.10.10.60)
@@ -160,12 +160,12 @@ Capture : [`docs/screenshots/wazuh-ndr-purple-tap-alerts.png`](../../docs/screen
 
 | Critère              | Valeur                                  |
 |-----------------------|------------------------------------------|
-| VM07-NDR démarre      | validé OUI (après fix paravirt provider)     |
-| Capture Suricata      | validé OUI (24 paquets, 7 sessions TCP)       |
-| Capture Zeek          | validé OUI (7 lignes conn.log, correspondance exacte) |
-| Détection Suricata (signatures) | validé OUI (52 795 règles ET Open, 6 signatures de scan déclenchées) |
-| Alerte dans Wazuh     | validé OUI (100400 niveau 10, agent `ndr`, 7 alertes) |
-| Zone attaquante couverte après son isolement | validé OUI (prise d'écoute passive, Suricata + Zeek, persistante) |
+| VM07-NDR démarre      | oui (après fix paravirt provider)     |
+| Capture Suricata      | oui (24 paquets, 7 sessions TCP)       |
+| Capture Zeek          | oui (7 lignes conn.log, correspondance exacte) |
+| Détection Suricata (signatures) | oui (52 795 règles ET Open, 6 signatures de scan déclenchées) |
+| Alerte dans Wazuh     | oui (100400 niveau 10, agent `ndr`, 7 alertes) |
+| Zone attaquante couverte après son isolement | oui (prise d'écoute passive, Suricata + Zeek, persistante) |
 
 ## Nettoyage
 

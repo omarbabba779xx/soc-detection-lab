@@ -1,4 +1,4 @@
-# SC-06 : T1110 : Brute Force (SMB)
+# SC-06 : T1110, force brute SMB
 
 Session : Reconstruction, 2026-09-17
 Attaquant : PURPLE (Kali 2026.2, 10.10.10.60)
@@ -67,7 +67,7 @@ génériques `srcip`/`dstip` hérités des décodeurs syslog classiques.
 
 | Critère    | Valeur              |
 |------------|----------------------|
-| Détecté    | validé OUI               |
+| Détecté    | oui               |
 | Règles     | 100110, 100111       |
 | Verdict    | VP (vrai positif)    |
 | Source     | PURPLE (10.10.10.60) |

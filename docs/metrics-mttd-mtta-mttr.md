@@ -1,7 +1,7 @@
 # Métriques MTTD / MTTA / MTTR
 
-> Calculées à partir des horodatages déjà présents dans les fiches de scénario, aucun
-> nouveau test n'a été fait pour produire ce document. Seuls les cas où les deux temps
+> Calculées à partir des horodatages présents dans les fiches de scénario : aucun test
+> n'a été fait spécialement pour produire ce document. Seuls les cas où les deux temps
 > (action de l'attaquant et réaction de l'outil) sont documentés à la seconde près sont
 > repris ici : plusieurs scénarios (SC-01, SC-02, SC-04…) n'enregistrent que l'heure
 > d'exécution de l'attaque, sans horodatage d'alerte à côté, et ne peuvent donc pas
@@ -25,8 +25,9 @@
 | SC-16 | `nmap -Pn -sT` cross-zone, PURPLE → srv/dfir | 15:56:37 | 15:56:38 (règle 100301) | ~1 s |
 | SC-16 | Isolement attaquant, ping vers le réseau mgmt | 14:57:01 | 14:57:02-03 (règle 100301) | ~1-2 s |
 | SC-12 | `nmap -sS -O` PURPLE → manager Wazuh | 16:12:31 | 16:12:33-34 (règle 100400 ×7) | ~2-3 s |
-| SC-11 | Tentative d'accès LSASS (`OpenProcess`) sur DC01 |, |, | ~2 s (mesuré depuis la tentative, règle 100103 niveau 14) |
+| SC-11 | Tentative d'accès LSASS (`OpenProcess`) sur DC01 | - | - | ~2 s (mesuré depuis la tentative, règle 100103 niveau 14) |
 | SC-14 (webhook seul, 23/09) | Fichier cron modifié, règle 100210 | 17:06:49 | 17:06:49 (même règle, alerte native) | < 1 s (détection FIM temps réel) |
+| SC-14 (attaque du 07/10) | Connexions SMB de PURPLE à WIN01, règle 100179 | 10:01:55, 10:02:11, 10:02:21 | 10:02:02, 10:02:12, 10:02:22 | 7 s, 1 s, 1 s |
 
 La détection elle-même (règle Wazuh qui matche l'événement source) est quasi instantanée
 dans tous les cas mesurés : de l'ordre de la seconde. C'est cohérent avec des règles FIM
@@ -58,7 +59,7 @@ Moyenne MTTA (hors incident RAM) : (14 + 20 + 40 + 40 + 4) / 5 ≈ 24 s.
 |---|---|---|
 | Application du blocage sur OPNsense (`Contain_Attacker` / `contain_attacker.py`) | ~3 s (appel API → alias mis à jour → `reconfigure` + `filter/apply`) | test du 24/09, 21:25:07 → 21:25:10 UTC, capture GUI à l'appui |
 | Retrait du blocage (`uncontain_attacker.py`) | ~5 s | même test, 21:25:38 → 21:25:43 UTC |
-| Déclenchement de chasse DFIR (`Trigger_DFIR_Hunt`, republication MISP → `AutoHunt`) | jusqu'à 60 s (période de sondage `AutoHunt`) + jusqu'à 150 s de sondage des sightings côté nœud | mécanisme documenté dans SC-14/SC-15 ; cycle réel observé à 4 s (republication → nouvelle chasse) dans le cas SC-15 |
+| Déclenchement de chasse DFIR (`Trigger_DFIR_Hunt`, republication MISP → `AutoHunt`) | jusqu'à 60 s (période de sondage `AutoHunt`) ; le résultat est ensuite écrit sur l'alerte par le workflow planifié | mécanisme documenté dans SC-14/SC-15 ; 4 s (SC-15) et 62 s (attaque du 07/10) entre la republication et la nouvelle chasse |
 
 Chaîne complète sur une alerte réelle (07/10, règle `100141`, sévérité 3, voir la section « Une seule
 attaque, toute la chaîne » de
@@ -88,11 +89,11 @@ l'alerte et la prise en charge du cas, puis 22 s de résolution une fois les tâ
 
 | Indicateur | Valeur | Base |
 |---|---|---|
-| MTTD | ~1-7 s | 6 mesures, détection Wazuh temps réel |
+| MTTD | ~1-7 s | 6 scénarios mesurés, détection Wazuh temps réel |
 | MTTA | ~24 s (hors incident RAM documenté) | 5 mesures, SC-14 et SC-15 |
 | MTTR (mécanique) | ~3-5 s pour l'application du blocage ; 24 s / 29 s / 35 s de la livraison de l'alerte au blocage, à l'ordre d'isolation et à la demande de chasse | SC-14, SC-15, chaîne réelle du 07/10 |
 
-Échantillon volontairement restreint : mieux vaut 5 mesures vérifiables à la seconde,
+Échantillon volontairement restreint : mieux vaut quelques mesures vérifiables à la seconde,
 chacune reliée à sa preuve dans une fiche de scénario, qu'une moyenne sur 16 scénarios
 dont la moitié n'a qu'un seul horodatage. À enrichir si de futurs tests documentent les
 deux temps systématiquement.

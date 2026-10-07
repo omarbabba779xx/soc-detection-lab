@@ -1,7 +1,7 @@
 # Fiche de Détection : Windows (DC01 + WIN01)
 
 > Reconstruit le 2026-09-17 sur un manager Wazuh propre (snapshot pré-config restauré).
-> Chaque règle listée ici a été redéployée puis testée en direct sur ce socle vierge —
+> Chaque règle listée ici a été redéployée puis testée en direct sur ce socle vierge :
 > aucune entrée n'est un report non vérifié de l'ancienne itération du projet.
 
 ## Preuves visuelles : Wazuh Dashboard
@@ -182,7 +182,7 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
 - Testé en direct le 2026-10-07, depuis PURPLE, sur WIN01 (`10.10.30.110`) : trois connexions SMB à
   `IPC$` avec le compte local `labuser` (`smbclient -n SOCFORGE-PURPLE`), à 10:01:55, 10:02:11 et 10:02:21
   UTC → `100140 (level 10)` à 10:02:02 et 10:02:12, puis `Rule: 100141 (level 12) -> 'Sigma T1021.002:
-  Repeated admin-share access from the same source, lateral movement escalation, 10.10.50.10'` à
+  Repeated admin-share access from the same source — lateral movement escalation — 10.10.50.10'` à
   10:02:22 (`win.eventdata.ipAddress` = `10.10.50.10`, agent `WIN01`, MITRE `T1021.002`), soit 27 s après la
   première connexion. Capture : [`wazuh-rule-100141-live.png`](../../docs/screenshots/wazuh-rule-100141-live.png).
   Suite de la chaîne : [SC-14](../../purple-team/scenarios/SC-14-shuffle-soar-workflow.md).
@@ -194,7 +194,7 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
   attaquant). Aucune session légitime ne part de cette zone ; la règle `100178` (comptes privilégiés
   seulement) ne couvrait pas un compte ordinaire comme `labuser`.
 - Testé en direct le 2026-10-07 : les trois connexions de l'attaque ci-dessus ont chacune déclenché
-  `Rule: 100179 (level 12) -> 'Sigma T1133: Successful remote logon from the untrusted zone, labuser from
+  `Rule: 100179 (level 12) -> 'Sigma T1133: Successful remote logon from the untrusted zone — labuser from
   10.10.50.10'` (10:02:02, 10:02:12, 10:02:22), dès la première connexion. Même capture.
 
 ### T1027 : Obfuscated Files or Information
@@ -293,8 +293,8 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
 - Testé en direct le 2026-09-18 : script PowerShell encodé en Base64 lançant `notepad.exe` puis injectant
   un thread distant via `OpenProcess` + `CreateRemoteThread` pointant sur `kernel32!Sleep` (technique bénine
   standard de test EDR, ne charge aucun shellcode, appelle juste une fonction Win32 légitime déjà mappée
-  dans le processus cible). Résultat console : `Target handle: True` / `Remote thread handle: True` / `Done`
- , l'injection a réellement réussi (notepad.exe n'est pas protégé par PPL, contrairement à lsass.exe). Alerte
+  dans le processus cible). Résultat console : `Target handle: True` / `Remote thread handle: True` / `Done` :
+  l'injection a réellement réussi (notepad.exe n'est pas protégé par PPL, contrairement à lsass.exe). Alerte
   confirmée sur le manager :
   `Rule: 100155 (level 13) -> 'Sigma T1055: CreateRemoteThread into another process — possible process injection — C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -> ...\Notepad.exe'`
   avec `StartFunction: Sleep` correspondant exactement à notre test. Capture (dashboard Wazuh, 17 correspondances) :
@@ -311,7 +311,6 @@ dashboard Wazuh (module Threat Hunting, `https://<manager>/app/threat-hunting`) 
 | 12     | 100121, 100131, 100141, 100179            |
 | 10     | 100102, 100111, 100127, 100140            |
 | 9      | 100147, 100153, 100178                    |
-| 3      | 100152 (tâches du dossier système)        |
 | 8      | 100101, 100120, 100186                    |
 | 6      | 100110                                    |
-| 3      | 100139                                    |
+| 3      | 100139, 100152 (bruit enregistré sans alerte) |

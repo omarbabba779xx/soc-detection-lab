@@ -33,10 +33,10 @@ impact sur le résultat final.
 | 20:47:53 | Fichier `/etc/cron.d/socforge-soar-chain-test` modifié sur le manager | Wazuh, règle 100210, niveau 10 |
 | 20:47:53 | Intégration native `shuffle.py` envoie la charge utile au webhook Shuffle | `integrations.log` |
 | 20:52:24 | Alerte TheHive `~204804176` créée par `soar-bot` (nœud `Create_TheHive_Alert`) | TheHive API, `sourceRef` = ID alerte Wazuh |
-|, | Observables extraits : fichier, hachage SHA-256, hôte | nœud `Build_TheHive_Alert` |
-|, | Analyse Cortex `MISP_SocForge` lancée sur les observables (nœud `Enrich_With_Cortex`) | Cortex, jobs liés à l'alerte |
-|, | Tag `misp:match` posé, l'attribut `filename` correspond à l'événement MISP #4 | rapport Cortex, `report.full.results[].result[].id` |
-|, | `Contain_Attacker` évalue l'alerte : sévérité 2 < seuil 3 → abstention, aucune action réseau | nœud `Contain_Attacker`, pas de tag ajouté |
+| - | Observables extraits : fichier, hachage SHA-256, hôte | nœud `Build_TheHive_Alert` |
+| - | Analyse Cortex `MISP_SocForge` lancée sur les observables (nœud `Enrich_With_Cortex`) | Cortex, jobs liés à l'alerte |
+| - | Tag `misp:match` posé, l'attribut `filename` correspond à l'événement MISP #4 | rapport Cortex, `report.full.results[].result[].id` |
+| - | `Contain_Attacker` évalue l'alerte : sévérité 2 < seuil 3 → abstention, aucune action réseau | nœud `Contain_Attacker`, pas de tag ajouté |
 | 21:01:13 | `Trigger_DFIR_Hunt` republie l'événement MISP #4, sonde les sightings pendant 150 s, ne trouve rien dans la fenêtre, pose `dfir:hunt-triggered` | note d'audit sur l'alerte, capture `thehive-alert-dfir-hunt-triggered.png` |
 
 Délai brut règle → alerte TheHive : 271 s. Cause identifiée : les 5 VM de la chaîne
@@ -74,7 +74,7 @@ tôt avec l'événement MISP #3 (IOC présent sur WIN01, sighting retrouvé).
 |---|---|---|
 | Confinement réseau (`Contain_Attacker`) | Non | Sévérité 2 < seuil 3, abstention correcte, pas une panne |
 | Chasse DFIR (`Trigger_DFIR_Hunt`) | Oui | `misp:match` présent, republication + sondage effectués |
-| Promotion en cas TheHive | Non (hors périmètre de ce test) | L'alerte reste au statut `New`, aucune action manuelle demandée pour ce test de chaîne |
+| Promotion en cas TheHive | Oui, le lendemain | Cas #10 construit le 25/09 à partir de cette alerte, avec le modèle à cinq tâches |
 
 ## 5. Indicateurs
 
@@ -89,9 +89,9 @@ tôt avec l'événement MISP #3 (IOC présent sur WIN01, sighting retrouvé).
 Le conteneur `shuffle-backend` a été tué par manque de RAM hôte en cours d'exécution,
 puis redémarré automatiquement par Docker une minute plus tard. Le worker de
 l'exécution Shuffle a repris le fil en rejouant `Build_TheHive_Alert` et
-`Create_TheHive_Alert` avant d'atteindre les nœuds de réponse. Impact réel : aucun —
-`Create_TheHive_Alert` s'appuie sur `sourceRef` (l'ID de l'alerte Wazuh), que TheHive
-traite en écrasement d'une alerte existante plutôt qu'en création d'un doublon. Un
+`Create_TheHive_Alert` avant d'atteindre les nœuds de réponse. Impact réel : aucun :
+`Create_TheHive_Alert` s'appuie sur `sourceRef` (l'ID de l'alerte Wazuh), et TheHive
+n'accepte qu'une alerte par `sourceRef`. Un
 worker orphelin de la même panne a été identifié (tempête de conteneurs Docker à l'état
 `Dead`) et nettoyé manuellement après coup, sans avoir écrit quoi que ce soit dans
 TheHive. Résultat final vérifié : une seule alerte, un seul jeu de tags cohérent.

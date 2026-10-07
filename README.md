@@ -1,8 +1,8 @@
 # SocForge
 
 Un laboratoire SOC complet sur un seul PC, avec VirtualBox : douze machines virtuelles, de la détection
-jusqu'à la réponse. Chaque détection a été déclenchée par une vraie attaque, bénigne, lancée depuis une machine
-Kali, puis observée dans le SIEM et documentée avec ses journaux, ses heures UTC et des captures d'écran.
+jusqu'à la réponse. Chaque détection a été déclenchée par une vraie action offensive, bénigne, lancée depuis une machine
+Kali ou, pour les techniques locales, sur le poste visé, puis observée dans le SIEM et documentée avec ses journaux, ses heures UTC et des captures d'écran.
 
 Le projet va jusqu'au bout d'un incident : une seule attaque est suivie à travers toute la chaîne (détection,
 orchestration, enrichissement, blocage réseau, isolation du poste, chasse, clôture du cas). Le détail est dans la
@@ -35,8 +35,8 @@ rapport d'incident rédigé à partir d'une alerte réelle est dans
 ## L'attaque suivie de bout en bout
 
 Depuis PURPLE, trois accès successifs au partage d'administration de WIN01 avec un compte local valide. Wazuh
-lève des alertes de niveau 12 (règles `100179`, puis `100141`). Cette même alerte passe ensuite dans les six
-nœuds de Shuffle, qui agissent chacun sur elle. Le résultat de la chasse revient sur l'alerte, qui est
+lève deux alertes de niveau 12 : `100179` dès la première connexion, puis `100141` au troisième accès. L'alerte
+`100141` passe ensuite dans les six nœuds de Shuffle, qui agissent chacun sur elle. Le résultat de la chasse revient sur l'alerte, qui est
 transformée en cas, investiguée puis close.
 
 1. Wazuh signale une session distante venue de la zone attaquant dès la première connexion (7 s), puis l'escalade `100141` à 27 s.
@@ -83,7 +83,7 @@ L'exécution Shuffle (les six nœuds et leur résultat) est dans
 </tr>
 <tr>
 <td width="50%"><img src="docs/screenshots/velociraptor-misp-sightings-monitor.png" alt="Sightings MISP dans Velociraptor"><br><sub>Les sightings renvoyés à MISP à la fin de chaque chasse (<a href="purple-team/scenarios/SC-15-dfir-velociraptor-misp-hunt.md">SC-15</a>)</sub></td>
-<td width="50%"></td>
+<td width="50%"><img src="docs/screenshots/wazuh-dashboard-rule-100155-live.png" alt="Injection de processus dans Wazuh"><br><sub>Une injection de processus détectée par la règle 100155 (<a href="purple-team/scenarios/SC-10-T1055-process-injection.md">SC-10</a>)</sub></td>
 </tr>
 </table>
 
@@ -95,7 +95,7 @@ L'exécution Shuffle (les six nœuds et leur résultat) est dans
 - Segmentation : refus par défaut entre cinq zones filtrées, blocages journalisés et visibles dans Wazuh, voir [SC-16](purple-team/scenarios/SC-16-firewall-segmentation.md).
 - Orchestration : une alerte Wazuh devient une alerte TheHive avec ses observables, est enrichie par Cortex et MISP, puis déclenche le blocage de l'attaquant, l'isolation du poste et la chasse, sans intervention. Voir [SC-14](purple-team/scenarios/SC-14-shuffle-soar-workflow.md).
 - Garde-fous de la réponse automatique : liste d'adresses jamais bloquées, label qui protège le contrôleur de domaine, blocage temporaire, webhook réservé à Wazuh, accès à Velociraptor par une clé SSH limitée à une commande. Ils sont testés dans la même fiche.
-- DFIR : un événement MISP publié lance seul une chasse Velociraptor sur les postes Windows et Linux, et les sightings reviennent dans MISP, voir [SC-15](purple-team/scenarios/SC-15-dfir-velociraptor-misp-hunt.md).
+- DFIR : un événement MISP publié lance seul une chasse Velociraptor et les sightings reviennent dans MISP. La boucle complète est prouvée sur Windows ; sur Linux, l'agent, la chasse et l'isolation ont été testés séparément. Voir [SC-15](purple-team/scenarios/SC-15-dfir-velociraptor-misp-hunt.md).
 - Chiffrement : les services en HTTPS (MISP, OPNsense) sont appelés avec la CA interne du lab, sans désactiver la vérification. TheHive, Cortex et Shuffle restent en HTTP sur le réseau de gestion.
 
 ## Scénarios
@@ -130,7 +130,7 @@ Les fiches SC-01 à SC-11 ont été écrites avant le retrait des cartes de gest
 | `wazuh/manager/` | intégration Shuffle et écoute syslog du manager |
 | `firewall/` | politique de segmentation OPNsense, script d'application par API, confinement/déconfinement d'un attaquant |
 | `dfir/` | isolation/levée d'isolation d'un hôte compromis via Velociraptor (Windows et Linux) ; `server/` : compte restreint utilisé par Shuffle |
-| `sysmon/` | configuration Sysmon des contrôleurs de domaine |
+| `sysmon/` | configuration Sysmon du contrôleur de domaine |
 | `detections/sigma/` | règles Sigma, validées par la CI |
 | `tests/` | tests automatiques (règles, politique du pare-feu, artefacts, nœuds SOAR, liens) |
 | `ndr/` | configuration de la sonde : interfaces écoutées, Suricata, cluster Zeek |

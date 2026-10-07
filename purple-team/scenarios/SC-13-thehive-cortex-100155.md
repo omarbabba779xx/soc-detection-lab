@@ -1,4 +1,4 @@
-# SC-13 : Étape 6 : TheHive + Cortex depuis l'alerte Wazuh 100155
+# SC-13 : TheHive et Cortex depuis une alerte Wazuh
 
 Session : Reconstruction, étape 6, 2026-09-18
 Objectif : Créer un cas depuis une alerte Wazuh, lancer un analyseur Cortex
@@ -17,7 +17,7 @@ Après ce correctif, le démarrage se termine normalement et le conteneur Docker
 `thehive-thehive-1` (TheHive 5.4.7-1, stockage embarqué BerkeleyDB + Lucene, sans
 Cassandra/Elasticsearch séparés) répond en HTTP 200 sur le port 9000.
 
-## Bug n°2 (réel, mais logiciel : pas une erreur de configuration) : Licence TheHive invalide bloque la gestion de cas
+## Bug n°2 : une licence TheHive invalide bloque la gestion de cas
 
 Le bandeau `Your license is invalid` visible dans l'interface n'est pas cosmétique :
 toute opération d'écriture liée aux cas et observables est bloquée par la licence,
@@ -88,10 +88,10 @@ bout, la panne est une dépendance externe attendue, pas un défaut de Cortex.
 
 | Critère                          | Valeur                                       |
 |------------------------------------|-------------------------------------------------|
-| VM03-THEHIVE démarre                | validé OUI (après fix paravirt provider)            |
-| Alerte créée depuis Wazuh           | validé OUI (201, via API bot SOAR)                  |
-| Cas créé depuis l'alerte            | validé OUI le 24/09, après activation d'une licence StrangeBee : cas #8 et #9 depuis des alertes Wazuh automatiques (voir SC-14) |
-| Analyseur Cortex exécuté            | validé OUI (job soumis et traité)                    |
+| VM03-THEHIVE démarre                | oui (après fix paravirt provider)            |
+| Alerte créée depuis Wazuh           | oui (201, via API bot SOAR)                  |
+| Cas créé depuis l'alerte            | oui le 24/09, après activation d'une licence StrangeBee : cas #8 et #9 depuis des alertes Wazuh automatiques (voir SC-14) |
+| Analyseur Cortex exécuté            | oui (job soumis et traité)                    |
 | Résultat de l'analyseur             | Échec attendu ici (MISP hors ligne) ; succès avec corrélation MISP réelle à l'étape 7 (SC-14) |
 
 ## Nettoyage

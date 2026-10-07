@@ -1,4 +1,4 @@
-# SC-05 : T1046 : Network Service Discovery (scan de ports)
+# SC-05 : T1046, scan de ports
 
 Session : Reconstruction, 2026-09-17
 Attaquant : PURPLE (Kali 2026.2, 10.10.10.60), premier test de la reconstruction lancé
@@ -68,11 +68,14 @@ Rule: 100101 (level 8) -> 'Sigma T1046: Network connection to a sensitive/admin 
 Rule: 100102 (level 10) -> 'Sigma T1046: Multiple ports scanned from the same source — possible port scan'
 ```
 
+Depuis le 07/10, `100102` regroupe les connexions par adresse source (`same_field`) : voir
+[`detection-sheet-windows.md`](../../detections/windows/detection-sheet-windows.md).
+
 ## Résultats
 
 | Critère    | Valeur              |
 |------------|----------------------|
-| Détecté    | validé OUI               |
+| Détecté    | oui               |
 | Règles     | 100101, 100102       |
 | Verdict    | VP (vrai positif)    |
 | Source     | PURPLE (10.10.10.60), attaque réaliste, pas la console de la victime |
