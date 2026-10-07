@@ -75,6 +75,13 @@ génériques `srcip`/`dstip` hérités des décodeurs syslog classiques.
 Capture (dashboard Wazuh, 13 correspondances) :
 [`docs/screenshots/wazuh-dashboard-dc01-bruteforce-events.png`](../../docs/screenshots/wazuh-dashboard-dc01-bruteforce-events.png)
 
+## Lecture côté défense
+
+Le seuil de `100111` (cinq échecs en soixante secondes depuis la même adresse) est réglé pour une attaque rapide
+depuis une seule source. Chaque échec reste visible séparément au niveau 6 (`100110`), ce qui permet de revoir après
+coup une série plus lente. La politique de verrouillage des comptes n'est pas activée dans le lab : en production,
+elle agirait en même temps que la détection.
+
 ## Nettoyage
 
 Aucun artefact persistant, tentatives de connexion échouées, pas de compte verrouillé

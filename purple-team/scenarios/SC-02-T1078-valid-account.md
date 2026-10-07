@@ -42,6 +42,15 @@ Heure d'exécution : 2026-09-17 15:32 UTC
 
 Captures : [commandes exécutées sur DC01](../../docs/screenshots/rule-100153-100178-live-rebuild.png), [alertes dans Wazuh](../../docs/screenshots/wazuh-dashboard-dc01-events.png)
 
+## Lecture côté défense
+
+Le test ouvre une session réseau depuis DC01 vers lui-même : l'adresse source de l'alerte est donc celle du
+serveur. Il valide la règle et le champ qu'elle lit, pas une arrivée depuis une autre machine ; ce cas est couvert par
+SC-08 (WIN01 vers DC01) et par l'attaque de SC-14 (PURPLE vers WIN01). La règle `100178` reconnaît un compte
+privilégié à son nom (`administrator`, `admin`, `svc_`) : elle est simple à lire, mais dépend de la convention de
+nommage. La règle `100179`, ajoutée le 07/10, regarde l'origine de la session et alerte pour tout compte qui se
+connecte depuis la zone attaquant.
+
 ## Nettoyage
 
 ```powershell

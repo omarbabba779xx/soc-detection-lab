@@ -83,6 +83,14 @@ Depuis le 07/10, `100102` regroupe les connexions par adresse source (`same_fiel
 Capture (dashboard Wazuh, 60 correspondances) :
 [`docs/screenshots/wazuh-dashboard-dc01-scan-events.png`](../../docs/screenshots/wazuh-dashboard-dc01-scan-events.png)
 
+## Lecture côté défense
+
+Ici, le scan est vu depuis la cible : Sysmon enregistre sur DC01 chaque connexion entrante vers un port sensible, et
+la règle `100102` regroupe ces connexions par adresse source. Cette vue n'existe que sur les postes équipés de Sysmon
+et pour les ports listés dans la règle. Deux autres vues du même scan existent dans le lab : la sonde réseau
+(SC-12), qui reconnaît les signatures de scan, et le pare-feu (SC-16), qui journalise les tentatives vers les zones
+interdites. Les trois se recoupent sans dépendre les unes des autres.
+
 ## Nettoyage
 
 Aucun artefact persistant côté DC01 (scan réseau, pas d'écriture disque). Sysmon reste

@@ -50,6 +50,16 @@ Heure d'exécution : 2026-09-17 15:31 UTC
 
 Captures : [commandes exécutées sur DC01](../../docs/screenshots/rule-100153-100178-live-rebuild.png), [alertes dans Wazuh](../../docs/screenshots/wazuh-dashboard-dc01-events.png)
 
+## Lecture côté défense
+
+La règle s'appuie sur les événements 4698 et 4702 du journal Security, que Windows n'écrit que si la sous-catégorie
+d'audit « Other Object Access Events » est activée : c'est le premier point à contrôler sur un nouveau poste. Deux
+autres sources du lab regardent le même comportement : Sysmon enregistre le lancement de `schtasks.exe`, et la
+surveillance d'intégrité de l'agent Wazuh suit `%WINDIR%\System32\Tasks` en temps réel. Le test est lancé sur la
+console de DC01 : il valide la règle et sa source de journaux, pas un scénario d'intrusion complet. Depuis le 07/10,
+les tâches que Windows réécrit lui-même sous `\Microsoft\Windows\` sont enregistrées au niveau 3 (règle `100152`),
+pour que l'alerte de niveau 9 reste lisible.
+
 ## Nettoyage
 
 ```powershell

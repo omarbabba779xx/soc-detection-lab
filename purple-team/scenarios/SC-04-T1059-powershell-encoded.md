@@ -118,6 +118,13 @@ déclencheur), jamais sur un simple comptage.
 | Règles           | 100120 (niveau 8), 100121 (niveau 12), 100131 (niveau 12), 100127 (niveau 10) |
 | Verdict          | VP (vrai positif) |
 
+## Lecture côté défense
+
+Deux sources se complètent ici. Le 4688 montre la ligne de commande et donc l'option d'encodage ; le 4104 montre le
+script une fois décodé, c'est-à-dire ce qui s'exécute vraiment. Avoir les deux évite de dépendre d'un seul réglage
+d'audit. La règle `100120` (niveau 8) signale tout lancement de PowerShell et sert de contexte ; l'alerte utile est
+`100121` ou `100131`, au niveau 12. Le test est lancé sur la console de WIN01 : il suppose un accès déjà obtenu.
+
 ## Nettoyage
 
 Aucun artefact persistant : la charge n'écrit rien sur le disque et ne crée aucune

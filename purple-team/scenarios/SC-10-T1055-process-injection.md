@@ -66,6 +66,14 @@ de base (niveau 0) qui tague tout événement EventID 8 avec le groupe `sysmon_e
 | Verdict    | VP (vrai positif)              |
 | Source     | WIN01 (local)                 |
 
+## Lecture côté défense
+
+La règle `100155` alerte sur tout événement Sysmon 8, sans filtre : elle voit aussi des créations de thread
+légitimes (17 correspondances dans la capture, pour un seul test). Dans le lab, ce choix garde la règle simple et
+montre le bruit réel ; en production, il faudrait retirer les couples source/cible connus. Sysmon 8 ne décrit qu'une
+famille de techniques, celle qui crée un thread dans un autre processus. Le test est lancé sur la console de WIN01
+et n'écrit aucun code dans le processus cible.
+
 ## Nettoyage
 
 Processus `notepad.exe` cible fermé après le test (aucune persistance créée).

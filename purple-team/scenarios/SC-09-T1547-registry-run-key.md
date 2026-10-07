@@ -71,6 +71,14 @@ pression RAM hôte. Corrigé par un redémarrage complet du manager.
 | Verdict    | VP (vrai positif)    |
 | Source     | WIN01 (console locale) |
 
+## Lecture côté défense
+
+La règle `100147` hérite son périmètre de la règle officielle `92300` : les clés `CurrentVersion\Run` et leurs
+variantes 32 bits. Les autres emplacements de démarrage automatique relèvent d'autres règles. L'intérêt de Sysmon
+ici se voit dans SC-15 : la chronologie complète (écriture puis suppression de la valeur) a été retrouvée dans son
+journal alors que la clé n'existait plus et que le journal Security avait déjà tourné. Le test est lancé sur la
+console de WIN01.
+
 ## Nettoyage
 
 Douze clés de test (`SocForgeTest1` à `SocForgeTest12`, créées au fil des itérations de
