@@ -1,34 +1,41 @@
 # SC-11 : T1003, accès à LSASS (bloqué sur WIN01, validé sur DC01)
 
-Sessions : Reconstruction, étape 4, 2026-09-18 (WIN01, bloqué) ; 2026-09-23 (DC01, validé en direct)
-MITRE : T1003.001, OS Credential Dumping: LSASS Memory
-Tactique : Credential Access
-
----
+| | |
+|---|---|
+| Dates | 2026-09-18 (WIN01, accès bloqué par Windows) ; 2026-09-23 (DC01, alerte en direct) |
+| Technique MITRE | T1003.001, OS Credential Dumping: LSASS Memory |
+| Tactique | Credential Access |
+| Résultat | règle 100103 (niveau 14) validée en direct sur DC01, 2 s après la tentative |
 
 ## Objectif
 
-Valider la règle 100103 (accès LSASS suspect) après correction du bug `if_group`
-(même root cause que 100147/100155).
+Valider la règle 100103 (accès suspect à la mémoire de LSASS), une fois corrigé son rattachement, le même défaut
+que pour 100147 et 100155.
 
-## Tentative 1, WIN01 (18/09) : bloquée par une vraie protection OS
+## En résumé
 
-Attaquant : WIN01, console locale (`labuser`, cmd élevé/Administrator).
+Les deux tentatives donnent deux résultats différents, et tous deux corrects :
 
-Script PowerShell (encodé en Base64, `-EncodedCommand`, exécuté en Administrator) :
-`OpenProcess` sur `lsass.exe` avec les droits `PROCESS_QUERY_LIMITED_INFORMATION |
-PROCESS_VM_READ` (0x1010, le masque des outils de dump), sans aucune lecture ni
-exfiltration de mémoire réelle.
+- sur WIN01, Windows refuse l'accès avant que Sysmon puisse le voir : la protection de LSASS fonctionne ;
+- sur DC01, où cette protection n'est pas activée, l'accès est accordé et la règle sonne au niveau 14.
 
-Résultat console :
+## Tentative 1, WIN01 (18/09) : bloquée par Windows
+
+Lancée sur la console de WIN01 (`labuser`, invite élevée).
+
+Un script PowerShell demande l'ouverture de `lsass.exe` (`OpenProcess`) avec le masque `0x1010`
+(`PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ`). Il ne lit aucune mémoire.
+
+Sortie de la console :
+
 ```
 Handle: 0
 False
 ```
 
-L'accès a été intégralement refusé par l'OS, y compris en Administrator.
+L'accès est refusé, y compris pour un administrateur.
 
-### Root cause du blocage : LSA Protection (RunAsPPL)
+### Pourquoi : la protection LSA (RunAsPPL)
 
 ```cmd
 reg query HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v RunAsPPL
@@ -37,39 +44,31 @@ reg query HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v RunAsPPL
 RunAsPPL    REG_DWORD    0x2
 ```
 
-`RunAsPPL` est activé sur WIN01 : `lsass.exe` tourne comme Protected Process Light
-(PPL). Vérification par `wevtutil` sur les 15 événements Sysmon EventID 10 les plus
-récents : aucun ne correspond à la tentative.
+`RunAsPPL` est activé sur WIN01 : `lsass.exe` tourne comme processus protégé. Les 15 derniers événements Sysmon 10
+du poste ont été relus avec `wevtutil` : aucun ne correspond à la tentative.
 
-Explication technique : la vérification PPL (niveau de signature du processus
-protégé) intervient dans `PsOpenProcess`, à un stade du noyau antérieur au callback
-`ObRegisterCallbacks` que Sysmon utilise pour générer l'EventID 10 (ProcessAccess).
-L'accès est donc rejeté avant même que Sysmon puisse observer la tentative, ni la
-règle, ni Sysmon, ni aucun outil basé sur cette télémétrie ne peuvent voir cet appel,
-quel que soit le compte appelant. C'est le comportement attendu d'une vraie protection
-contre le credential dumping.
+Le contrôle de la protection a lieu dans le noyau, avant le point où Sysmon est prévenu d'un accès à un processus.
+La demande est donc rejetée avant d'être observée. Ni Sysmon ni la règle ne peuvent la voir, quel que soit le
+compte. C'est le comportement attendu de cette protection.
 
 ## Tentative 2, DC01 (23/09) : validée en direct
 
-Windows Server n'active pas `RunAsPPL` par défaut. Avant de tenter quoi que ce soit,
-l'état de la protection a été vérifié :
+Windows Server n'active pas `RunAsPPL` par défaut. L'état de la protection a été vérifié avant tout test :
 
 ```powershell
 Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Control\Lsa | Select RunAsPPL, RunAsPPLBoot, LsaCfgFlags
 ```
-→ les trois valeurs sont absentes (protection désactivée). Sysmon (`Sysmon64`) et
-l'agent Wazuh tournent tous les deux sur DC01.
 
-Premier essai, avec les droits `PROCESS_QUERY_INFORMATION | PROCESS_VM_READ`
-(`0x0410`) : `OpenProcess` réussit (handle non nul), mais Windows ajoute automatiquement
-`PROCESS_QUERY_LIMITED_INFORMATION`
-au masque accordé, Sysmon journalise `GrantedAccess=0x1410`, une valeur que la règle
-officielle 92900 ne reconnaît pas (elle attend `0x1010` ou `0x40`).
+Les trois valeurs sont absentes : la protection est désactivée. Sysmon et l'agent Wazuh tournent sur DC01.
 
-Défaut trouvé en chemin : la configuration Sysmon de DC01 (`netconfig.xml`, installée
-pour le scénario SC-05/réseau) ne contenait aucune règle `ProcessAccess`, l'EventID 10
-n'était généré pour aucun processus, quel que soit le masque d'accès. Corrigé en ajoutant
-un groupe de règles ciblant `lsass.exe` :
+Deux points ont dû être réglés avant d'obtenir l'alerte.
+
+Le masque d'accès. Avec `0x0410` (`PROCESS_QUERY_INFORMATION | PROCESS_VM_READ`), l'ouverture réussit, mais Windows
+ajoute de lui-même `PROCESS_QUERY_LIMITED_INFORMATION` au masque accordé. Sysmon journalise alors `0x1410`, une
+valeur que la règle officielle 92900 ne reconnaît pas : elle attend `0x1010` ou `0x40`.
+
+La configuration Sysmon. Celle de DC01 (`netconfig.xml`, posée pour SC-05) ne contenait aucune règle
+`ProcessAccess` : l'événement 10 n'était produit pour aucun processus. Un groupe visant `lsass.exe` a été ajouté :
 
 ```xml
 <RuleGroup name="" groupRelation="or"><ProcessAccess onmatch="include">
@@ -77,45 +76,32 @@ un groupe de règles ciblant `lsass.exe` :
 </ProcessAccess></RuleGroup>
 ```
 
-Second essai, avec le masque `PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ`
-(`0x1010`, celui réellement utilisé par les outils de dump type Mimikatz) : `OpenProcess`
-réussit, et Sysmon journalise `GrantedAccess=0x1010`, exactement la valeur attendue.
+Avec le masque `0x1010`, l'ouverture réussit et Sysmon journalise `GrantedAccess=0x1010`, la valeur attendue.
 
-Résultat Wazuh :
+Alerte dans Wazuh :
+
 ```
 2026-09-23T21:30:17.556Z  100103  niveau 14  agent dc01
 sourceImage=powershell.exe  targetImage=lsass.exe  grantedAccess=0x1010
 ```
 
-2 secondes après la tentative. Capture :
-[`docs/screenshots/wazuh-dashboard-rule-100103-live.png`](../../docs/screenshots/wazuh-dashboard-rule-100103-live.png)
+Deux secondes après la tentative. Capture :
+[`wazuh-dashboard-rule-100103-live.png`](../../docs/screenshots/wazuh-dashboard-rule-100103-live.png)
 
-Observation en passant : les journaux montrent aussi Windows Defender
-(`MsMpEng.exe`) accédant à `lsass.exe` avec `GrantedAccess=0x101000`, capté par la même
-règle. C'est un vrai comportement d'antivirus qui inspecte la mémoire, pas une menace :
-il confirme que la règle est sensible et bien réglée, sans qu'aucun filtre supplémentaire
-n'ait été nécessaire pour ce test.
-
-## Conclusion
-
-Les deux résultats sont corrects et se complètent :
-- WIN01 bloque l'attaque avant que la télémétrie puisse la voir, une vraie
-  protection OS (RunAsPPL) fonctionne comme prévu.
-- DC01, sans cette protection, montre que la règle 100103 se déclenche réellement,
-  au bon niveau de gravité (14), avec la source et le masque d'accès exacts.
-
-La règle 100103 est donc validée à la fois par sa logique et par une alerte en direct.
+Observation : les journaux montrent aussi Windows Defender (`MsMpEng.exe`) accéder à `lsass.exe` avec
+`GrantedAccess=0x101000`, et la même règle le relève. C'est le comportement normal d'un antivirus, pas une menace.
+En production, cette source serait à exclure de l'alerte.
 
 ## Résultats
 
 | Critère | WIN01 (18/09) | DC01 (23/09) |
 |---|---|---|
-| Règle corrigée | validé (`if_sid` 92900 au lieu de `if_group`) | - |
-| Test exécuté | validé (`Handle: 0`, accès refusé) | validé (`Handle` non nul, accès accordé) |
-| EventID Sysmon généré | non (bloqué par RunAsPPL avant Sysmon) | validé (0x1010, corrigé une config Sysmon vide) |
-| Alerte 100103 en direct | non (protection réelle, pas un bug) | validé (niveau 14, 2 s après le test) |
+| Règle corrigée | oui (`if_sid` 92900 au lieu de `if_group`) | - |
+| Test exécuté | oui (`Handle: 0`, accès refusé) | oui (accès accordé) |
+| Événement Sysmon produit | non (refus avant Sysmon) | oui (`0x1010`, après ajout de la règle `ProcessAccess`) |
+| Alerte 100103 | non (protection active, pas un défaut) | oui (niveau 14, 2 s après le test) |
 
 ## Nettoyage
 
-WIN01 : aucun artefact laissé (l'appel a échoué avant toute action). DC01 : fichiers de
-configuration temporaires (`netconfig2.xml`, `sysmon_cfg.txt`) supprimés après le test.
+WIN01 : rien à retirer, l'appel a échoué. DC01 : les fichiers de configuration temporaires (`netconfig2.xml`,
+`sysmon_cfg.txt`) ont été supprimés après le test.

@@ -87,7 +87,7 @@ ouvert), exécuter, capturer la preuve, éteindre avant l'étape suivante sauf W
    inaccessible depuis l'hôte. Cause racine : `eth1` (le NIC NAT, nic2) était UP mais
    n'avait jamais reçu de bail DHCP (aucune adresse IP), donc aucune réponse ne pouvait
    partir par cette interface. Corrigé via `nmcli device connect eth1`, avec autoconnect
-   activé pour survivre au reboot. Root cause probable : cette VM a été créée/clonée sans
+   activé pour survivre au reboot. Cause probable : cette VM a été créée/clonée sans
    que le NIC NAT soit inclus dans la configuration réseau initiale (seuls eth0/eth2
    statiques étaient définis dans `/etc/network/interfaces`).
 5. Deux règles NAT dupliquées sur PURPLE (`ssh`->19022 et `sshtemp`->2244, toutes deux
@@ -102,7 +102,7 @@ ouvert), exécuter, capturer la preuve, éteindre avant l'étape suivante sauf W
    revalidés sans avertissement.
 9. Agent dc01 bloqué en `Pending` après redémarrage du manager (poignée de main
    incomplète), corrigé par `Restart-Service WazuhSvc -Force` côté DC01.
-10. Scan FIM WIN01 bloqué à 0% CPU indéfiniment, root cause : fichiers `.gz`
+10. Scan FIM WIN01 bloqué à 0% CPU indéfiniment, cause : fichiers `.gz`
     orphelins dans `queue\diff\file\`, laissés par des redémarrages forcés antérieurs
     pendant qu'un scan tournait, bloquant tout renommage FIM (`ERROR (1124): File
     exists`). Nettoyé (`queue\diff\file\` + `queue\fim\db\fim.db` supprimés). Aggravé
@@ -251,10 +251,10 @@ ouvert), exécuter, capturer la preuve, éteindre avant l'étape suivante sauf W
 - [x] Étape 4, DC01/WIN01 : 100103/100140/100147/100178 validées en direct (voir
   `scenario-T1021-win01-to-dc01.md` et `detection-sheet-windows.md`). 100147 a nécessité
   trois corrections successives (groupe mal nommé, blocage FIM réel dû à des fichiers
-  orphelins, puis la vraie root cause : `if_group` ne déclenchait pas cette règle custom
+  orphelins, puis la vraie cause : `if_group` ne déclenchait pas cette règle custom
   précise, corrigé en chaînant sur `if_sid` directement). Au passage, un `wazuh-db`
   planté sur le manager a été diagnostiqué et corrigé (redémarrage complet du service).
-  - 100103 : root cause identique à 100147 trouvée et corrigée le 2026-09-18 :
+  - 100103 : cause identique à 100147 trouvée et corrigée le 2026-09-18 :
     `<if_group>sysmon_event_10</if_group>` chaîné sur `<if_sid>92900</if_sid>` (règle
     officielle LSASS/EventID10). Testé en direct après redémarrage propre de WIN01 :
     `OpenProcess` LSASS (droits 0x1010) exécuté en Administrator → `Handle: 0` (accès
@@ -387,7 +387,7 @@ ouvert), exécuter, capturer la preuve, éteindre avant l'étape suivante sauf W
   identifié par Cortex, ce qui relance `Custom.Server.MISP.AutoHunt`, puis sondage des
   sightings pendant 150 s. Défaut trouvé en la construisant : `IocTypes` par défaut
   des trois artefacts MISP de Velociraptor (`text`, `regkey|value`) était plus étroit que
-  ce que l'analyseur Cortex matche déjà, un `misp:match` sur un `filename` ne déclenchait
+  ce que l'analyseur Cortex correspond à déjà, un `misp:match` sur un `filename` ne déclenchait
   aucune chasse. Élargi à `["text", "regkey|value", "filename", "hash"]`, redéployé,
   chasse `H.DAQO7NJA0I35E` obtenue sur l'événement qui échouait. Chaîne à 5 nœuds testée
   en conditions réelles sur une alerte Wazuh authentique (`~204804176`, règle 100210) :

@@ -29,7 +29,7 @@
 | SC-14 (webhook seul, 23/09) | Fichier cron modifié, règle 100210 | 17:06:49 | 17:06:49 (même règle, alerte native) | < 1 s (détection FIM temps réel) |
 | SC-14 (attaque du 07/10) | Connexions SMB de PURPLE à WIN01, règle 100179 | 10:01:55, 10:02:11, 10:02:21 | 10:02:02, 10:02:12, 10:02:22 | 7 s, 1 s, 1 s |
 
-La détection elle-même (règle Wazuh qui matche l'événement source) est quasi instantanée
+La détection elle-même (règle Wazuh qui correspond à l'événement source) est quasi instantanée
 dans tous les cas mesurés : de l'ordre de la seconde. C'est cohérent avec des règles FIM
 et réseau en temps réel, pas avec un traitement par lot.
 

@@ -1,51 +1,47 @@
 # SC-03 : T1021.002, partages d'administration SMB
 
-Session : Reconstruction, correction initiale 2026-09-14/16, re-validation en direct 2026-09-23
-MITRE : T1021.002, Remote Services: SMB/Windows Admin Shares
-Tactique : Lateral Movement
-
----
+| | |
+|---|---|
+| Dates | correction initiale les 14 et 16/09/2026, nouvelle validation en direct le 23/09 |
+| Technique MITRE | T1021.002, Remote Services: SMB/Windows Admin Shares |
+| Tactique | Lateral Movement |
+| Résultat | détecté par 100140 (niveau 10) ; bruit rangé sous 100139 (niveau 3) |
 
 ## Objectif
 
-Détecter l'accès à des partages administratifs (`ADMIN$`, `C$`, `IPC$`) par un compte
-réel, en filtrant le bruit généré par le trafic Windows légitime (GPO, Netlogon).
+Détecter l'accès d'un compte réel à un partage d'administration (`ADMIN$`, `C$`, `IPC$`), sans être noyé par le
+trafic normal de Windows.
 
-## Root cause investiguée et corrigée (historique)
+## Le problème de départ : 651 566 faux positifs
 
-Le déploiement initial de la règle générait 651 566 faux positifs : Windows accède
-en permanence à `IPC$`/`ADMIN$` via son propre compte machine (`HOSTNAME$`) et via
-`ANONYMOUS LOGON` (SID `S-1-5-7`) pour la résolution de nom / Netlogon, trafic
-normal, pas une attaque.
+La première version de la règle alertait sur tout accès à ces partages. Or Windows y accède en permanence avec son
+propre compte machine (`NOM$`) et avec `ANONYMOUS LOGON` (SID `S-1-5-7`), pour la résolution de noms et Netlogon.
+Ce trafic est normal. La règle a produit 651 566 alertes.
 
-Fix : séparation en deux règles selon `subjectUserName` :
+La correction sépare les deux cas selon le champ `subjectUserName` :
 
-- 100139 (niveau 3, bruit) : `subjectUserName` correspond à `\$$` (compte machine)
-  ou `ANONYMOUS LOGON` : filtré, pas d'alerte.
-- 100140 (niveau 10, détection réelle) : `subjectUserName` ne correspond pas
-  à ce filtre : c'est à cela que ressemble un mouvement latéral avec des identifiants
-  volés.
+| Règle | Niveau | Ce qu'elle retient |
+|---|---|---|
+| 100139 | 3 | compte machine (nom terminé par `$`) ou `ANONYMOUS LOGON` : enregistré, sans alerte |
+| 100140 | 10 | tout autre compte : c'est à cela que ressemble un déplacement avec des identifiants volés |
 
-## Détection Wazuh
+## Validation en direct (23/09)
 
-| Règle | Niveau | Rôle |
-|-------|--------|------|
-| 100139 | 3  | Bruit filtré (compte machine / ANONYMOUS LOGON) |
-| 100140 | 10 | Alerte réelle (compte réel accédant à un partage admin) |
+Règle 100140 : `Administrator` accède depuis WIN01 (10.10.10.110) à `IPC$` puis à `C$` de DC01, à 14:15:35 et
+14:15:36 UTC. Deux alertes de niveau 10. Le détail du test est dans SC-08.
 
-## Re-validation en direct (2026-09-23) : et un bug trouvé sur 100139
+### Un défaut trouvé sur 100139
 
-100140 : accès de `Administrator` depuis WIN01 (10.10.10.110) à `IPC$` puis `C$` de DC01,
-14:15:35 et 14:15:36 UTC → deux alertes niveau 10 (détail du test dans SC-08).
+En vérifiant l'historique, la règle de bruit 100139 n'avait jamais sonné. Le bruit existait bien : 41 événements
+5140 de comptes machine en 40 minutes sur DC01. Mais ils étaient tous pris par la règle officielle 67017
+(« A network share was accessed », niveau 3). Cette règle a le même parent que 100139 et le même niveau, et elle
+est chargée avant.
 
-100139 n'avait jamais sonné. Le bruit existait bien (41 événements 5140 de comptes machine en
-40 minutes sur DC01), mais il était entièrement pris par la règle officielle 67017 (WEF,
-« A network share was accessed », niveau 3). Elle est sœur de 100139 sous la même règle parente,
-au même niveau, et chargée avant. Son exclusion `IPC$|NetLogon` ne fonctionne pas : en syntaxe
-OS_Regex, `IPC$` signifie « IPC en fin de chaîne », alors que la valeur réelle est `\\*\IPC$`.
+Son exclusion `IPC$|NetLogon` ne fonctionne pas non plus. Dans la syntaxe OS_Regex de Wazuh, `IPC$` veut dire
+« IPC en fin de chaîne », alors que la valeur réelle est `\\*\IPC$`.
 
-Correction : 100139 est chaînée sur `<if_sid>67017</if_sid>` (voir
-`wazuh/rules/socforge_sigma_rules.xml`). Résultat en direct après rechargement :
+Correction : 100139 est maintenant rattachée à 67017 (`<if_sid>67017</if_sid>`, voir
+`wazuh/rules/socforge_sigma_rules.xml`). Résultat après rechargement :
 
 | Heure (UTC) | Compte | Partage | Règle |
 |---|---|---|---|
@@ -53,20 +49,20 @@ Correction : 100139 est chaînée sur `<if_sid>67017</if_sid>` (voir
 | 15:07:17 (×2), 15:08:14 | `DESKTOP-75LAKDV$` (WIN01) | `IPC$` | 100139 |
 | 15:17:16 | `DESKTOP-75LAKDV$`, accès déclenché exprès (tâche SYSTEM `net view`) | `IPC$` | 100139 |
 
-Les accès des comptes machine à `SYSVOL` restent sur 67017, ce qui est correct : `SYSVOL` n'est pas
-un partage d'administration.
+Les accès des comptes machine à `SYSVOL` restent sous 67017, ce qui est correct : `SYSVOL` n'est pas un partage
+d'administration.
 
-Capture : [`docs/screenshots/wazuh-rules-100139-100140-100186-live.png`](../../docs/screenshots/wazuh-rules-100139-100140-100186-live.png)
+Capture : [`wazuh-rules-100139-100140-100186-live.png`](../../docs/screenshots/wazuh-rules-100139-100140-100186-live.png)
 
 ## Résultats
 
-| Critère          | Valeur      |
-|------------------|-------------|
-| Détecté          | oui      |
-| Règle d'alerte   | 100140 (niveau 10), escaladée en 100141 (niveau 12) après trois accès depuis la même IP, voir SC-14 |
-| Bruit filtré     | 100139 (comptes machine et `ANONYMOUS LOGON`), corrigée le 23/09 |
-| Verdict          | VP (vrai positif) |
+| Critère | Valeur |
+|---|---|
+| Détecté | oui |
+| Règle d'alerte | 100140 (niveau 10) ; trois accès depuis la même adresse en deux minutes donnent 100141 (niveau 12), voir SC-14 |
+| Bruit | 100139 (comptes machine et `ANONYMOUS LOGON`), corrigée le 23/09 |
+| Verdict | vrai positif |
 
 ## Nettoyage
 
-Aucun artefact : les accès aux partages n'écrivent rien. Les règles 100139 et 100140 restent déployées.
+Aucun artefact : un accès à un partage n'écrit rien. Les règles 100139 et 100140 restent déployées.

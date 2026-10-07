@@ -284,7 +284,7 @@ lit ensuite les sightings et pose `dfir:hunted` avec le résultat, ou
 
 Défaut trouvé en le construisant : `Custom.Server.MISP.Iocs` ne cherchait que les
 types `text` et `regkey|value` (`IocTypes` par défaut), plus étroit que ce que l'analyseur
-Cortex `MISP_SocForge` matche déjà. Un `misp:match` sur un attribut `filename` (le cas
+Cortex `MISP_SocForge` correspond à déjà. Un `misp:match` sur un attribut `filename` (le cas
 réel de l'événement #4) ne déclenchait donc aucune chasse : la boucle semblait
 fonctionner mais n'aurait jamais tourné dans ce cas précis. Corrigé en élargissant
 `IocTypes` à `["text", "regkey|value", "filename", "hash"]` dans les trois artefacts

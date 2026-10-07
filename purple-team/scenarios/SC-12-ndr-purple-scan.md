@@ -19,7 +19,7 @@ empêchaient cette VM de fonctionner depuis sa création.
 
 Au premier démarrage, la console affichait un crash noyau complet (trace d'appel avec
 RIP/registres, `</TASK>`) en boucle sur le test de performance `raid6: avx2x4 xor()`.
-Root cause : `CPUProfile: host` exposait AVX2 au CPU virtuel, combiné à
+Cause : `CPUProfile: host` exposait AVX2 au CPU virtuel, combiné à
 `Effective Paravirt. Prov.: KVM` (le noyau Linux invité pensait tourner sous KVM à
 l'intérieur de VirtualBox), une combinaison connue pour déclencher ce crash lors de la
 sélection de l'algorithme raid6 au boot.

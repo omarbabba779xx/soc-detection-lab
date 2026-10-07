@@ -1,57 +1,55 @@
 # SC-13 : TheHive et Cortex depuis une alerte Wazuh
 
-Session : Reconstruction, étape 6, 2026-09-18
-Objectif : Créer un cas depuis une alerte Wazuh, lancer un analyseur Cortex
-(conformément au plan de reconstruction).
+| | |
+|---|---|
+| Date | 2026-09-18 (reconstruction, étape 6) |
+| Objectif du plan | créer un cas depuis une alerte Wazuh et lancer un analyseur Cortex |
+| Résultat | alerte créée dans TheHive, analyseur Cortex exécuté ; création de cas débloquée le 24/09 |
 
----
+Cette fiche décrit le premier raccordement, fait à la main. Depuis le 23/09, les alertes Wazuh de niveau 10 ou
+plus arrivent seules dans TheHive : voir SC-14.
 
-## Bug n°1 : VM03-THEHIVE ne démarrait pas (même crash noyau que VM07-NDR)
+## Deux obstacles levés en chemin
 
-Même symptôme que NDR : crash noyau complet en boucle sur `raid6: avx2x4`, causé par
-`CPUProfile: host` + `Effective Paravirt. Prov.: KVM`. Corrigé par :
+### VM03-THEHIVE ne démarrait pas
+
+Même symptôme que la sonde NDR (SC-12) : arrêt du noyau en boucle sur `raid6: avx2x4`, causé par la combinaison
+`CPUProfile: host` et `Effective Paravirt. Prov.: KVM`. Corrigé par :
+
 ```
 VBoxManage modifyvm SF-VM03-THEHIVE --paravirtprovider legacy
 ```
-Après ce correctif, le démarrage se termine normalement et le conteneur Docker
-`thehive-thehive-1` (TheHive 5.4.7-1, stockage embarqué BerkeleyDB + Lucene, sans
-Cassandra/Elasticsearch séparés) répond en HTTP 200 sur le port 9000.
 
-## Bug n°2 : une licence TheHive invalide bloque la gestion de cas
+Le démarrage se termine ensuite normalement. Le conteneur `thehive-thehive-1` (TheHive 5.4.7-1, stockage embarqué
+BerkeleyDB et Lucene) répond sur le port 9000.
 
-Le bandeau `Your license is invalid` visible dans l'interface n'est pas cosmétique :
-toute opération d'écriture liée aux cas et observables est bloquée par la licence,
-quel que soit le compte utilisé :
+### Une licence invalide bloquait la gestion de cas
 
-| Compte                     | Profil     | Permissions listées                  | Résultat `POST /case` |
-|-----------------------------|------------|----------------------------------------|--------------------------|
-| `admin@socforge.local`      | admin (plateforme) | `manageUser`, `managePlatform`, etc. | 403 (normal, profil plateforme, pas cas) |
-| `soar-bot@socforge.local`   | analyst (Service) | `manageAlert/create`, `manageKnowledgeBase` seulement | 403 |
-| `soc@socforge.local`        | analyst (Normal, toutes permissions listées incl. `manageCase/create`) | 25 permissions | 403 quand même |
+Le bandeau `Your license is invalid` de l'interface n'était pas décoratif : toute écriture sur un cas ou un
+observable était refusée, quel que soit le compte.
 
-Tentative de créer un utilisateur supplémentaire avec profil `org-admin` : bloquée par
-`LicenseLimitExceeded` (`Capability(users.normal) (2/0)`, quota de comptes "normal"
-déjà dépassé). Confirmé par un test direct sur `POST /case/{id}/observable` sur un cas
-existant (parmi les 7 cas de démo "Phishing" préchargés) : même 403, prouvant que
-ce n'est pas spécifique à la création de cas mais un blocage général de licence sur
-toutes les opérations d'écriture de gestion de cas.
+| Compte | Profil | Permissions | `POST /case` |
+|---|---|---|---|
+| `admin@socforge.local` | admin (plateforme) | `manageUser`, `managePlatform`, etc. | 403 (attendu : profil de plateforme, sans droit sur les cas) |
+| `soar-bot@socforge.local` | analyst (compte de service) | `manageAlert/create`, `manageKnowledgeBase` | 403 |
+| `soc@socforge.local` | analyst (25 permissions, dont `manageCase/create`) | 25 permissions | 403 aussi |
 
-Ce qui fonctionne malgré la licence invalide : la création d'alertes (`POST
-/api/v1/alert`), utilisée par l'intégration SIEM externe (Wazuh → TheHive), n'est PAS
-soumise à cette restriction, testé avec succès (`201 Created`).
+La création d'un utilisateur `org-admin` supplémentaire échouait avec `LicenseLimitExceeded`
+(`Capability(users.normal) (2/0)`). Un essai de `POST /case/{id}/observable` sur un cas de démonstration existant
+donnait le même 403 : le blocage ne tenait pas à la création de cas, mais à toutes les écritures de gestion de
+cas.
 
-Cause exacte, établie le 2026-09-23 : `GET /api/v1/license/current` renvoie
-`"id": "no-license", "plan": "No", "capabilities": []`. La licence d'essai installée en
-août (phase 1 du projet) a expiré, et l'instance n'a plus aucune capacité de gestion de
-cas. Depuis TheHive 5.3, même l'édition Community gratuite demande une clé, obtenue en
-s'inscrivant sur le portail StrangeBee. Licence obtenue et activée le 24/09 : la
-promotion alerte → cas est validée (cas #8 et #9, voir SC-14).
+Ce qui fonctionnait malgré tout : la création d'alertes (`POST /api/v1/alert`), utilisée par le raccordement au
+SIEM. Testée avec succès (`201 Created`).
 
-## Alerte créée depuis Wazuh (rule 100155)
+La cause a été établie le 23/09 : `GET /api/v1/license/current` renvoyait
+`"id": "no-license", "plan": "No", "capabilities": []`. La licence d'essai installée en août avait expiré. Depuis
+TheHive 5.3, même l'édition Community demande une clé, obtenue sur le portail StrangeBee. Une licence a été
+activée le 24/09, et le passage d'une alerte à un cas est validé (cas #8 et #9, voir SC-14).
 
-> Test manuel du 18/09, qui vérifie le format de l'alerte. Depuis le 23/09, les alertes
-> Wazuh de niveau ≥ 10 arrivent automatiquement dans TheHive (intégration native
-> Wazuh → webhook Shuffle → `POST /api/v1/alert`), voir SC-14.
+## Alerte créée depuis Wazuh (règle 100155)
+
+Test manuel, qui vérifie le format de l'alerte :
 
 ```
 POST /api/v1/alert (auth: soar-bot@socforge.local bearer key)
@@ -64,13 +62,13 @@ POST /api/v1/alert (auth: soar-bot@socforge.local bearer key)
 -> 201 Created, _id: ~122884296
 ```
 
-Capture (liste des alertes TheHive, notre alerte en tête) :
-[`docs/screenshots/thehive-alert-rule100155.png`](../../docs/screenshots/thehive-alert-rule100155.png)
+Capture (liste des alertes TheHive, l'alerte en tête) :
+[`thehive-alert-rule100155.png`](../../docs/screenshots/thehive-alert-rule100155.png)
 
-## Cortex : analyseur exécuté avec succès
+## Analyseur Cortex
 
-Un seul analyseur est configuré (`MISP_SocForge`, interroge un serveur MISP à
-`10.10.10.22`). Exécuté sur l'IP de WIN01 :
+Un seul analyseur est configuré : `MISP_SocForge`, qui interroge le serveur MISP (`10.10.10.22`). Lancé sur
+l'adresse de WIN01 :
 
 ```
 POST /api/analyzer/421b31691f33f5ce93618c5bbec4bf51/run
@@ -78,22 +76,21 @@ POST /api/analyzer/421b31691f33f5ce93618c5bbec4bf51/run
 -> 200, job_id: ZR1XtqABzK3jl9cg45ui, status: Waiting -> InProgress
 ```
 
-Rapport final : `status: Failure`, erreur `No route to host` vers `10.10.10.22:443`.
-Ce n'est pas un bug : VM05-MISP n'est pas démarrée à ce stade du plan (elle est
-prévue à l'étape 8, avec DFIR-HUNT). Le pipeline Cortex lui-même (soumission de job,
-exécution du script Python de l'analyseur, remontée du résultat) fonctionne de bout en
-bout, la panne est une dépendance externe attendue, pas un défaut de Cortex.
+Rapport final : `status: Failure`, erreur `No route to host` vers `10.10.10.22:443`. C'est attendu à cette étape :
+la VM MISP n'était pas démarrée, elle n'entre dans le plan qu'à l'étape 8. Le circuit Cortex lui-même fonctionne :
+la tâche est soumise, le script de l'analyseur s'exécute, le résultat remonte. L'analyse réussit avec une vraie
+correspondance MISP à l'étape suivante (SC-14).
 
 ## Résultats
 
-| Critère                          | Valeur                                       |
-|------------------------------------|-------------------------------------------------|
-| VM03-THEHIVE démarre                | oui (après fix paravirt provider)            |
-| Alerte créée depuis Wazuh           | oui (201, via API bot SOAR)                  |
-| Cas créé depuis l'alerte            | oui le 24/09, après activation d'une licence StrangeBee : cas #8 et #9 depuis des alertes Wazuh automatiques (voir SC-14) |
-| Analyseur Cortex exécuté            | oui (job soumis et traité)                    |
-| Résultat de l'analyseur             | Échec attendu ici (MISP hors ligne) ; succès avec corrélation MISP réelle à l'étape 7 (SC-14) |
+| Critère | Valeur |
+|---|---|
+| VM03-THEHIVE démarre | oui, après le changement de fournisseur de paravirtualisation |
+| Alerte créée depuis Wazuh | oui (201, par le compte de service) |
+| Cas créé depuis l'alerte | oui le 24/09, après activation de la licence : cas #8 et #9 (voir SC-14) |
+| Analyseur Cortex exécuté | oui (tâche soumise et traitée) |
+| Résultat de l'analyseur | échec attendu ici (MISP éteint) ; succès avec correspondance MISP dans SC-14 |
 
 ## Nettoyage
 
-Aucun artefact de test à nettoyer (alerte et job de test peuvent rester comme preuve).
+Rien à retirer : l'alerte et la tâche de test restent comme preuve.

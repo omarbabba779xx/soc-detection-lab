@@ -1,85 +1,79 @@
 # SC-09 : T1547.001, persistance par clé Run
 
-Session : Reconstruction, étape 4, 2026-09-18
-Attaquant : WIN01, console locale (`labuser`, cmd élevé)
-Cible : WIN01 (agent Wazuh ID 005)
-MITRE : T1547.001, Boot or Logon Autostart Execution: Registry Run Keys
-Tactique : Persistence
-
----
+| | |
+|---|---|
+| Date | 2026-09-18 (reconstruction, étape 4) |
+| Lancé depuis | console locale de WIN01, compte `labuser`, invite élevée |
+| Cible | WIN01 (agent Wazuh 005) |
+| Technique MITRE | T1547.001, Boot or Logon Autostart Execution: Registry Run Keys |
+| Tactique | Persistence |
+| Résultat | détecté, règle 100147 (niveau 9), après trois corrections |
 
 ## Objectif
 
-Valider la détection d'une persistance classique par clé de registre `Run`, technique
-la plus courante après un accès initial pour survivre à un redémarrage.
+Vérifier la détection d'une persistance par clé de registre `Run`, l'une des façons les plus courantes de survivre
+à un redémarrage.
 
-## Commande exécutée
+## Test
 
 ```cmd
 reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v SocForgeTest12 /t REG_SZ /d C:\Windows\System32\calc.exe /f
 ```
 
-Résultat : `The operation completed successfully.`
+Réponse de Windows : `The operation completed successfully.`
 
-## Détection Wazuh
+## Détection
 
-| Règle  | Niveau | Source              | Rôle                                    |
-|--------|--------|----------------------|-------------------------------------------|
-| 100147 | 9      | Sysmon EventID 13     | Écriture d'une clé Run/Winlogon\Shell     |
-
-Testé en direct le 2026-09-18 :
+| Règle | Niveau | Source | Rôle |
+|---|---|---|---|
+| 100147 | 9 | Sysmon 13 | écriture d'une valeur sous une clé `Run` |
 
 ```
 Rule: 100147 (level 9) -> 'Sigma T1547.001: Registry autostart persistence — HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\SocForgeTest12'
 ```
 
-Capture (dashboard Wazuh, 2 correspondances) :
-[`docs/screenshots/wazuh-dashboard-rule-100147-live.png`](../../docs/screenshots/wazuh-dashboard-rule-100147-live.png)
+Capture (tableau de bord Wazuh, 2 correspondances) :
+[`wazuh-dashboard-rule-100147-live.png`](../../docs/screenshots/wazuh-dashboard-rule-100147-live.png)
 
-## Historique de l'investigation (trois bugs distincts trouvés et corrigés)
+## Historique : trois causes, dans l'ordre où elles ont été trouvées
 
-Cette règle a nécessité l'investigation la plus longue de toute la reconstruction, avec
-trois causes distinctes découvertes et corrigées dans l'ordre :
+C'est la règle qui a demandé le plus de recherche pendant la reconstruction.
 
-1. Groupe mal nommé : `sysmon_event13,sysmon_event14` (sans underscore, virgule comme
-   séparateur), n'existait pas. Corrigé en `sysmon_event_13|sysmon_event_14`.
-2. Faux départ, un vrai bug d'infrastructure, mais pas la cause du problème : le
-   scan FIM sur WIN01 restait bloqué "in progress" indéfiniment (`wazuh-agent.exe` à 0%
-   CPU en continu). Root cause : des fichiers `.gz` orphelins dans `queue\diff\file\`,
-   laissés par des redémarrages forcés antérieurs du service pendant qu'un scan tournait,
-   bloquant tout renommage FIM (`ERROR (1124): Could not rename ... File exists`).
-   Nettoyé. Cette piste s'est révélée être une fausse route : 100147 dépend en fait de
-   Sysmon (EventID 13), pas du module FIM/syscheck, le scan FIM n'a jamais été le
-   problème réel, seulement un incident parallèle et bien réel.
-3. Root cause véritable : `<if_group>sysmon_event_13</if_group>` ne déclenchait pas
-   cette règle custom précise, alors que le groupe était correctement tagué (la règle
-   officielle 92300, qui en dépend, matchait sur le même événement). Confirmé par test
-   A/B avec une règle de debug : chaînée sur `<if_sid>92300</if_sid>`, elle matchait
-   immédiatement ; la même règle avec `<if_group>` ne matchait jamais. Corrigé en
-   chaînant 100147 directement sur `<if_sid>92300</if_sid>`.
+1. Un nom de groupe faux. La règle citait `sysmon_event13,sysmon_event14` : sans tiret bas, et avec une
+   virgule comme séparateur. Ce groupe n'existe pas. Corrigé en `sysmon_event_13|sysmon_event_14`.
+2. Une fausse piste, mais un vrai défaut. Le scan d'intégrité de WIN01 restait bloqué (`wazuh-agent.exe` à
+   0 % de processeur). Des fichiers `.gz` orphelins dans `queue\diff\file\`, laissés par des redémarrages forcés
+   du service, bloquaient tout renommage (`ERROR (1124): Could not rename ... File exists`). Ils ont été
+   supprimés. Cela n'a rien changé pour 100147 : cette règle dépend de Sysmon, pas du scan d'intégrité. Le défaut
+   était réel, mais ce n'était pas la cause cherchée.
+3. La cause. `<if_group>sysmon_event_13</if_group>` ne déclenchait pas cette règle, alors que le groupe était
+   correct : la règle officielle 92300, qui en dépend, sonnait sur le même événement. Une comparaison l'a
+   confirmé : une règle d'essai rattachée par `<if_sid>92300</if_sid>` sonnait aussitôt, la même avec `<if_group>`
+   jamais. La règle 100147 est maintenant rattachée directement à `<if_sid>92300</if_sid>`.
 
-Un incident annexe découvert en cours de route : `wazuh-db` (socket interne du manager)
-s'était planté (`Unable to connect to socket 'queue/db/wdb'`), probablement lié à la
-pression RAM hôte. Corrigé par un redémarrage complet du manager.
+En cours de route, `wazuh-db` (un service interne du manager) s'est arrêté
+(`Unable to connect to socket 'queue/db/wdb'`), probablement à cause du manque de mémoire sur l'hôte. Un
+redémarrage complet du manager l'a rétabli.
 
 ## Résultats
 
-| Critère    | Valeur              |
-|------------|----------------------|
-| Détecté    | oui               |
-| Règle      | 100147               |
-| Verdict    | VP (vrai positif)    |
-| Source     | WIN01 (console locale) |
+| Critère | Valeur |
+|---|---|
+| Détecté | oui |
+| Règle | 100147 |
+| Verdict | vrai positif |
+| Source | WIN01, console locale |
 
 ## Lecture côté défense
 
 La règle `100147` hérite son périmètre de la règle officielle `92300` : les clés `CurrentVersion\Run` et leurs
-variantes 32 bits. Les autres emplacements de démarrage automatique relèvent d'autres règles. L'intérêt de Sysmon
-ici se voit dans SC-15 : la chronologie complète (écriture puis suppression de la valeur) a été retrouvée dans son
-journal alors que la clé n'existait plus et que le journal Security avait déjà tourné. Le test est lancé sur la
-console de WIN01.
+variantes 32 bits. Les autres emplacements de démarrage automatique relèvent d'autres règles.
+
+L'intérêt de Sysmon se voit dans SC-15 : la chronologie complète (écriture puis suppression de la valeur) a été
+retrouvée dans son journal alors que la clé n'existait plus et que le journal Security avait déjà tourné.
+
+Le test est lancé sur la console de WIN01.
 
 ## Nettoyage
 
-Douze clés de test (`SocForgeTest1` à `SocForgeTest12`, créées au fil des itérations de
-debug) supprimées via une boucle `for` en une commande.
+Douze valeurs de test (`SocForgeTest1` à `SocForgeTest12`, créées au fil des essais) supprimées par une boucle.
