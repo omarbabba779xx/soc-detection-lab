@@ -122,11 +122,11 @@ côté manager (lecture du canal par l'agent, envoi, analyse). Ce ne sont pas de
 
 | Type | Valeur | IDS | Scénario |
 |---|---|---|---|
-| ip-src | `10.10.10.60` (PURPLE) | validé | SC-05 (scan), SC-06 (brute force) |
+| ip-src | `10.10.10.60` (PURPLE) | oui | SC-05 (scan), SC-06 (brute force) |
 | text | `U29jRm9yZ2VSdWxlVGVzdA==` | - | SC-04 (T1059.001, WIN01) |
-| regkey\|value | `HKLM\...\Run\SocForgeTest12\|%WINDIR%\System32\calc.exe` | validé | SC-09 (T1547.001, WIN01) |
+| regkey\|value | `HKLM\...\Run\SocForgeTest12\|%WINDIR%\System32\calc.exe` | oui | SC-09 (T1547.001, WIN01) |
 | text | `SocForgeRebuildTest` | - | SC-01 (T1053.005, DC01) |
-| filename | `/etc/cron.d/socforge-test` | validé | SC-07 (T1053.003, LINUX01) |
+| filename | `/etc/cron.d/socforge-test` | oui | SC-07 (T1053.003, LINUX01) |
 
 Le type `windows-scheduled-task` n'existe pas dans cette version de MISP (2.4.177). La
 tâche planifiée a donc été saisie en `text`.
@@ -319,6 +319,22 @@ après le démarrage ou 10 min plus tard. La configuration concernée n'existe p
   derniers depuis le 24/09, voir SC-14). Les IOC réseau (`ip-src`, `ip-dst`) relèvent de NDR et de Wazuh.
 - `AutoHunt` apprend les publications en interrogeant MISP toutes les 60 s : MISP ne
   peut pas appeler Velociraptor. Aucune action humaine n'est nécessaire.
+
+## Mise à jour du 07/10 : Linux et accès au serveur
+
+- LINUX01 a maintenant un agent Velociraptor (client `C.6c61112d6c2d7008`). `Custom.Server.MISP.IOCHunt` crée deux
+  chasses par événement : `Windows.EventLogs.EvtxHunter` pour les postes Windows et
+  [`Custom.Linux.IOC.LogHunter`](../../velociraptor/artifacts/Custom.Linux.IOC.LogHunter.yaml) pour Linux (journal
+  d'authentification, syslog, crontabs, fichiers présents dans les répertoires cron et temporaires).
+  `Custom.Server.MISP.Sightings` lit les résultats des deux.
+- Testé sur LINUX01 : la collecte `LogHunter` rend ses lignes (flow `F.DB2B18FKORFRG`), et l'isolation par
+  `Linux.Remediation.Quarantine` fait passer le ping de 0 % à 100 % de perte, puis de nouveau à 0 % après levée.
+  La chasse Linux créée par `AutoHunt` lors de l'attaque du 07/10 (`H.DB31LALB5TRPA`) n'a pas été exécutée par
+  LINUX01, éteinte à ce moment : le retour de sightings depuis un poste Linux n'est donc pas encore observé.
+- Les trois agents joignent désormais le serveur par le pare-feu, depuis leur adresse de zone (`10.10.20.10`,
+  `10.10.30.110`, `10.10.30.20`), et non plus par le réseau de gestion.
+- Shuffle n'utilise plus le compte `socforge-api` : il passe par un compte `soar` limité à l'envoi d'une requête
+  VQL (voir [`dfir/server/README.md`](../../dfir/server/README.md)).
 
 ## Résultats
 

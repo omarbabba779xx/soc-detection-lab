@@ -156,6 +156,15 @@ Jusqu'à Wazuh : ces alertes arrivent au manager par l'agent de la sonde (groupe
 du trafic : l'agent a conservé les événements et les a transmis à la reconnexion.
 Capture : [`docs/screenshots/wazuh-ndr-purple-tap-alerts.png`](../../docs/screenshots/wazuh-ndr-purple-tap-alerts.png)
 
+## Ce que la sonde voit, et ce qu'elle ne voit pas
+
+La sonde écoute deux réseaux : le réseau de gestion et la zone attaquant. Depuis le 07/10, les cibles n'ont plus de
+carte sur le réseau de gestion ; c'est donc la prise d'écoute de la zone attaquant qui voit partir les attaques de
+PURPLE. Le trafic entre les zones srv et ep (par exemple un mouvement latéral de WIN01 vers DC01) ne passe devant
+aucune des deux interfaces : il est couvert par les journaux des postes (SC-08) et par le pare-feu (SC-16), pas par
+la sonde. Seules les alertes Suricata remontent à Wazuh ; les journaux Zeek restent sur la sonde, pour l'analyse
+après coup.
+
 ## Résultats
 
 | Critère              | Valeur                                  |

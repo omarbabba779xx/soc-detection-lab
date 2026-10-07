@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/banner.png" alt="SocForge, laboratoire SOC de bout en bout"></p>
+
 # SocForge
 
 Un laboratoire SOC complet sur un seul PC, avec VirtualBox : douze machines virtuelles, de la détection
@@ -13,6 +15,11 @@ réseau filtrées, une chaîne d'automatisation de 6 nœuds et 45 captures. Sur 
 1 à 7 secondes, l'alerte arrive dans TheHive 7 secondes après sa livraison, l'adresse de l'attaquant est bloquée
 à 24 secondes, l'ordre d'isolation du poste part à 29 secondes et la chasse est demandée à 35 secondes
 ([métriques](docs/metrics-mttd-mtta-mttr.md)).
+
+Pour parcourir le dépôt en quelques minutes : l'attaque suivie ci-dessous, puis la fiche
+[SC-14](purple-team/scenarios/SC-14-shuffle-soar-workflow.md) pour le détail heure par heure, la
+[fiche de détection Windows](detections/windows/detection-sheet-windows.md) pour les règles et les défauts trouvés
+en les testant, et le [plan de reconstruction](docs/rebuild-plan.md) pour l'historique des corrections.
 
 ## Architecture
 
@@ -89,6 +96,8 @@ L'exécution Shuffle (les six nœuds et leur résultat) est dans
 
 ## Ce que le dépôt démontre
 
+Chaque point renvoie à une fiche qui donne la commande lancée, l'alerte obtenue et sa capture.
+
 - Détection Windows : 19 règles Wazuh rattachées à MITRE ATT&CK, dont les détections principales ont aussi une forme Sigma dans `detections/sigma/` (15 règles, Windows et Linux). Elles couvrent PowerShell encodé, tâche planifiée, clé Run, injection de processus, accès LSASS, mouvement latéral, session depuis la zone non fiable et profil PowerShell. Voir [`detection-sheet-windows.md`](detections/windows/detection-sheet-windows.md).
 - Détection Linux : sudo et persistance cron, dans [`detection-sheet-linux.md`](detections/linux/detection-sheet-linux.md).
 - Réseau : Suricata (52 795 signatures ET Open) détecte un scan et Wazuh remonte une alerte de niveau 10, voir [SC-12](purple-team/scenarios/SC-12-ndr-purple-scan.md).
@@ -96,6 +105,7 @@ L'exécution Shuffle (les six nœuds et leur résultat) est dans
 - Orchestration : une alerte Wazuh devient une alerte TheHive avec ses observables, est enrichie par Cortex et MISP, puis déclenche le blocage de l'attaquant, l'isolation du poste et la chasse, sans intervention. Voir [SC-14](purple-team/scenarios/SC-14-shuffle-soar-workflow.md).
 - Garde-fous de la réponse automatique : liste d'adresses jamais bloquées, label qui protège le contrôleur de domaine, blocage temporaire, webhook réservé à Wazuh, accès à Velociraptor par une clé SSH limitée à une commande. Ils sont testés dans la même fiche.
 - DFIR : un événement MISP publié lance seul une chasse Velociraptor et les sightings reviennent dans MISP. La boucle complète est prouvée sur Windows ; sur Linux, l'agent, la chasse et l'isolation ont été testés séparément. Voir [SC-15](purple-team/scenarios/SC-15-dfir-velociraptor-misp-hunt.md).
+- Qualité du dépôt : 54 tests automatiques vérifient les règles, la politique du pare-feu, les artefacts, le code des nœuds et les liens de la documentation ; ils tournent à chaque envoi, avec la validation des règles Sigma.
 - Chiffrement : les services en HTTPS (MISP, OPNsense) sont appelés avec la CA interne du lab, sans désactiver la vérification. TheHive, Cortex et Shuffle restent en HTTP sur le réseau de gestion.
 
 ## Scénarios

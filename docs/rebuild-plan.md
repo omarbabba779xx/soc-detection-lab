@@ -55,7 +55,9 @@ Conséquences visibles :
    `https://localhost:8443` une fois WAZUH démarrée.
 2. Attaques lancées depuis la console de la victime (DC01, WIN01) au lieu de PURPLE :
    pas réaliste pour un scénario purple-team. À partir de maintenant : PURPLE est la
-   source, la victime est uniquement observée côté logs/Wazuh.
+   source, la victime est uniquement observée côté logs/Wazuh. Exception assumée : les
+   techniques locales de l'étape 4 (clé Run, injection, LSASS, PowerShell) supposent un
+   accès déjà obtenu et sont lancées sur le poste lui-même.
 3. 8 VMs sur 12 sans rôle démontré (FW, THEHIVE, CORTEX, MISP, SHUFFLE, NDR,
    DFIR-HUNT, LINUX01 côté détection). Plan ci-dessous pour couvrir chacune.
 

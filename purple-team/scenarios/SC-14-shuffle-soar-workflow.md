@@ -227,8 +227,8 @@ Bloque l'IP observable sur OPNsense si l'alerte est confirmée (sévérité ≥ 
   `BLOCKED_ATTACKERS` (`"dynamic": true`, `apply_policy.py` le crée une fois et ne
   touche plus jamais à son contenu, géré en direct par le confinement) et règle
   `opt4 → any, src BLOCKED_ATTACKERS, block, log` (seq 395, avant les règles purple
-  existantes). Depuis le 07/10, une règle équivalente ouvre chacune des cinq zones : un
-  attaquant bloqué l'est partout, et plus seulement dans sa propre zone.
+  existantes). Depuis le 07/10, une règle équivalente est placée en tête de chacune des cinq
+  zones : un attaquant bloqué l'est partout, et plus seulement dans sa propre zone.
 - [`firewall/opnsense_client.py`](../../firewall/opnsense_client.py) : client REST
   partagé (TLS vérifié contre la CA du lab, `ExpectedName` pour forcer le contrôle du nom
   même via un tunnel `127.0.0.1`), extrait de `apply_policy.py`.

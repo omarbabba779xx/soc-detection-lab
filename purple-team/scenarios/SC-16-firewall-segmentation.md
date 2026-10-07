@@ -66,10 +66,11 @@ OPNsense présentait un certificat auto-signé pour `OPNsense.localdomain`. Dés
 | `openssl s_client -verify_ip 10.10.10.1` avec la CA | `Verification: OK` |
 | même test sans la CA | code 21, refus |
 | `apply_policy.py` sans `OPN_TLS_NAME` | `CERTIFICATE_VERIFY_FAILED`, avant toute modification |
-| `apply_policy.py` complet | 17 règles `saved`, `filter apply: OK`, `syslog reconfigure: ok` |
+| `apply_policy.py` complet | 12 règles `saved`, `filter apply: OK`, `syslog reconfigure: ok` |
 
-Depuis le 24/09, la politique versionnée compte une treizième règle (séquence 395, blocage des adresses de
-l'alias `BLOCKED_ATTACKERS`, voir SC-14) ; les chiffres et la capture de cette fiche datent du 23/09.
+La politique comptait 12 règles à cette date. Une treizième a été ajoutée le 24/09 (séquence 395, blocage des
+adresses de l'alias `BLOCKED_ATTACKERS`, voir SC-14), puis quatre autres le 07/10 : 17 règles aujourd'hui (voir la
+mise à jour en fin de fiche). La capture de la politique a été refaite le 07/10.
 
 ## Journaux vers Wazuh
 
@@ -117,8 +118,9 @@ Précision (25/09) : `10.10.30.10`, la cible de ce scan, n'est portée par aucun
 
 ## Isolement de l'attaquant (24/09)
 
-Les VM du SOC et les cibles ont une patte sur le réseau mgmt (10.10.10.0/24), le
-réseau d'administration hors bande, qui n'est pas filtré par le pare-feu. Jusqu'au 23/09,
+Les VM du SOC et, à cette date, les cibles ont une patte sur le réseau mgmt (10.10.10.0/24), le
+réseau d'administration hors bande, qui n'est pas filtré par le pare-feu (les cibles l'ont perdue le 07/10,
+voir la mise à jour en fin de fiche). Jusqu'au 23/09,
 PURPLE y avait aussi une adresse (10.10.10.60) : la machine attaquante atteignait
 directement le réseau d'administration, sans passer par aucun contrôle. Les scénarios
 SC-05, SC-06, SC-07 et SC-12 ont été réalisés ainsi ; chaque fiche le précise.
@@ -170,11 +172,17 @@ Côté PURPLE : 0 réponse au `ping`, connexion TCP refusée ; route
 Aucun : la politique, l'envoi syslog et les règles 100300 à 100302, 100310 et 100311 restent en place, c'est la configuration
 voulue du lab.
 
-## Mise à jour du 07/10 : confinement sur toutes les zones, hôtes internes vers la zone attaquant
+## Mise à jour du 07/10 : cibles derrière le pare-feu, confinement sur toutes les zones
+
+Les cibles (DC01, WIN01, LINUX01) n'ont plus de carte sur le réseau mgmt : leurs agents joignent le SOC par leur
+zone, à travers le pare-feu, qui ne leur ouvre que les ports `SOC_AGENT_PORTS`. Vérifié depuis LINUX01 : vers le
+serveur Velociraptor, le port 8889 répond, le ping et le port 22 sont bloqués ; vers DC01, les ports AD (53, 88,
+389, 445) répondent, 3389 et 22 sont bloqués. Une cible compromise ne peut donc plus atteindre l'administration
+des outils du SOC.
 
 La règle de blocage `BLOCKED_ATTACKERS` n'existait que sur l'interface de la zone attaquant. Une règle équivalente
-ouvre maintenant chacune des cinq zones (séquences 95, 195, 295, 395, 495) : une adresse bloquée par la chaîne
-SOAR l'est partout. La politique passe de 12 à 17 règles ; la capture
+est maintenant placée en tête de chacune des cinq zones (séquences 95, 195, 295, 395, 495) : une adresse bloquée
+par la chaîne SOAR l'est partout. La politique passe de 12 à 17 règles ; la capture
 [`opnsense-segmentation-policy.png`](../../docs/screenshots/opnsense-segmentation-policy.png) montre la liste complète.
 
 Deux règles Wazuh complètent `100300` pour le sens inverse :
