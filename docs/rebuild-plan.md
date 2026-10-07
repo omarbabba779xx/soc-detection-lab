@@ -464,3 +464,8 @@ ouvert), exécuter, capturer la preuve, éteindre avant l'étape suivante sauf W
 41. Disque des VM débranché à chaud (07/10) : les images disque ont été déconnectées pendant que des VM
     tournaient. Le système de fichiers de VM03-THEHIVE a dû être réparé (`fsck`, conteneur recréé depuis son
     fichier compose, données conservées) ; Wazuh, DC01, WIN01 et le pare-feu n'ont rien perdu.
+42. Règle 100155 mal rattachée et bruyante (07/10) : son parent dans le dépôt (185006, ancien format `eventlog`)
+    ne voyait pas les événements reçus par `eventchannel`. Parent remplacé par 61610, et règle 100156 ajoutée pour
+    le signal de console de `csrss.exe`. Vérifié en direct sur WIN01 et sur les 18 événements enregistrés.
+43. Retour de sightings depuis Linux non observé (07/10) : boucle rejouée sur LINUX01, événement MISP #7, sighting
+    revenu 47 secondes après la publication (voir SC-15).

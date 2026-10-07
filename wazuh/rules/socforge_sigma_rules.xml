@@ -195,18 +195,34 @@
   <!-- ============================================================ -->
   <!-- T1055 — Process Injection (Sysmon EventID 8 — CreateRemoteThread) -->
   <!-- ============================================================ -->
-  <!-- Same if_group-vs-if_sid issue as 100103/100147 (confirmed 2026-09-18). No official
-       Sysmon EventID 8 rule is a generic catch-all (92400/92401/92402/92403 are each
-       scoped to one target process), so this chains on 185006 — the bare, level-0 base
-       rule in 0330-sysmon_rules.xml that tags every EventID 8 event with sysmon_event8 —
-       instead of the group itself. -->
+  <!-- Chained on 61610, the level-0 rule of 0595-win-sysmon_rules.xml that every Sysmon
+       EventID 8 received through the event channel goes through. The official rules
+       92400 to 92403 are each scoped to one target process, none is a catch-all.
+       Until 2026-10-07 this rule named 185006 as its parent. That one belongs to
+       0330-sysmon_rules.xml, written for the legacy eventlog format, and an event-channel
+       event never reaches it: a live EventID 8 raised nothing. Found while tuning the
+       rule, fixed and replayed the same day. -->
   <rule id="100155" level="13">
-    <if_sid>185006</if_sid>
+    <if_sid>61610</if_sid>
     <description>Sigma T1055: CreateRemoteThread into another process — possible process injection — $(win.eventdata.sourceImage) -> $(win.eventdata.targetImage)</description>
     <group>process_injection,mitre_defense_evasion,</group>
     <mitre>
       <id>T1055</id>
     </mitre>
+  </rule>
+
+  <!-- Tuning 2026-10-07: 16 of the 18 alerts 100155 kept by the manager were csrss.exe
+       starting KERNELBASE!CtrlRoutine in a console program. That is how Windows delivers
+       Ctrl+C / Ctrl+Break and the close of a console window: every console application
+       receives it. Only that exact triple is taken out; any other remote thread, from
+       csrss.exe or not, still raises 100155. -->
+  <rule id="100156" level="3">
+    <if_sid>100155</if_sid>
+    <field name="win.eventdata.sourceImage" type="pcre2">(?i)\\+System32\\+csrss\.exe$</field>
+    <field name="win.eventdata.startFunction">^CtrlRoutine$</field>
+    <field name="win.eventdata.startModule" type="pcre2">(?i)\\+KERNELBASE\.dll$</field>
+    <description>Console control signal delivered by csrss.exe (CtrlRoutine) — routine, not alerted</description>
+    <group>process_injection_noise,</group>
   </rule>
 
   <!-- ============================================================ -->

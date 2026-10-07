@@ -10,13 +10,13 @@ Le projet va jusqu'au bout d'un incident : une seule attaque est suivie à trave
 orchestration, enrichissement, blocage réseau, isolation du poste, chasse, clôture du cas). Le détail est dans la
 fiche [SC-14](purple-team/scenarios/SC-14-shuffle-soar-workflow.md).
 
-Quelques chiffres : 12 machines, 16 fiches de scénario, 28 règles de détection écrites pour le lab, 5 zones
-réseau filtrées, une chaîne d'automatisation de 6 nœuds et 45 captures. Sur l'attaque suivie, Wazuh alerte en
+Quelques chiffres : 12 machines, 16 fiches de scénario, 29 règles de détection écrites pour le lab, 5 zones
+réseau filtrées, une chaîne d'automatisation de 6 nœuds et 47 captures. Sur l'attaque suivie, Wazuh alerte en
 1 à 7 secondes, l'alerte arrive dans TheHive 7 secondes après sa livraison, l'adresse de l'attaquant est bloquée
 à 24 secondes, l'ordre d'isolation du poste part à 29 secondes et la chasse est demandée à 35 secondes
 ([métriques](docs/metrics-mttd-mtta-mttr.md)).
 
-Ce README raconte le projet dans l'ordre où il a été construit, étape par étape, avec les 45 captures prises
+Ce README raconte le projet dans l'ordre où il a été construit, étape par étape, avec les 47 captures prises
 sur le lab. Sur chaque capture, les cadres rouges montrent ce qu'il faut regarder : la requête, le nombre de
 résultats, la ligne ou la valeur qui prouve le point. Les fiches de scénario donnent ensuite la commande exacte,
 les journaux et le nettoyage.
@@ -27,14 +27,14 @@ les journaux et le nettoyage.
 | 2 | Détecter les techniques sur Windows et Linux | 12 |
 | 3 | Surveiller et cloisonner le réseau | 6 |
 | 4 | Automatiser la réponse : Shuffle, TheHive, Cortex, MISP | 8 |
-| 5 | Chasser sur les postes à partir du renseignement | 10 |
+| 5 | Chasser sur les postes à partir du renseignement | 12 |
 | 6 | Une attaque suivie de bout en bout | 8 |
 
 Les tableaux de bord affichent l'heure locale du lab (UTC+1). Les fiches et les journaux sont en UTC.
 
 Pour lire les captures sans se tromper, trois repères :
 
-- Elles viennent de deux périodes. Celles des étapes 1 à 5 ont été prises du 17 au 25 septembre 2026, pendant la construction du lab : ce sont des tests séparés, un par technique ou par brique. Celles de l'étape 6 viennent toutes de l'attaque du 7 octobre 2026.
+- Elles viennent de deux périodes. Celles des étapes 1 à 5 ont été prises du 17 au 25 septembre 2026, pendant la construction du lab : ce sont des tests séparés, un par technique ou par brique. Celles de l'étape 6 viennent toutes de l'attaque du 7 octobre 2026. Seule exception dans les étapes 1 à 5 : les deux captures de la chasse Linux, à la fin de l'étape 5, prises elles aussi le 7 octobre.
 - Les adresses ont changé entre les deux. En septembre, Kali et les cibles avaient encore une carte sur le réseau de gestion : Kali apparaît en `10.10.10.60`, DC01 en `10.10.10.109`, WIN01 en `10.10.10.110`. Ces cartes ont ensuite été retirées pour que l'attaquant et les cibles ne communiquent plus qu'à travers le pare-feu. Le 7 octobre, PURPLE est en `10.10.50.10` et WIN01 en `10.10.30.110`.
 - WIN01 porte deux noms selon l'outil : `WIN01` est le nom de son agent Wazuh, `DESKTOP-75LAKDV` son nom Windows, celui que Velociraptor et TheHive affichent. C'est la même machine.
 
@@ -72,7 +72,7 @@ injection de processus, PowerShell, tâche planifiée, mémoire de LSASS, partag
 ## Étape 2 : détecter les techniques sur les postes
 
 Chaque technique suit la même méthode : lancer une action réelle et bénigne, regarder si la règle sonne, corriger
-la règle si elle ne sonne pas, puis garder la preuve. Les 28 règles du lab sont dans `wazuh/rules/`, et les
+la règle si elle ne sonne pas, puis garder la preuve. Les 29 règles du lab sont dans `wazuh/rules/`, et les
 défauts trouvés en les testant sont décrits dans la
 [fiche de détection Windows](detections/windows/detection-sheet-windows.md) et la
 [fiche Linux](detections/linux/detection-sheet-linux.md).
@@ -161,8 +161,10 @@ Fiche : [SC-09](purple-team/scenarios/SC-09-T1547-registry-run-key.md).
 ### Injection de processus (SC-10)
 
 Un script crée un thread dans un `notepad.exe` local avec `CreateRemoteThread`, sans y écrire de code. Sysmon
-produit l'événement 8 et la règle `100155` alerte au niveau 13. Les 17 résultats pour un seul test montrent aussi
-le bruit réel de cette règle, qui serait à filtrer en production.
+produit l'événement 8 et la règle `100155` alerte au niveau 13. Les 17 résultats pour un seul test montraient
+le bruit de cette règle. Il a été analysé le 7 octobre : 16 des 18 alertes gardées par le manager étaient le signal
+Ctrl+C que Windows envoie aux programmes console. La règle `100156` classe ce cas au niveau 3, sans alerte, et le
+rattachement de la règle `100155` a été corrigé à cette occasion.
 Fiche : [SC-10](purple-team/scenarios/SC-10-T1055-process-injection.md).
 
 <p align="center"><img src="docs/screenshots/wazuh-dashboard-rule-100155-live.png" alt="Règle 100155 sur WIN01"></p>
@@ -346,6 +348,20 @@ alors que celles de la veille avaient été créées par le compte `admin`.
 
 <p align="center"><img src="docs/screenshots/velociraptor-autohunt-hunts.png" alt="Chasses créées automatiquement par le serveur"></p>
 
+### La même boucle sur Linux
+
+Le 7 octobre, la boucle est rejouée sur LINUX01, qui joint désormais Velociraptor à travers le pare-feu. Un
+marqueur bénin est écrit dans le journal système avec `logger`, puis l'événement MISP #7 qui le contient est
+publié à 14:09:00. Velociraptor crée la chasse 8 secondes plus tard, sans intervention. LINUX01 rend deux lignes :
+celle du journal système et celle de la commande `sudo` dans le journal d'authentification.
+
+<p align="center"><img src="docs/screenshots/velociraptor-linux01-autohunt-flow.png" alt="Chasse automatique exécutée sur LINUX01"></p>
+
+Le sighting arrive dans MISP à 14:09:47, 47 secondes après la publication, avec le nom du poste et l'identifiant
+de la chasse.
+
+<p align="center"><img src="docs/screenshots/misp-event7-linux-sighting.png" alt="Événement MISP 7 et son sighting venu de LINUX01"></p>
+
 ## Étape 6 : une attaque suivie de bout en bout
 
 Tout ce qui précède est assemblé ici, le 7 octobre 2026, sur une seule attaque. Les huit captures de cette étape
@@ -415,12 +431,12 @@ Après l'exercice, l'isolation de WIN01 a été levée et l'adresse retirée de 
 
 ## Ce que le dépôt démontre
 
-- Détection Windows : 19 règles Wazuh rattachées à MITRE ATT&CK, dont les principales ont aussi une forme Sigma dans `detections/sigma/` (15 règles, Windows et Linux).
+- Détection Windows : 20 règles Wazuh rattachées à MITRE ATT&CK, dont les principales ont aussi une forme Sigma dans `detections/sigma/` (15 règles, Windows et Linux).
 - Détection Linux : sudo et persistance cron.
 - Réseau : une sonde Suricata et Zeek dont les alertes remontent dans Wazuh, et une segmentation à refus par défaut entre cinq zones, journalisée.
 - Orchestration : une alerte Wazuh devient une alerte TheHive avec ses observables, est enrichie par Cortex et MISP, puis déclenche le blocage de l'attaquant, l'isolation du poste et la chasse, sans intervention.
 - Garde-fous de la réponse automatique : liste d'adresses jamais bloquées, label qui protège le contrôleur de domaine, blocage temporaire, webhook réservé à Wazuh, accès à Velociraptor par une clé SSH limitée à une commande. Ils sont testés dans la fiche [SC-14](purple-team/scenarios/SC-14-shuffle-soar-workflow.md).
-- DFIR : un événement MISP publié lance seul une chasse Velociraptor et les sightings reviennent dans MISP. La boucle complète est prouvée sur Windows ; sur Linux, l'agent, la chasse et l'isolation ont été testés séparément.
+- DFIR : un événement MISP publié lance seul une chasse Velociraptor et les sightings reviennent dans MISP. La boucle complète est prouvée sur Windows et sur Linux ; l'isolation d'un poste Linux a été testée séparément.
 - Qualité du dépôt : 54 tests automatiques vérifient les règles, la politique du pare-feu, les artefacts, le code des nœuds et les liens de la documentation ; ils tournent à chaque envoi, avec la validation des règles Sigma.
 - Chiffrement : les services en HTTPS (MISP, OPNsense) sont appelés avec la CA interne du lab, sans désactiver la vérification. TheHive, Cortex et Shuffle restent en HTTP sur le réseau de gestion.
 

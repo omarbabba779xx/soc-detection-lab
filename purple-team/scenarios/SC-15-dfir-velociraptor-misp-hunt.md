@@ -330,7 +330,16 @@ après le démarrage ou 10 min plus tard. La configuration concernée n'existe p
 - Testé sur LINUX01 : la collecte `LogHunter` rend ses lignes (flow `F.DB2B18FKORFRG`), et l'isolation par
   `Linux.Remediation.Quarantine` fait passer le ping de 0 % à 100 % de perte, puis de nouveau à 0 % après levée.
   La chasse Linux créée par `AutoHunt` lors de l'attaque du 07/10 (`H.DB31LALB5TRPA`) n'a pas été exécutée par
-  LINUX01, éteinte à ce moment : le retour de sightings depuis un poste Linux n'est donc pas encore observé.
+  LINUX01, éteinte à ce moment.
+- Boucle complète observée sur Linux le 07/10, avec le pare-feu, MISP, Velociraptor et LINUX01 allumés. À 14:07:24,
+  `logger` écrit le marqueur `SocForge-LinuxHunt-071014-B7E2` dans le journal système de LINUX01. L'événement MISP #7,
+  qui contient ce marqueur, est publié à 14:09:00. `AutoHunt` crée la chasse `H.DB35514R3T4GA` à 14:09:08
+  (créateur `VelociraptorServer`). LINUX01 l'exécute à 14:09:46 (flow `F.DB35514R3T4GA.H`, 2 lignes : la ligne de
+  `/var/log/syslog` et la ligne `sudo` de `/var/log/auth.log`). Le sighting arrive dans MISP à 14:09:47, sur
+  l'attribut 13, 47 secondes après la publication. La chasse Windows créée en même temps n'a touché aucun poste :
+  WIN01 était éteinte. Captures :
+  [`velociraptor-linux01-autohunt-flow.png`](../../docs/screenshots/velociraptor-linux01-autohunt-flow.png),
+  [`misp-event7-linux-sighting.png`](../../docs/screenshots/misp-event7-linux-sighting.png).
 - Les trois agents joignent désormais le serveur par le pare-feu, depuis leur adresse de zone (`10.10.20.10`,
   `10.10.30.110`, `10.10.30.20`), et non plus par le réseau de gestion.
 - Shuffle n'utilise plus le compte `socforge-api` : il passe par un compte `soar` limité à l'envoi d'une requête

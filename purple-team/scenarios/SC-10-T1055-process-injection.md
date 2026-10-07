@@ -7,7 +7,7 @@
 | Cible | WIN01 (agent Wazuh 005), processus `notepad.exe` local |
 | Technique MITRE | T1055, Process Injection |
 | Tactiques | Defense Evasion, Privilege Escalation |
-| Résultat | détecté, règle 100155 (niveau 13), après correction du rattachement de la règle |
+| Résultat | détecté, règle 100155 (niveau 13) ; bruit traité et rattachement corrigé le 07/10 |
 
 ## Objectif
 
@@ -65,12 +65,17 @@ donc rattachée à `<if_sid>185006</if_sid>`, la règle de base de niveau 0 qui 
 
 ## Lecture côté défense
 
-La règle `100155` alerte sur tout événement Sysmon 8, sans filtre : elle voit aussi des créations de thread
-légitimes (17 correspondances dans la capture, pour un seul test). Dans le lab, ce choix garde la règle simple et
-montre le bruit réel ; en production, il faudrait retirer les couples source/cible connus.
+Le 18/09, la règle `100155` alertait sur tout événement Sysmon 8, sans filtre : elle voyait aussi des créations de
+thread légitimes (17 correspondances dans la capture, pour un seul test). Depuis le 07/10, le signal de console de
+Windows est écarté par la règle `100156` ; les autres cas continuent d'alerter.
 
 Sysmon 8 ne décrit qu'une famille de techniques, celle qui crée un thread dans un autre processus. Le test est
 lancé sur la console de WIN01 et n'écrit aucun code dans le processus cible.
+
+## Mise à jour du 07/10
+
+Le bruit de la règle a été analysé et son rattachement corrigé. Le détail est dans la
+[fiche de détection Windows](../../detections/windows/detection-sheet-windows.md), section T1055.
 
 ## Nettoyage
 

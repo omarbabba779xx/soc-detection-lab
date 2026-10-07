@@ -194,11 +194,19 @@ forme Sigma des détections principales est dans [`detections/sigma/`](../sigma/
 
 ## T1055 : injection de processus
 
-- Source : Sysmon 8. Règle : 100155 (niveau 13), rattachée à la règle de base 185006.
+- Source : Sysmon 8. Règle : 100155 (niveau 13), rattachée à la règle de base 61610. Règle 100156 (niveau 3) pour le bruit.
 - Condition : tout thread créé dans un autre processus, sans filtre.
 - Défaut corrigé le 2026-09-18 : même problème de rattachement par groupe que 100147. Aucune règle officielle ne
   couvre l'événement 8 en général (92400 à 92403 visent chacune un processus précis), d'où le rattachement à
-  185006.
+  une règle de base de niveau 0.
+- Défaut corrigé le 2026-10-07 : le dépôt nommait comme parent la règle 185006, écrite pour l'ancien format
+  `eventlog`. Un événement 8 reçu en direct de WIN01 ne levait rien. Le parent est maintenant 61610, la règle de
+  base du format `eventchannel`. Les alertes du 18/09 sont bien dans le journal du manager, mais la version de la
+  règle chargée ce jour-là ne peut plus être reconstituée.
+- Bruit traité le 2026-10-07 : sur les 18 alertes gardées par le manager, 16 étaient le signal de console que
+  `csrss.exe` envoie lors d'un Ctrl+C. La règle 100156 les classe au niveau 3. Vérifié en direct sur WIN01
+  (Ctrl+C pendant un `ping`, deux événements classés 100156 à 14:45:33 UTC), puis en rejouant les 18 événements
+  enregistrés dans `wazuh-logtest` : 16 passent en 100156, 2 restent en 100155, dont le test du 18/09.
 - Test du 2026-09-18 sur WIN01 : un script lance `notepad.exe` puis y crée un thread qui appelle
   `kernel32!Sleep`, sans écrire de code dans la cible. Résultat :
   `Rule: 100155 (level 13) -> 'Sigma T1055: CreateRemoteThread into another process — possible process injection —
