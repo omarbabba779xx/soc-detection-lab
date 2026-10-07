@@ -32,6 +32,12 @@ les journaux et le nettoyage.
 
 Les tableaux de bord affichent l'heure locale du lab (UTC+1). Les fiches et les journaux sont en UTC.
 
+Pour lire les captures sans se tromper, trois repères :
+
+- Elles viennent de deux périodes. Celles des étapes 1 à 5 ont été prises du 17 au 25 septembre 2026, pendant la construction du lab : ce sont des tests séparés, un par technique ou par brique. Celles de l'étape 6 viennent toutes de l'attaque du 7 octobre 2026.
+- Les adresses ont changé entre les deux. En septembre, Kali et les cibles avaient encore une carte sur le réseau de gestion : Kali apparaît en `10.10.10.60`, DC01 en `10.10.10.109`, WIN01 en `10.10.10.110`. Ces cartes ont ensuite été retirées pour que l'attaquant et les cibles ne communiquent plus qu'à travers le pare-feu. Le 7 octobre, PURPLE est en `10.10.50.10` et WIN01 en `10.10.30.110`.
+- WIN01 porte deux noms selon l'outil : `WIN01` est le nom de son agent Wazuh, `DESKTOP-75LAKDV` son nom Windows, celui que Velociraptor et TheHive affichent. C'est la même machine.
+
 ## Architecture
 
 ![Architecture du laboratoire](docs/architecture.png)
@@ -227,7 +233,10 @@ Fiche : [SC-13](purple-team/scenarios/SC-13-thehive-cortex-100155.md).
 
 ### De Wazuh à TheHive sans intervention (SC-14)
 
-Le manager Wazuh envoie ensuite lui-même à Shuffle toute alerte de niveau 10 ou plus. L'exécution ci-dessous est
+Le manager Wazuh envoie ensuite lui-même à Shuffle toute alerte de niveau 10 ou plus. Pour la mise au point de la
+chaîne, le déclencheur de ces essais est un fichier cron de test déposé sur le serveur Wazuh lui-même : c'est
+pourquoi l'agent s'appelle `wazuh` dans les captures de cette étape. La règle est la
+même que celle validée sur LINUX01 à l'étape 2. L'exécution ci-dessous est
 déclenchée ainsi : source `webhook`, règle `100210`, quinze secondes de bout en bout, et TheHive répond `201` à la
 création de l'alerte.
 
@@ -242,7 +251,8 @@ donc toujours remonter de TheHive au journal brut.
 
 Un deuxième workflow lit les observables de l'alerte, en extrait l'adresse et la soumet à l'analyseur Cortex
 `MISP_SocForge`, qui interroge MISP. La capture montre l'adresse extraite pendant l'exécution et la réponse `200`
-de Cortex.
+de Cortex, c'est-à-dire que l'analyse a bien été lancée. Le résultat de l'analyse se lit deux captures plus bas,
+sur l'observable dans TheHive.
 
 <p align="center"><img src="docs/screenshots/shuffle-dynamic-trigger-misp-match.png" alt="Workflow d'enrichissement dans Shuffle"></p>
 
@@ -338,7 +348,8 @@ alors que celles de la veille avaient été créées par le compte `admin`.
 
 ## Étape 6 : une attaque suivie de bout en bout
 
-Tout ce qui précède est assemblé ici, le 7 octobre 2026, sur une seule attaque. Les machines sont allumées par
+Tout ce qui précède est assemblé ici, le 7 octobre 2026, sur une seule attaque. Les huit captures de cette étape
+viennent toutes de cette exécution. Les machines sont allumées par
 groupes, selon leur rôle : d'abord l'attaque et sa détection, puis la chaîne de réponse. L'alerte réelle a été
 remise à Shuffle avec le script d'intégration officiel de Wazuh, et les actions ci-dessous sont les actions
 réelles de la chaîne. Le détail heure par heure est dans la fiche
